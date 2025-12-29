@@ -17,7 +17,7 @@ export function StatusBadge({ status, size = 'md' }: StatusBadgeProps) {
 
   return (
     <span
-      className={`inline-flex items-center rounded-full font-medium ${sizeClasses[size]} ${STATUS_COLORS[status]}`}
+      className={`inline-flex items-center rounded-full font-medium ${sizeClasses[size]} ${STATUS_COLORS[status]} shadow-sm backdrop-blur-sm`}
     >
       {STATUS_LABELS[status]}
     </span>

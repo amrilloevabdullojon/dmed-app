@@ -1,15 +1,22 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Manrope, Space_Grotesk } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/Providers'
 import { Snowfall, NewYearBanner } from '@/components/Snowfall'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 
-const inter = Inter({
+const manrope = Manrope({
   subsets: ['latin', 'cyrillic'],
   display: 'swap',
   preload: true,
-  variable: '--font-inter',
+  variable: '--font-manrope',
+})
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  display: 'swap',
+  preload: true,
+  variable: '--font-space',
 })
 
 export const metadata: Metadata = {
@@ -24,7 +31,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru" className="dark">
-      <body className={`${inter.className} bg-gray-900 text-white min-h-screen`}>
+      <body className={`${manrope.variable} ${spaceGrotesk.variable} app-body text-white min-h-screen`}>
         <Providers>
           <NewYearBanner />
           {children}

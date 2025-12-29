@@ -98,7 +98,7 @@ const FILTERS = [
 ]
 
 type ViewMode = 'cards' | 'table'
-type SortField = 'deadline' | 'date' | 'number' | 'org' | 'status' | 'priority'
+type SortField = 'created' | 'deadline' | 'date' | 'number' | 'org' | 'status' | 'priority'
 
 function LettersPageContent() {
   const { data: session, status: authStatus } = useSession()
@@ -118,8 +118,8 @@ function LettersPageContent() {
   const [ownerFilter, setOwnerFilter] = useState(searchParams.get('owner') || '')
   const [typeFilter, setTypeFilter] = useState(searchParams.get('type') || '')
   const [viewMode, setViewMode] = useState<ViewMode>('table')
-  const [sortBy, setSortBy] = useState<SortField>('deadline')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [sortBy, setSortBy] = useState<SortField>('created')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
 
   // Массовый выбор
@@ -323,10 +323,10 @@ function LettersPageContent() {
   }
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortBy !== field) return <ArrowUpDown className="w-4 h-4 text-gray-600" />
+    if (sortBy !== field) return <ArrowUpDown className="w-4 h-4 text-slate-400/70" />
     return sortOrder === 'asc'
-      ? <ArrowUp className="w-4 h-4 text-emerald-400" />
-      : <ArrowDown className="w-4 h-4 text-emerald-400" />
+      ? <ArrowUp className="w-4 h-4 text-teal-300" />
+      : <ArrowDown className="w-4 h-4 text-teal-300" />
   }
 
   const getDeadlineInfo = (letter: Letter) => {
@@ -334,7 +334,7 @@ function LettersPageContent() {
     const isDone = isDoneStatus(letter.status)
 
     if (isDone) {
-      return { text: 'Выполнено', className: 'text-emerald-400' }
+      return { text: 'Выполнено', className: 'text-teal-300' }
     }
     if (daysLeft < 0) {
       return { text: `Просрочено на ${Math.abs(daysLeft)} ${pluralizeDays(daysLeft)}`, className: 'text-red-400' }
@@ -342,36 +342,36 @@ function LettersPageContent() {
     if (daysLeft <= 2) {
       return { text: `${daysLeft} ${pluralizeDays(daysLeft)}`, className: 'text-yellow-400' }
     }
-    return { text: `${daysLeft} ${pluralizeDays(daysLeft)}`, className: 'text-gray-400' }
+    return { text: `${daysLeft} ${pluralizeDays(daysLeft)}`, className: 'text-slate-300/70' }
   }
 
   if (authStatus === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+      <div className="min-h-screen flex items-center justify-center bg-transparent">
+        <Loader2 className="w-8 h-8 animate-spin text-teal-400" />
       </div>
     )
   }
 
   if (!session) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <p className="text-gray-400">Пожалуйста, войдите в систему</p>
+      <div className="min-h-screen flex items-center justify-center bg-transparent">
+        <p className="text-slate-300/70">Пожалуйста, войдите в систему</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen app-shell">
       <Header />
 
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pageIn relative">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">Письма</h1>
+            <h1 className="text-3xl md:text-4xl font-display font-semibold text-white">Письма</h1>
             {pagination && (
-              <p className="text-gray-400 text-sm mt-1">
+              <p className="text-muted text-sm mt-1">
                 Всего: {pagination.total} писем
               </p>
             )}
@@ -385,14 +385,14 @@ function LettersPageContent() {
                 ...(typeFilter ? { type: typeFilter } : {}),
                 ...(selectedIds.size > 0 ? { ids: Array.from(selectedIds).join(',') } : {}),
               }).toString()}`}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg transition btn-secondary"
             >
               <Download className="w-5 h-5" />
               Экспорт
             </a>
             <Link
               href="/letters/new"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg transition btn-primary"
             >
               <Plus className="w-5 h-5" />
               Новое письмо
@@ -402,9 +402,9 @@ function LettersPageContent() {
 
         {/* Bulk Actions Bar */}
         {selectedIds.size > 0 && (
-          <div className="bg-gray-800 border border-emerald-500/50 rounded-lg p-4 mb-4 flex flex-wrap items-center gap-4">
+          <div className="panel panel-soft rounded-2xl p-4 mb-4 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <CheckSquare className="w-5 h-5 text-emerald-400" />
+              <CheckSquare className="w-5 h-5 text-teal-300" />
               <span className="text-white font-medium">
                 Выбрано: {selectedIds.size}
               </span>
@@ -418,7 +418,7 @@ function LettersPageContent() {
                   setBulkAction(value || null)
                   setBulkValue('')
                 }}
-                className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white"
               >
                 <option value="">Выберите действие</option>
                 <option value="status">Изменить статус</option>
@@ -432,7 +432,7 @@ function LettersPageContent() {
                 <select
                   value={bulkValue}
                   onChange={(e) => setBulkValue(e.target.value)}
-                  className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white"
                 >
                   <option value="">Выберите статус</option>
                   {STATUSES.filter((s) => s !== 'all').map((status) => (
@@ -447,7 +447,7 @@ function LettersPageContent() {
                 <select
                   value={bulkValue}
                   onChange={(e) => setBulkValue(e.target.value)}
-                  className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                  className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white"
                 >
                   <option value="">Выберите ответственного</option>
                   <option value="">Снять ответственного</option>
@@ -489,7 +489,7 @@ function LettersPageContent() {
                 setBulkAction(null)
                 setBulkValue('')
               }}
-              className="p-2 text-gray-400 hover:text-white transition"
+              className="p-2 text-slate-300 hover:text-white transition hover:bg-white/10 rounded-lg"
             >
               <X className="w-5 h-5" />
             </button>
@@ -497,7 +497,7 @@ function LettersPageContent() {
         )}
 
         {/* Quick Filters */}
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4 p-2 rounded-2xl panel-soft panel-glass">
           {FILTERS.map((filter) => {
             const Icon = filter.icon
             return (
@@ -508,11 +508,7 @@ function LettersPageContent() {
                   setStatusFilter('all')
                   setPage(1)
                 }}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition ${
-                  quickFilter === filter.value
-                    ? 'bg-emerald-500 text-white'
-                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
-                }`}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition app-chip ${quickFilter === filter.value ? 'app-chip-active' : ''}`}`
               >
                 <Icon className="w-4 h-4" />
                 {filter.label}
@@ -522,13 +518,13 @@ function LettersPageContent() {
         </div>
 
         {/* Filters Row */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="panel panel-soft panel-glass rounded-2xl p-4 flex flex-col sm:flex-row gap-4 mb-6">
           {/* Search */}
           <div className="relative flex-1">
             {isSearching ? (
-              <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500 animate-spin" />
+              <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-teal-400 animate-spin" />
             ) : (
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             )}
             <input
               ref={searchInputRef}
@@ -536,12 +532,12 @@ function LettersPageContent() {
               placeholder="Поиск по номеру, организации, Jira, ответу... (нажмите /)"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-10 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500"
+              className="w-full pl-10 pr-10 py-2 rounded-xl border border-white/10 bg-white/5 text-white placeholder-slate-400 focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
             />
             {search && (
               <button
                 onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -550,7 +546,7 @@ function LettersPageContent() {
 
           {/* Status filter */}
           <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-gray-500" />
+            <Filter className="w-5 h-5 text-slate-400" />
             <select
               value={statusFilter}
               onChange={(e) => {
@@ -558,7 +554,7 @@ function LettersPageContent() {
                 setQuickFilter('')
                 setPage(1)
               }}
-              className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+              className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
             >
               <option value="all">Все статусы</option>
               {STATUSES.filter((s) => s !== 'all').map((status) => (
@@ -570,14 +566,14 @@ function LettersPageContent() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-gray-500" />
+            <Users className="w-5 h-5 text-slate-400" />
             <select
               value={ownerFilter}
               onChange={(e) => {
                 setOwnerFilter(e.target.value)
                 setPage(1)
               }}
-              className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+              className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
             >
               <option value="">{'\u0412\u0441\u0435 \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u0438'}</option>
               {users.map((user) => (
@@ -589,14 +585,14 @@ function LettersPageContent() {
           </div>
 
           <div className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-gray-500" />
+            <FileText className="w-5 h-5 text-slate-400" />
             <select
               value={typeFilter}
               onChange={(e) => {
                 setTypeFilter(e.target.value)
                 setPage(1)
               }}
-              className="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+              className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
             >
               <option value="">{'\u0412\u0441\u0435 \u0442\u0438\u043f\u044b'}</option>
               {LETTER_TYPES.filter((item) => item.value !== 'all').map((item) => (
@@ -608,17 +604,17 @@ function LettersPageContent() {
           </div>
 
           {/* View toggle */}
-          <div className="flex bg-gray-800 rounded-lg p-1">
+          <div className="flex rounded-xl p-1 panel-soft panel-glass">
             <button
               onClick={() => setViewMode('table')}
-              className={`p-2 rounded ${viewMode === 'table' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`p-2 rounded-lg transition ${viewMode === 'table' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
               title="Таблица"
             >
               <List className="w-5 h-5" />
             </button>
             <button
               onClick={() => setViewMode('cards')}
-              className={`p-2 rounded ${viewMode === 'cards' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`p-2 rounded-lg transition ${viewMode === 'cards' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
               title="Карточки"
             >
               <LayoutGrid className="w-5 h-5" />
@@ -629,23 +625,23 @@ function LettersPageContent() {
           <div className="relative">
             <button
               onClick={() => setShowShortcuts(!showShortcuts)}
-              className={`p-2 rounded-lg transition ${showShortcuts ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`}
+              className={`p-2 rounded-lg transition ${showShortcuts ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:text-white'}`}
               title="Горячие клавиши"
             >
               <Keyboard className="w-5 h-5" />
             </button>
             {showShortcuts && (
-              <div className="absolute right-0 top-full mt-2 p-4 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-30 w-64">
+              <div className="absolute right-0 top-full mt-2 p-4 panel panel-glass rounded-xl shadow-xl z-30 w-64">
                 <h4 className="text-white font-medium mb-3">Горячие клавиши</h4>
-                <div className="text-xs text-gray-400 space-y-2">
-                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded">J</kbd> / <kbd className="px-1.5 py-0.5 bg-gray-700 rounded">↓</kbd></span><span>Вниз</span></div>
-                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded">K</kbd> / <kbd className="px-1.5 py-0.5 bg-gray-700 rounded">↑</kbd></span><span>Вверх</span></div>
-                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded">Enter</kbd></span><span>Открыть</span></div>
-                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded">Space</kbd></span><span>Выбрать</span></div>
-                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded">Esc</kbd></span><span>Отмена</span></div>
-                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded">/</kbd></span><span>Поиск</span></div>
-                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded">N</kbd></span><span>Новое письмо</span></div>
-                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-gray-700 rounded">Ctrl</kbd>+<kbd className="px-1.5 py-0.5 bg-gray-700 rounded">A</kbd></span><span>Выбрать все</span></div>
+                <div className="text-xs text-slate-300/70 space-y-2">
+                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-white/10 rounded">J</kbd> / <kbd className="px-1.5 py-0.5 bg-white/10 rounded">↓</kbd></span><span>Вниз</span></div>
+                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-white/10 rounded">K</kbd> / <kbd className="px-1.5 py-0.5 bg-white/10 rounded">↑</kbd></span><span>Вверх</span></div>
+                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-white/10 rounded">Enter</kbd></span><span>Открыть</span></div>
+                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-white/10 rounded">Space</kbd></span><span>Выбрать</span></div>
+                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-white/10 rounded">Esc</kbd></span><span>Отмена</span></div>
+                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-white/10 rounded">/</kbd></span><span>Поиск</span></div>
+                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-white/10 rounded">N</kbd></span><span>Новое письмо</span></div>
+                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-white/10 rounded">Ctrl</kbd>+<kbd className="px-1.5 py-0.5 bg-white/10 rounded">A</kbd></span><span>Выбрать все</span></div>
                 </div>
               </div>
             )}
@@ -661,7 +657,7 @@ function LettersPageContent() {
           )
         ) : letters.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-400">Письма не найдены</p>
+            <p className="text-slate-300/70">Письма не найдены</p>
           </div>
         ) : viewMode === 'cards' ? (
           <VirtualLetterList
@@ -671,18 +667,18 @@ function LettersPageContent() {
           />
         ) : (
           /* Table View */
-          <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+          <div className="panel panel-glass rounded-2xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-900/50 border-b border-gray-700">
+                  <tr className="bg-white/5 backdrop-blur border-b border-white/10">
                     <th className="px-4 py-3 text-left w-10">
                       <button
                         onClick={toggleSelectAll}
                         className={`p-1 rounded ${
                           selectedIds.size === letters.length && letters.length > 0
-                            ? 'text-emerald-400'
-                            : 'text-gray-500 hover:text-white'
+                            ? 'text-teal-300'
+                            : 'text-slate-400 hover:text-white'
                         }`}
                       >
                         {selectedIds.size === letters.length && letters.length > 0 ? (
@@ -695,7 +691,7 @@ function LettersPageContent() {
                     <th className="px-4 py-3 text-left">
                       <button
                         onClick={() => handleSort('number')}
-                        className="flex items-center gap-1 text-sm font-medium text-gray-400 hover:text-white"
+                        className="flex items-center gap-1 text-sm font-medium text-slate-300/80 hover:text-white"
                       >
                         Номер
                         <SortIcon field="number" />
@@ -704,7 +700,7 @@ function LettersPageContent() {
                     <th className="px-4 py-3 text-left">
                       <button
                         onClick={() => handleSort('org')}
-                        className="flex items-center gap-1 text-sm font-medium text-gray-400 hover:text-white"
+                        className="flex items-center gap-1 text-sm font-medium text-slate-300/80 hover:text-white"
                       >
                         Организация
                         <SortIcon field="org" />
@@ -713,7 +709,7 @@ function LettersPageContent() {
                     <th className="px-4 py-3 text-left">
                       <button
                         onClick={() => handleSort('date')}
-                        className="flex items-center gap-1 text-sm font-medium text-gray-400 hover:text-white"
+                        className="flex items-center gap-1 text-sm font-medium text-slate-300/80 hover:text-white"
                       >
                         Дата
                         <SortIcon field="date" />
@@ -722,7 +718,7 @@ function LettersPageContent() {
                     <th className="px-4 py-3 text-left">
                       <button
                         onClick={() => handleSort('deadline')}
-                        className="flex items-center gap-1 text-sm font-medium text-gray-400 hover:text-white"
+                        className="flex items-center gap-1 text-sm font-medium text-slate-300/80 hover:text-white"
                       >
                         Дедлайн
                         <SortIcon field="deadline" />
@@ -731,22 +727,22 @@ function LettersPageContent() {
                     <th className="px-4 py-3 text-left">
                       <button
                         onClick={() => handleSort('status')}
-                        className="flex items-center gap-1 text-sm font-medium text-gray-400 hover:text-white"
+                        className="flex items-center gap-1 text-sm font-medium text-slate-300/80 hover:text-white"
                       >
                         Статус
                         <SortIcon field="status" />
                       </button>
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left text-sm font-medium text-slate-300/70">
                       Тип
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left text-sm font-medium text-slate-300/70">
                       Ответственный
                     </th>
                     <th className="px-4 py-3 w-10"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-700">
+                <tbody className="divide-y divide-white/5 stagger-animation">
                   {letters.map((letter, index) => {
                     const deadlineInfo = getDeadlineInfo(letter)
                     const isSelected = selectedIds.has(letter.id)
@@ -754,9 +750,7 @@ function LettersPageContent() {
                     return (
                       <tr
                         key={letter.id}
-                        className={`hover:bg-gray-700/50 cursor-pointer transition ${
-                          isSelected ? 'bg-emerald-500/10' : ''
-                        } ${isFocused ? 'ring-2 ring-emerald-500/50 ring-inset' : ''}`}
+                        className={`table-row cursor-pointer ${isSelected ? 'table-row-selected' : ''} ${isFocused ? 'ring-2 ring-teal-400/40 ring-inset' : ''}`}
                       >
                         <td className="px-4 py-3">
                           <button
@@ -766,8 +760,8 @@ function LettersPageContent() {
                             }}
                             className={`p-1 rounded ${
                               isSelected
-                                ? 'text-emerald-400'
-                                : 'text-gray-500 hover:text-white'
+                                ? 'text-teal-300'
+                                : 'text-slate-400 hover:text-white'
                             }`}
                           >
                             {isSelected ? (
@@ -781,7 +775,7 @@ function LettersPageContent() {
                           className="px-4 py-3"
                           onClick={() => router.push(`/letters/${letter.id}`)}
                         >
-                          <span className="font-mono text-emerald-400">
+                          <span className="font-mono text-teal-300">
                             №{letter.number}
                           </span>
                         </td>
@@ -794,7 +788,7 @@ function LettersPageContent() {
                           </div>
                         </td>
                         <td
-                          className="px-4 py-3 text-gray-400 text-sm"
+                          className="px-4 py-3 text-slate-300/70 text-sm"
                           onClick={() => router.push(`/letters/${letter.id}`)}
                         >
                           {formatDate(letter.date)}
@@ -804,7 +798,7 @@ function LettersPageContent() {
                           onClick={() => router.push(`/letters/${letter.id}`)}
                         >
                           <div className="text-sm">
-                            <div className="text-gray-400">{formatDate(letter.deadlineDate)}</div>
+                            <div className="text-slate-300/70">{formatDate(letter.deadlineDate)}</div>
                             <div className={`text-xs ${deadlineInfo.className}`}>
                               {deadlineInfo.text}
                             </div>
@@ -821,13 +815,13 @@ function LettersPageContent() {
                           onClick={() => router.push(`/letters/${letter.id}`)}
                         >
                           {letter.type && (
-                            <span className="text-xs px-2 py-1 bg-gray-700 rounded text-gray-400">
+                            <span className="text-xs px-2 py-1 rounded-full data-pill">
                               {letter.type}
                             </span>
                           )}
                         </td>
                         <td
-                          className="px-4 py-3 text-gray-400 text-sm"
+                          className="px-4 py-3 text-slate-300/70 text-sm"
                           onClick={() => router.push(`/letters/${letter.id}`)}
                         >
                           {letter.owner?.name || letter.owner?.email?.split('@')[0] || '-'}
@@ -838,7 +832,7 @@ function LettersPageContent() {
                               e.stopPropagation()
                               setPreviewId(letter.id)
                             }}
-                            className="p-1 text-gray-500 hover:text-white transition"
+                            className="p-1 text-slate-400 hover:text-white transition"
                             title="Быстрый просмотр"
                           >
                             <Eye className="w-4 h-4" />
@@ -856,26 +850,26 @@ function LettersPageContent() {
         {/* Pagination */}
         {pagination && pagination.totalPages > 1 && (
           <div className="flex items-center justify-between mt-6">
-            <div className="text-gray-400 text-sm">
+            <div className="text-slate-300/70 text-sm">
               Показано {((page - 1) * 50) + 1}-{Math.min(page * 50, pagination.total)} из {pagination.total}
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-2 bg-gray-800 border border-gray-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700 transition"
+                className="p-2 bg-white/5 border border-white/10 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 transition"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
 
-              <span className="text-gray-400 px-2">
+              <span className="text-slate-300/70 px-2">
                 {page} / {pagination.totalPages}
               </span>
 
               <button
                 onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
                 disabled={page === pagination.totalPages}
-                className="p-2 bg-gray-800 border border-gray-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-700 transition"
+                className="p-2 bg-white/5 border border-white/10 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 transition"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -896,8 +890,8 @@ function LettersPageContent() {
 export default function LettersPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
       </div>
     }>
       <LettersPageContent />
