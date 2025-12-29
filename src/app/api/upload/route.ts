@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
+import { uploadFileToDrive } from '@/lib/google-drive'
 
 // Максимальный размер файла (10 MB)
 const MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -68,27 +66,33 @@ export async function POST(request: NextRequest) {
     }
 
     // Создать директорию для загрузок если не существует
-    const uploadDir = join(process.cwd(), 'public', 'uploads', letterId)
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true })
+    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID
+    if (!folderId) {
+      return NextResponse.json(
+        { error: 'Google Drive folder is not configured' },
+        { status: 500 }
+      )
     }
 
     // Сгенерировать уникальное имя файла
     const timestamp = Date.now()
     const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
     const fileName = `${timestamp}_${safeFileName}`
-    const filePath = join(uploadDir, fileName)
 
-    // Сохранить файл
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    await writeFile(filePath, buffer)
+    const uploadResult = await uploadFileToDrive({
+      buffer,
+      name: fileName,
+      mimeType: file.type || 'application/octet-stream',
+      folderId,
+    })
 
     // Создать запись в базе данных
     const fileRecord = await prisma.file.create({
       data: {
         name: file.name,
-        url: `/uploads/${letterId}/${fileName}`,
+        url: uploadResult.url,
         size: file.size,
         mimeType: file.type,
         letterId,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
+import { deleteDriveFile, extractDriveFileId } from '@/lib/google-drive'
 import { unlink } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
@@ -27,9 +28,18 @@ export async function DELETE(
     }
 
     // Удалить физический файл
-    const filePath = join(process.cwd(), 'public', file.url)
-    if (existsSync(filePath)) {
-      await unlink(filePath)
+    const driveFileId = extractDriveFileId(file.url)
+    if (driveFileId) {
+      try {
+        await deleteDriveFile(driveFileId)
+      } catch (error) {
+        console.error('Drive delete failed:', error)
+      }
+    } else if (file.url.startsWith('/uploads/')) {
+      const filePath = join(process.cwd(), 'public', file.url)
+      if (existsSync(filePath)) {
+        await unlink(filePath)
+      }
     }
 
     // Удалить запись из базы данных

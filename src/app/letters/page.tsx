@@ -238,7 +238,7 @@ function LettersPageContent() {
       toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u043f\u0438\u0441\u044c\u043c\u0430')
     } finally {
       if (requestId === lettersRequestIdRef.current) {
-        if (showLoading) setLoading(false)
+        setLoading(false)
         setIsSearching(false)
       }
     }
