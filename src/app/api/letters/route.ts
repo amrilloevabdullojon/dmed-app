@@ -102,12 +102,19 @@ export async function GET(request: NextRequest) {
     const [letters, total] = await Promise.all([
       prisma.letter.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          number: true,
+          org: true,
+          date: true,
+          deadlineDate: true,
+          status: true,
+          type: true,
+          content: true,
+          priority: true,
           owner: {
             select: { id: true, name: true, email: true, image: true },
           },
-          files: true,
-          tags: true,
           _count: {
             select: { comments: true, watchers: true },
           },
