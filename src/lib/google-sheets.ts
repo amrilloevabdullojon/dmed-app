@@ -482,7 +482,7 @@ export async function importFromGoogleSheets() {
         formatSheetDate(letter?.date || null),
         formatSheetDate(letter?.deadlineDate || null),
         letter?.status ? STATUS_LABELS[letter.status as LetterStatus] : '',
-        letter?.files?.map((f) => f.name).join('\n') || '',
+        letter?.files?.map((f: { name: string }) => f.name).join('\n') || '',
         letter?.type || '',
         letter?.content || '',
         letter?.jiraLink || '',
