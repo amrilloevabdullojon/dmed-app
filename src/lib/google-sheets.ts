@@ -522,7 +522,7 @@ export async function importFromGoogleSheets() {
         imported++
         updates.push({
           range: `${sheetName}!A${rowNum}:U${rowNum}`,
-          values: [buildRowFromLetter({ ...existing, deletedAt: sheetDeletedAt }, conflictMark)],
+          values: [buildRowFromLetter({ ...existing, deletedAt: sheetDeletedAt }, '')],
         })
         updatedRows.add(rowNum)
         continue
@@ -531,7 +531,7 @@ export async function importFromGoogleSheets() {
       if (existing.deletedAt && !sheetDeletedAt) {
         updates.push({
           range: `${sheetName}!A${rowNum}:U${rowNum}`,
-          values: [buildRowFromLetter(existing, conflictMark)],
+          values: [buildRowFromLetter(existing, '')],
         })
         updatedRows.add(rowNum)
         continue
