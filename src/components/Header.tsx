@@ -93,12 +93,12 @@ export function Header() {
   const navLinkClass = (path: string) =>
     `flex items-center gap-2 px-3 py-2 rounded-lg transition ${
       isActive(path)
-        ? 'bg-emerald-500/20 text-emerald-400'
-        : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
+        ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20'
+        : 'text-slate-200/80 hover:bg-white/5 hover:text-white'
     }`
 
   return (
-    <header className="bg-gradient-to-r from-[#1a472a] via-[#2d5016] to-[#1a472a] border-b border-red-700/50 sticky top-0 z-50 relative">
+    <header className="app-header sticky top-0 z-50 relative backdrop-blur">
       {/* Christmas lights */}
       <div className="absolute top-0 left-0 right-0 flex justify-around pointer-events-none overflow-hidden">
         {Array.from({ length: 15 }).map((_, i) => (
@@ -115,11 +115,11 @@ export function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center shadow-lg shadow-red-500/30">
+            <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center shadow-lg shadow-teal-500/30">
               <span className="text-lg">🎄</span>
             </div>
             <span className="text-xl font-bold text-white hidden sm:block">
-              DMED Letters <span className="text-yellow-400 text-sm">✨</span>
+              DMED Letters <span className="text-amber-300 text-sm">✨</span>
             </span>
           </Link>
 
@@ -145,7 +145,7 @@ export function Header() {
                     onClick={() => setSyncMenuOpen(!syncMenuOpen)}
                     disabled={syncing}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg transition ${
-                      syncing ? 'opacity-50' : 'text-gray-300 hover:bg-gray-700/50 hover:text-white'
+                      syncing ? 'opacity-50' : 'text-slate-200/80 hover:bg-white/5 hover:text-white'
                     }`}
                   >
                     <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
@@ -160,11 +160,11 @@ export function Header() {
                         className="fixed inset-0 z-40"
                         onClick={() => setSyncMenuOpen(false)}
                       />
-                      <div className="absolute top-full right-0 mt-2 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 min-w-48 animate-scaleIn origin-top-right">
+                      <div className="absolute top-full right-0 mt-2 panel panel-glass rounded-xl shadow-xl z-50 min-w-48 animate-scaleIn origin-top-right">
                         <button
                           onClick={() => handleSync('from_sheets')}
                           disabled={syncing}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition rounded-t-lg"
+                          className="w-full flex items-center gap-2 px-4 py-3 text-slate-200/80 hover:bg-white/5 hover:text-white transition rounded-t-lg"
                         >
                           <span className="text-lg">📥</span>
                           Импорт из Sheets
@@ -172,7 +172,7 @@ export function Header() {
                         <button
                           onClick={() => handleSync('to_sheets')}
                           disabled={syncing}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition rounded-b-lg"
+                          className="w-full flex items-center gap-2 px-4 py-3 text-slate-200/80 hover:bg-white/5 hover:text-white transition rounded-b-lg"
                         >
                           <span className="text-lg">📤</span>
                           Экспорт в Sheets
@@ -195,7 +195,7 @@ export function Header() {
             {session?.user && (
               <>
                 <Notifications />
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-700/50 rounded-full">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-full">
                   {session.user.image ? (
                     <img
                       src={session.user.image}
@@ -203,15 +203,15 @@ export function Header() {
                       className="w-7 h-7 rounded-full"
                     />
                   ) : (
-                    <User className="w-7 h-7 p-1 bg-gray-600 rounded-full" />
+                    <User className="w-7 h-7 p-1 bg-white/10 rounded-full" />
                   )}
-                  <span className="text-sm text-gray-300 hidden lg:block max-w-[120px] truncate">
+                  <span className="text-sm text-slate-200 hidden lg:block max-w-[120px] truncate">
                     {session.user.name || session.user.email?.split('@')[0]}
                   </span>
                 </div>
                 <button
                   onClick={() => signOut()}
-                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition"
+                  className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition"
                   title="Выйти"
                 >
                   <LogOut className="w-5 h-5" />
@@ -226,7 +226,7 @@ export function Header() {
             {session?.user && <Notifications />}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition"
+              className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition"
             >
               {mobileMenuOpen ? (
                 <X className="w-6 h-6" />
@@ -248,14 +248,14 @@ export function Header() {
 
       {/* Mobile menu */}
       <div
-        className={`fixed top-16 right-0 bottom-0 w-64 bg-gradient-to-b from-[#1a472a] to-gray-800 border-l border-red-700/30 z-50 transform transition-transform duration-300 md:hidden ${
+        className={`fixed top-16 right-0 bottom-0 w-64 panel panel-glass border-l border-white/10 z-50 transform transition-transform duration-300 md:hidden ${
           mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         <nav className="flex flex-col p-4 gap-1">
           {/* User info */}
           {session?.user && (
-            <div className="flex items-center gap-3 p-3 mb-4 bg-gray-700/50 rounded-lg">
+            <div className="flex items-center gap-3 p-3 mb-4 bg-white/10 rounded-lg">
               {session.user.image ? (
                 <img
                   src={session.user.image}
@@ -263,13 +263,13 @@ export function Header() {
                   className="w-10 h-10 rounded-full"
                 />
               ) : (
-                <User className="w-10 h-10 p-2 bg-gray-600 rounded-full" />
+                <User className="w-10 h-10 p-2 bg-white/10 rounded-full" />
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-white font-medium truncate">
                   {session.user.name || session.user.email?.split('@')[0]}
                 </p>
-                <p className="text-xs text-gray-400 truncate">
+                <p className="text-xs text-slate-400 truncate">
                   {session.user.role === 'ADMIN' ? 'Администратор' : 'Сотрудник'}
                 </p>
               </div>
@@ -279,7 +279,7 @@ export function Header() {
           <Link
             href="/"
             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-              isActive('/') ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-300 hover:bg-gray-700/50'
+              isActive('/') ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20' : 'text-slate-200/80 hover:bg-white/5'
             }`}
           >
             <Home className="w-5 h-5" />
@@ -289,7 +289,7 @@ export function Header() {
           <Link
             href="/letters"
             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-              isActive('/letters') ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-300 hover:bg-gray-700/50'
+              isActive('/letters') ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20' : 'text-slate-200/80 hover:bg-white/5'
             }`}
           >
             <FileText className="w-5 h-5" />
@@ -299,7 +299,7 @@ export function Header() {
           <Link
             href="/reports"
             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-              isActive('/reports') ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-300 hover:bg-gray-700/50'
+              isActive('/reports') ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20' : 'text-slate-200/80 hover:bg-white/5'
             }`}
           >
             <BarChart3 className="w-5 h-5" />
@@ -308,12 +308,12 @@ export function Header() {
 
           {session?.user.role === 'ADMIN' && (
             <>
-              <div className="my-2 border-t border-gray-700" />
+              <div className="my-2 border-t border-white/10" />
 
               <button
                 onClick={() => handleSync('from_sheets')}
                 disabled={syncing}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700/50 transition disabled:opacity-50"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-200/80 hover:bg-white/5 transition disabled:opacity-50"
               >
                 <span className="text-lg">📥</span>
                 Импорт из Sheets
@@ -322,7 +322,7 @@ export function Header() {
               <button
                 onClick={() => handleSync('to_sheets')}
                 disabled={syncing}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700/50 transition disabled:opacity-50"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-200/80 hover:bg-white/5 transition disabled:opacity-50"
               >
                 <span className="text-lg">📤</span>
                 Экспорт в Sheets
@@ -331,7 +331,7 @@ export function Header() {
               <Link
                 href="/settings"
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                  isActive('/settings') ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-300 hover:bg-gray-700/50'
+                  isActive('/settings') ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20' : 'text-slate-200/80 hover:bg-white/5'
                 }`}
               >
                 <Settings className="w-5 h-5" />
@@ -340,7 +340,7 @@ export function Header() {
             </>
           )}
 
-          <div className="my-2 border-t border-gray-700" />
+          <div className="my-2 border-t border-white/10" />
 
           <button
             onClick={() => signOut()}

@@ -62,7 +62,7 @@ export function VirtualLetterList({
   return (
     <div
       ref={parentRef}
-      className="h-[calc(100vh-300px)] overflow-auto"
+      className="h-[calc(100vh-300px)] overflow-auto pr-2"
       style={{ contain: 'strict' }}
     >
       <div
@@ -88,7 +88,7 @@ export function VirtualLetterList({
                 transform: `translateY(${virtualRow.start}px)`,
               }}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 px-2 stagger-animation">
                 {rowLetters.map((letter) => (
                   <div key={letter.id} className="relative">
                     <button
@@ -98,8 +98,8 @@ export function VirtualLetterList({
                       }}
                       className={`absolute top-3 left-3 z-10 p-1 rounded ${
                         selectedIds.has(letter.id)
-                          ? 'bg-emerald-500 text-white'
-                          : 'bg-gray-700/50 text-gray-400 opacity-0 group-hover:opacity-100'
+                          ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30'
+                          : 'bg-white/10 text-slate-300 opacity-0 group-hover:opacity-100'
                       }`}
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -163,9 +163,9 @@ export function VirtualLetterTable({
   )
 
   return (
-    <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+    <div className="panel panel-glass rounded-2xl overflow-hidden">
       {/* Header */}
-      <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-gray-700/50 text-sm text-gray-400 border-b border-gray-700">
+      <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-white/5 text-sm text-slate-300/80 border-b border-white/10">
         <div className="col-span-1">
           <input
             type="checkbox"
@@ -225,8 +225,8 @@ export function VirtualLetterTable({
             return (
               <div
                 key={virtualRow.key}
-                className={`absolute top-0 left-0 w-full grid grid-cols-12 gap-2 px-4 py-3 border-b border-gray-700/50 text-sm hover:bg-gray-700/30 cursor-pointer ${
-                  isSelected ? 'bg-emerald-500/10' : ''
+                className={`absolute top-0 left-0 w-full grid grid-cols-12 gap-2 px-4 py-3 border-b border-white/5 text-sm cursor-pointer table-row ${
+                  isSelected ? 'table-row-selected' : ''
                 }`}
                 style={{
                   height: `${virtualRow.size}px`,
@@ -245,21 +245,21 @@ export function VirtualLetterTable({
                     className="rounded border-gray-600"
                   />
                 </div>
-                <div className="col-span-2 text-emerald-400 font-mono truncate">
+                <div className="col-span-2 text-teal-300 font-mono truncate">
                   {letter.number}
                 </div>
-                <div className="col-span-3 text-gray-300 truncate">
+                <div className="col-span-3 text-slate-200 truncate">
                   {letter.org}
                 </div>
                 <div className="col-span-2">
-                  <span className="text-xs px-2 py-1 rounded-full bg-gray-700">
+                  <span className="text-xs px-2 py-1 rounded-full data-pill">
                     {letter.status}
                   </span>
                 </div>
-                <div className="col-span-2 text-gray-400">
+                <div className="col-span-2 text-slate-300/70">
                   {new Date(letter.deadlineDate).toLocaleDateString('ru-RU')}
                 </div>
-                <div className="col-span-2 text-gray-400">
+                <div className="col-span-2 text-slate-300/70">
                   {letter.priority}
                 </div>
               </div>

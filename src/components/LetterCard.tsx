@@ -86,9 +86,8 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
   return (
     <Link
       href={`/letters/${letter.id}`}
-      className="group block relative bg-gray-800 rounded-xl overflow-hidden border border-gray-700/50
-                 hover:border-emerald-500/50 transition-all duration-300
-                 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1"
+      className="group block relative panel panel-glass rounded-2xl overflow-hidden transition-all duration-300
+                 hover:-translate-y-1 hover:shadow-2xl hover:shadow-teal-500/20 animate-cardIn"
     >
       {/* Priority indicator bar */}
       <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${getPriorityColor(letter.priority)}`} />
@@ -99,10 +98,10 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
           onClick={handleFavoriteClick}
           className={`absolute top-3 right-3 p-1.5 rounded-full transition-all duration-200 z-10
                      ${letter.isFavorite
-                       ? 'bg-yellow-500/20 text-yellow-400'
-                       : 'bg-gray-700/50 text-gray-500 opacity-0 group-hover:opacity-100'
+                       ? 'bg-amber-500/20 text-amber-300'
+                       : 'bg-white/10 text-slate-300 opacity-0 group-hover:opacity-100'
                      }
-                     hover:scale-110 hover:bg-yellow-500/30`}
+                     hover:scale-110 hover:bg-amber-500/30`}
         >
           <Star className={`w-4 h-4 ${letter.isFavorite ? 'fill-current' : ''}`} />
         </button>
@@ -113,19 +112,18 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
         <div className="flex items-start gap-4 mb-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <span className="font-mono text-sm font-semibold text-emerald-400
-                             bg-emerald-500/10 px-2 py-0.5 rounded">
+              <span className="font-mono text-sm font-semibold text-teal-300
+                             bg-teal-400/10 px-2 py-0.5 rounded-full">
                 №{letter.number}
               </span>
               {letter.type && (
-                <span className="text-xs px-2 py-0.5 bg-gray-700/50 rounded-full text-gray-400
-                               border border-gray-600/50">
+                <span className="text-xs px-2 py-0.5 data-pill rounded-full">
                   {letter.type}
                 </span>
               )}
             </div>
             <h3 className="font-medium text-white text-lg leading-tight line-clamp-2
-                          group-hover:text-emerald-300 transition-colors">
+                          group-hover:text-teal-200 transition-colors">
               {letter.org}
             </h3>
           </div>
@@ -143,34 +141,34 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
 
         {/* Content preview */}
         {letter.content && (
-          <p className="text-sm text-gray-400 line-clamp-2 mb-4 leading-relaxed">
+          <p className="text-sm text-slate-300/80 line-clamp-2 mb-4 leading-relaxed">
             {letter.content}
           </p>
         )}
 
         {/* Meta info */}
-        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 mb-4">
-          <span className="flex items-center gap-1.5 bg-gray-700/30 px-2 py-1 rounded">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-300/70 mb-4">
+          <span className="flex items-center gap-1.5 meta-pill px-2 py-1 rounded">
             <Calendar className="w-3.5 h-3.5" />
             {formatDate(letter.date)}
           </span>
 
           {letter.owner && (
-            <span className="flex items-center gap-1.5 bg-gray-700/30 px-2 py-1 rounded">
+            <span className="flex items-center gap-1.5 meta-pill px-2 py-1 rounded">
               <User className="w-3.5 h-3.5" />
               {letter.owner.name || letter.owner.email?.split('@')[0]}
             </span>
           )}
 
           {letter._count && letter._count.comments > 0 && (
-            <span className="flex items-center gap-1 text-gray-500">
+            <span className="flex items-center gap-1 text-slate-300/70">
               <MessageSquare className="w-3.5 h-3.5" />
               {letter._count.comments}
             </span>
           )}
 
           {letter._count && letter._count.watchers > 0 && (
-            <span className="flex items-center gap-1 text-gray-500">
+            <span className="flex items-center gap-1 text-slate-300/70">
               <Eye className="w-3.5 h-3.5" />
               {letter._count.watchers}
             </span>
@@ -178,18 +176,18 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
         </div>
 
         {/* Deadline section */}
-        <div className="pt-4 border-t border-gray-700/50">
+        <div className="pt-4 border-t border-white/10">
           {/* Progress bar */}
           {!isDone && (
             <div className="mb-3">
-              <div className="h-1.5 bg-gray-700/50 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${
                     isOverdue
                       ? 'bg-gradient-to-r from-red-500 to-red-400'
                       : isUrgent
                         ? 'bg-gradient-to-r from-yellow-500 to-yellow-400'
-                        : 'bg-gradient-to-r from-emerald-500 to-emerald-400'
+                        : 'bg-gradient-to-r from-teal-500 to-emerald-400'
                   }`}
                   style={{ width: `${Math.min(progress, 100)}%` }}
                 />
@@ -201,12 +199,12 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
             <div
               className={`flex items-center gap-1.5 text-sm font-medium ${
                 isDone
-                  ? 'text-emerald-400'
+                  ? 'text-teal-300'
                   : isOverdue
                     ? 'text-red-400'
                     : isUrgent
                       ? 'text-yellow-400'
-                      : 'text-gray-400'
+                      : 'text-slate-300/70'
               }`}
             >
               {isDone ? (
@@ -231,7 +229,7 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
               <span className={`text-xs font-semibold px-2 py-1 rounded ${priorityInfo.color} bg-opacity-20`}>
                 {priorityInfo.label}
               </span>
-              <ArrowRight className="w-4 h-4 text-gray-500 opacity-0 group-hover:opacity-100
+              <ArrowRight className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100
                                     group-hover:translate-x-1 transition-all" />
             </div>
           </div>

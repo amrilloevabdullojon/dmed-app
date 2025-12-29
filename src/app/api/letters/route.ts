@@ -34,8 +34,8 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')
     const filter = searchParams.get('filter') // overdue, urgent, done
     const type = searchParams.get('type')
-    const sortBy = searchParams.get('sortBy') || 'deadline' // deadline, date, priority, status
-    const sortOrder = searchParams.get('sortOrder') || 'asc'
+    const sortBy = searchParams.get('sortBy') || 'created' // created, deadline, date, priority, status
+    const sortOrder = searchParams.get('sortOrder') || 'desc'
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
 
@@ -89,6 +89,7 @@ export async function GET(request: NextRequest) {
 
     // Сортировка
     const orderByMap: Record<string, any> = {
+      created: { createdAt: sortOrder },
       deadline: { deadlineDate: sortOrder },
       date: { date: sortOrder },
       priority: { priority: sortOrder === 'asc' ? 'desc' : 'asc' },
