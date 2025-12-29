@@ -481,7 +481,7 @@ export async function importFromGoogleSheets() {
         letter?.org || '',
         formatSheetDate(letter?.date || null),
         formatSheetDate(letter?.deadlineDate || null),
-        letter ? STATUS_LABELS[letter.status] : '',
+        letter?.status ? STATUS_LABELS[letter.status as LetterStatus] : '',
         letter?.files?.map((f) => f.name).join('\n') || '',
         letter?.type || '',
         letter?.content || '',
