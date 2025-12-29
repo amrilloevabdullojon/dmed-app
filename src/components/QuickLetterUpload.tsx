@@ -216,7 +216,11 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
         throw new Error(letterData.error || 'Ошибка создания письма')
       }
 
-      const letterId = letterData.id
+      const createdLetter = letterData.letter || letterData
+      const letterId = createdLetter?.id
+      if (!letterId) {
+        throw new Error('Missing letter id from server')
+      }
 
       // 2. Загружаем файл, если есть
       if (file) {
@@ -230,7 +234,10 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
         })
 
         if (!uploadRes.ok) {
-          console.error('Failed to upload file')
+          const uploadError = await uploadRes.json().catch(() => null)
+          const uploadMessage = uploadError?.error || 'Failed to upload file'
+          console.error(uploadMessage)
+          toast.error(uploadMessage)
         }
       }
 
