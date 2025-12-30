@@ -109,8 +109,11 @@ export const TEMPLATE_CATEGORIES = [
 // ==================== РОЛИ ====================
 
 export const USER_ROLES = {
-  ADMIN: { label: 'Администратор', color: 'text-red-500' },
-  EMPLOYEE: { label: 'Сотрудник', color: 'text-blue-500' },
+  ADMIN: { label: "Администратор", color: 'text-red-500' },
+  MANAGER: { label: "Менеджер", color: 'text-amber-500' },
+  AUDITOR: { label: "Аудитор", color: 'text-purple-500' },
+  EMPLOYEE: { label: "Сотрудник", color: 'text-blue-500' },
+  VIEWER: { label: "Наблюдатель", color: 'text-slate-500' },
 } as const
 
 // ==================== ДАТЫ ====================

@@ -18,20 +18,68 @@ export const authOptions: AuthOptions = {
         return false
       }
 
+      const email = user.email.toLowerCase()
+      const now = new Date()
+      const rateWindowStart = new Date(now.getTime() - 15 * 60 * 1000)
+
+      const recentFailures = await prisma.loginAudit.count({
+        where: {
+          email,
+          success: false,
+          createdAt: { gte: rateWindowStart },
+        },
+      })
+
+      if (recentFailures >= 5) {
+        await prisma.loginAudit.create({
+          data: {
+            email,
+            success: false,
+            reason: 'RATE_LIMIT',
+          },
+        })
+        return false
+      }
+
       const dbUser = await prisma.user.findUnique({
-        where: { email: user.email },
-        select: { role: true, canLogin: true },
+        where: { email },
+        select: { id: true, role: true, canLogin: true },
       })
 
       if (!dbUser) {
+        await prisma.loginAudit.create({
+          data: {
+            email,
+            success: false,
+            reason: 'USER_NOT_FOUND',
+          },
+        })
         return false
       }
 
       const isAllowed = dbUser.role === 'ADMIN' || dbUser.canLogin
       if (isAllowed) {
-        await prisma.user.update({
-          where: { email: user.email },
-          data: { lastLoginAt: new Date() },
+        await prisma.$transaction([
+          prisma.user.update({
+            where: { id: dbUser.id },
+            data: { lastLoginAt: now },
+          }),
+          prisma.loginAudit.create({
+            data: {
+              email,
+              success: true,
+              userId: dbUser.id,
+            },
+          }),
+        ])
+      } else {
+        await prisma.loginAudit.create({
+          data: {
+            email,
+            success: false,
+            userId: dbUser.id,
+            reason: 'ACCESS_BLOCKED',
+          },
         })
       }
 

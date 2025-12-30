@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { STATUS_LABELS, formatDate } from '@/lib/utils'
 
+export const dynamic = 'force-dynamic'
+
 // GET /api/export - экспорт писем в CSV (совместимо с Excel)
 export async function GET(request: NextRequest) {
   try {

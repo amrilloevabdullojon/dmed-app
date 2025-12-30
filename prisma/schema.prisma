@@ -55,6 +55,13 @@ model User {
   role           Role      @default(EMPLOYEE)
   canLogin       Boolean   @default(false)
   telegramChatId String?
+  notifyEmail    Boolean   @default(true)
+  notifyTelegram Boolean   @default(false)
+  notifySms      Boolean   @default(false)
+  notifyInApp    Boolean   @default(true)
+  quietHoursStart String?
+  quietHoursEnd   String?
+  digestFrequency DigestFrequency @default(NONE)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   lastLoginAt    DateTime?
@@ -70,11 +77,37 @@ model User {
   notifications   Notification[]
   auditsTarget    UserAudit[]     @relation("UserAuditTarget")
   auditsActor     UserAudit[]     @relation("UserAuditActor")
+  loginAudits     LoginAudit[]
+  approvalsTarget AdminApproval[] @relation("AdminApprovalTarget")
+  approvalsRequested AdminApproval[] @relation("AdminApprovalRequestedBy")
+  approvalsApproved AdminApproval[] @relation("AdminApprovalApprovedBy")
 }
 
 enum Role {
   ADMIN
+  MANAGER
+  AUDITOR
   EMPLOYEE
+  VIEWER
+}
+
+enum DigestFrequency {
+  NONE
+  DAILY
+  WEEKLY
+}
+
+model LoginAudit {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email     String
+  success   Boolean
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([userId, createdAt])
 }
 
 model UserAudit {
@@ -91,6 +124,35 @@ model UserAudit {
 
   @@index([userId, createdAt])
   @@index([actorId, createdAt])
+}
+
+model AdminApproval {
+  id            String                @id @default(cuid())
+  action        AdminApprovalAction
+  status        AdminApprovalStatus   @default(PENDING)
+  targetUserId  String
+  targetUser    User                  @relation("AdminApprovalTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  requestedById String
+  requestedBy   User                  @relation("AdminApprovalRequestedBy", fields: [requestedById], references: [id], onDelete: Cascade)
+  approvedById  String?
+  approvedBy    User?                 @relation("AdminApprovalApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  payload       Json?
+  createdAt     DateTime              @default(now())
+  resolvedAt    DateTime?
+
+  @@index([status, createdAt])
+  @@index([targetUserId])
+}
+
+enum AdminApprovalAction {
+  DEMOTE_ADMIN
+  DELETE_ADMIN
+}
+
+enum AdminApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 // ===== ПИСЬМА =====

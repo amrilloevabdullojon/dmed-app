@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { Header } from '@/components/Header'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
@@ -24,17 +24,30 @@ import {
   ArrowDownToLine,
   UserPlus,
   Search,
+  Bell,
+  Lock,
+  Unlock,
+  ShieldAlert,
+  History,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { hasPermission } from '@/lib/permissions'
 
 interface User {
   id: string
   name: string | null
   email: string | null
   image: string | null
-  role: 'EMPLOYEE' | 'ADMIN'
+  role: 'ADMIN' | 'MANAGER' | 'AUDITOR' | 'EMPLOYEE' | 'VIEWER'
   canLogin: boolean
   telegramChatId: string | null
+  notifyEmail: boolean
+  notifyTelegram: boolean
+  notifySms: boolean
+  notifyInApp: boolean
+  quietHoursStart: string | null
+  quietHoursEnd: string | null
+  digestFrequency: 'NONE' | 'DAILY' | 'WEEKLY'
   createdAt: string
   lastLoginAt: string | null
   _count: {
@@ -69,6 +82,113 @@ interface UserAuditEntry {
   } | null
 }
 
+interface AdminApproval {
+  id: string
+  action: 'DEMOTE_ADMIN' | 'DELETE_ADMIN'
+  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  createdAt: string
+  targetUser: {
+    id: string
+    name: string | null
+    email: string | null
+    role: User['role']
+  }
+  requestedBy: {
+    id: string
+    name: string | null
+    email: string | null
+  }
+  payload: { newRole?: User['role'] } | null
+}
+
+interface LoginAuditEntry {
+  id: string
+  email: string
+  success: boolean
+  reason: string | null
+  createdAt: string
+  user: {
+    id: string
+    name: string | null
+    email: string | null
+    role: User['role']
+  } | null
+}
+
+interface LoginAuditDaySummary {
+  date: string
+  success: number
+  failure: number
+}
+
+const ROLE_LABELS: Record<User['role'], string> = {
+  ADMIN: '\u0410\u0434\u043c\u0438\u043d',
+  MANAGER: '\u041c\u0435\u043d\u0435\u0434\u0436\u0435\u0440',
+  AUDITOR: '\u0410\u0443\u0434\u0438\u0442\u043e\u0440',
+  EMPLOYEE: '\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a',
+  VIEWER: '\u041d\u0430\u0431\u043b\u044e\u0434\u0430\u0442\u0435\u043b\u044c',
+}
+
+const ROLE_BADGE_CLASSES: Record<User['role'], string> = {
+  ADMIN: 'bg-amber-500/20 text-amber-400',
+  MANAGER: 'bg-blue-500/20 text-blue-400',
+  AUDITOR: 'bg-purple-500/20 text-purple-400',
+  EMPLOYEE: 'bg-emerald-500/20 text-emerald-400',
+  VIEWER: 'bg-slate-500/20 text-slate-400',
+}
+
+const ROLE_ORDER: User['role'][] = ['ADMIN', 'MANAGER', 'AUDITOR', 'EMPLOYEE', 'VIEWER']
+
+const ROLE_OPTIONS: Array<{ value: User['role']; label: string }> = ROLE_ORDER.map((role) => ({
+  value: role,
+  label: ROLE_LABELS[role],
+}))
+
+const DIGEST_LABELS: Record<User['digestFrequency'], string> = {
+  NONE: '\u041d\u0435\u0442',
+  DAILY: '\u0415\u0436\u0435\u0434\u043d\u0435\u0432\u043d\u043e',
+  WEEKLY: '\u0415\u0436\u0435\u043d\u0435\u0434\u0435\u043b\u044c\u043d\u043e',
+}
+
+const DIGEST_OPTIONS: Array<{ value: User['digestFrequency']; label: string }> = [
+  { value: 'NONE', label: DIGEST_LABELS.NONE },
+  { value: 'DAILY', label: DIGEST_LABELS.DAILY },
+  { value: 'WEEKLY', label: DIGEST_LABELS.WEEKLY },
+]
+
+const AUDIT_ACTION_OPTIONS = [
+  { value: 'all', label: '\u0412\u0441\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f' },
+  { value: 'CREATE', label: '\u0421\u043e\u0437\u0434\u0430\u043d\u0438\u0435' },
+  { value: 'UPDATE', label: '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f' },
+  { value: 'ROLE', label: '\u0420\u043e\u043b\u0438' },
+  { value: 'ACCESS', label: '\u0414\u043e\u0441\u0442\u0443\u043f' },
+  { value: 'DELETE', label: '\u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435' },
+]
+
+const AUDIT_FIELD_OPTIONS = [
+  { value: 'all', label: '\u0412\u0441\u0435 \u043f\u043e\u043b\u044f' },
+  { value: 'name', label: '\u0418\u043c\u044f' },
+  { value: 'email', label: 'Email' },
+  { value: 'role', label: '\u0420\u043e\u043b\u044c' },
+  { value: 'canLogin', label: '\u0414\u043e\u0441\u0442\u0443\u043f' },
+  { value: 'telegramChatId', label: 'Telegram' },
+  { value: 'notifyEmail', label: 'Email \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f' },
+  { value: 'notifyTelegram', label: 'Telegram \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f' },
+  { value: 'notifySms', label: 'SMS \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f' },
+  { value: 'notifyInApp', label: '\u0412\u043d\u0443\u0442\u0440\u0438 \u0441\u0438\u0441\u0442\u0435\u043c\u044b' },
+  { value: 'quietHoursStart', label: '\u0422\u0438\u0445\u0438\u0435 \u0447\u0430\u0441\u044b (\u0441)' },
+  { value: 'quietHoursEnd', label: '\u0422\u0438\u0445\u0438\u0435 \u0447\u0430\u0441\u044b (\u0434\u043e)' },
+  { value: 'digestFrequency', label: '\u0414\u0430\u0439\u0434\u0436\u0435\u0441\u0442' },
+]
+
+const LOGIN_STATUS_OPTIONS = [
+  { value: 'all', label: '\u0412\u0441\u0435 \u043f\u043e\u043f\u044b\u0442\u043a\u0438' },
+  { value: 'success', label: '\u0423\u0441\u043f\u0435\u0448\u043d\u044b\u0435' },
+  { value: 'failure', label: '\u041e\u0448\u0438\u0431\u043a\u0438' },
+]
+
+const INACTIVE_WARNING_DAYS = 7
+
 export default function SettingsPage() {
   const { data: session, status: authStatus } = useSession()
   const router = useRouter()
@@ -79,14 +199,34 @@ export default function SettingsPage() {
   const [editData, setEditData] = useState<{
     name: string
     email: string
-    role: 'EMPLOYEE' | 'ADMIN'
+    role: 'ADMIN' | 'MANAGER' | 'AUDITOR' | 'EMPLOYEE' | 'VIEWER'
     telegramChatId: string
     canLogin: boolean
-  }>({ name: '', email: '', role: 'EMPLOYEE', telegramChatId: '', canLogin: true })
+    notifyEmail: boolean
+    notifyTelegram: boolean
+    notifySms: boolean
+    notifyInApp: boolean
+    quietHoursStart: string
+    quietHoursEnd: string
+    digestFrequency: 'NONE' | 'DAILY' | 'WEEKLY'
+  }>({
+    name: '',
+    email: '',
+    role: 'EMPLOYEE',
+    telegramChatId: '',
+    canLogin: true,
+    notifyEmail: true,
+    notifyTelegram: false,
+    notifySms: false,
+    notifyInApp: true,
+    quietHoursStart: '',
+    quietHoursEnd: '',
+    digestFrequency: 'NONE',
+  })
   const [createData, setCreateData] = useState<{
     name: string
     email: string
-    role: 'EMPLOYEE' | 'ADMIN'
+    role: 'ADMIN' | 'MANAGER' | 'AUDITOR' | 'EMPLOYEE' | 'VIEWER'
     telegramChatId: string
   }>({ name: '', email: '', role: 'EMPLOYEE', telegramChatId: '' })
   const [creating, setCreating] = useState(false)
@@ -94,12 +234,19 @@ export default function SettingsPage() {
   const [editSnapshot, setEditSnapshot] = useState<{
     name: string
     email: string
-    role: 'EMPLOYEE' | 'ADMIN'
+    role: 'ADMIN' | 'MANAGER' | 'AUDITOR' | 'EMPLOYEE' | 'VIEWER'
     telegramChatId: string
     canLogin: boolean
+    notifyEmail: boolean
+    notifyTelegram: boolean
+    notifySms: boolean
+    notifyInApp: boolean
+    quietHoursStart: string
+    quietHoursEnd: string
+    digestFrequency: 'NONE' | 'DAILY' | 'WEEKLY'
   } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [roleFilter, setRoleFilter] = useState<'all' | 'ADMIN' | 'EMPLOYEE'>('all')
+  const [roleFilter, setRoleFilter] = useState<'all' | 'ADMIN' | 'MANAGER' | 'AUDITOR' | 'EMPLOYEE' | 'VIEWER'>('all')
   const [accessFilter, setAccessFilter] = useState<'all' | 'active' | 'invited' | 'blocked'>('all')
   const [telegramFilter, setTelegramFilter] = useState<'all' | 'has' | 'none'>('all')
   const [emailFilter, setEmailFilter] = useState<'all' | 'has' | 'none'>('all')
@@ -110,6 +257,22 @@ export default function SettingsPage() {
   const [auditOpenId, setAuditOpenId] = useState<string | null>(null)
   const [auditByUser, setAuditByUser] = useState<Record<string, UserAuditEntry[]>>({})
   const [auditLoading, setAuditLoading] = useState<Record<string, boolean>>({})
+  const [auditCursorByUser, setAuditCursorByUser] = useState<Record<string, string | null>>({})
+  const [auditFilters, setAuditFilters] = useState({
+    action: 'all',
+    field: 'all',
+    query: '',
+    actor: '',
+  })
+  const [approvals, setApprovals] = useState<AdminApproval[]>([])
+  const [approvalsLoading, setApprovalsLoading] = useState(false)
+  const [approvalActionId, setApprovalActionId] = useState<string | null>(null)
+  const [loginAudits, setLoginAudits] = useState<LoginAuditEntry[]>([])
+  const [loginAuditCursor, setLoginAuditCursor] = useState<string | null>(null)
+  const [loginAuditLoading, setLoginAuditLoading] = useState(false)
+  const [loginAuditStatus, setLoginAuditStatus] = useState<'all' | 'success' | 'failure'>('all')
+  const [loginAuditQuery, setLoginAuditQuery] = useState('')
+  const [loginAuditSummary, setLoginAuditSummary] = useState<LoginAuditDaySummary[]>([])
 
   const loadUsers = useCallback(async () => {
     try {
@@ -137,16 +300,95 @@ export default function SettingsPage() {
     }
   }, [])
 
+  const loadApprovals = useCallback(async () => {
+    setApprovalsLoading(true)
+    try {
+      const res = await fetch('/api/users/approvals')
+      if (res.ok) {
+        const data = await res.json()
+        setApprovals(data.approvals || [])
+      }
+    } catch (error) {
+      console.error('Failed to load approvals:', error)
+    } finally {
+      setApprovalsLoading(false)
+    }
+  }, [])
+
+  const handleApproval = useCallback(async (approvalId: string, action: 'approve' | 'reject') => {
+    setApprovalActionId(approvalId)
+    try {
+      const res = await fetch(`/api/users/approvals/${approvalId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(data.error || '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u0430\u0442\u044c \u0437\u0430\u043f\u0440\u043e\u0441')
+        return
+      }
+
+      toast.success(
+        action === 'approve'
+          ? '\u0417\u0430\u043f\u0440\u043e\u0441 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d'
+          : '\u0417\u0430\u043f\u0440\u043e\u0441 \u043e\u0442\u043a\u043b\u043e\u043d\u0435\u043d'
+      )
+      await loadApprovals()
+      await loadUsers()
+    } catch (error) {
+      console.error('Failed to update approval:', error)
+      toast.error('\u041e\u0448\u0438\u0431\u043a\u0430 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0438 \u0437\u0430\u043f\u0440\u043e\u0441\u0430')
+    } finally {
+      setApprovalActionId(null)
+    }
+  }, [loadApprovals, loadUsers])
+
+  const buildLoginAuditUrl = useCallback((cursor?: string | null) => {
+    const params = new URLSearchParams()
+    if (loginAuditStatus !== 'all') {
+      params.set('status', loginAuditStatus)
+    }
+    if (loginAuditQuery.trim()) {
+      params.set('q', loginAuditQuery.trim())
+    }
+    if (cursor) {
+      params.set('cursor', cursor)
+    }
+    params.set('take', '20')
+    return `/api/security/logins?${params.toString()}`
+  }, [loginAuditStatus, loginAuditQuery])
+
+  const loadLoginAudits = useCallback(async (mode: 'replace' | 'more' = 'replace') => {
+    setLoginAuditLoading(true)
+    try {
+      const cursor = mode === 'more' ? loginAuditCursor : null
+      const res = await fetch(buildLoginAuditUrl(cursor))
+      if (res.ok) {
+        const data = await res.json()
+        setLoginAudits((prev) => mode === 'more' ? [...prev, ...(data.events || [])] : (data.events || []))
+        setLoginAuditCursor(data.nextCursor || null)
+        setLoginAuditSummary(data.summary || [])
+      }
+    } catch (error) {
+      console.error('Failed to load login audits:', error)
+    } finally {
+      setLoginAuditLoading(false)
+    }
+  }, [buildLoginAuditUrl, loginAuditCursor])
+
   useEffect(() => {
     if (authStatus === 'authenticated') {
-      if (session?.user.role !== 'ADMIN') {
+      if (!hasPermission(session?.user.role, 'MANAGE_USERS')) {
         router.push('/letters')
       } else {
         loadUsers()
         loadSyncLogs()
+        loadApprovals()
+        loadLoginAudits()
       }
     }
-  }, [authStatus, session, router, loadUsers, loadSyncLogs])
+  }, [authStatus, session, router, loadUsers, loadSyncLogs, loadApprovals, loadLoginAudits])
 
   useEffect(() => {
     setSelectedIds((prev) => {
@@ -163,6 +405,13 @@ export default function SettingsPage() {
       role: user.role,
       telegramChatId: user.telegramChatId || '',
       canLogin: user.canLogin,
+      notifyEmail: user.notifyEmail,
+      notifyTelegram: user.notifyTelegram,
+      notifySms: user.notifySms,
+      notifyInApp: user.notifyInApp,
+      quietHoursStart: user.quietHoursStart || '',
+      quietHoursEnd: user.quietHoursEnd || '',
+      digestFrequency: user.digestFrequency,
     }
     setEditData(snapshot)
     setEditSnapshot(snapshot)
@@ -170,7 +419,20 @@ export default function SettingsPage() {
 
   const cancelEdit = () => {
     setEditingId(null)
-    setEditData({ name: '', email: '', role: 'EMPLOYEE', telegramChatId: '', canLogin: true })
+    setEditData({
+      name: '',
+      email: '',
+      role: 'EMPLOYEE',
+      telegramChatId: '',
+      canLogin: true,
+      notifyEmail: true,
+      notifyTelegram: false,
+      notifySms: false,
+      notifyInApp: true,
+      quietHoursStart: '',
+      quietHoursEnd: '',
+      digestFrequency: 'NONE',
+    })
     setEditSnapshot(null)
   }
 
@@ -179,7 +441,7 @@ export default function SettingsPage() {
 
     const toastId = `user-save-${editingId}`
     if (mode === 'auto') {
-      toast.loading('Сохранение...', { id: toastId })
+      toast.loading('\u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435...', { id: toastId })
     }
 
     setSavingId(editingId)
@@ -204,24 +466,36 @@ export default function SettingsPage() {
           role: updated.role ?? editData.role,
           telegramChatId: updated.telegramChatId ?? editData.telegramChatId,
           canLogin: updated.canLogin ?? editData.canLogin,
+          notifyEmail: updated.notifyEmail ?? editData.notifyEmail,
+          notifyTelegram: updated.notifyTelegram ?? editData.notifyTelegram,
+          notifySms: updated.notifySms ?? editData.notifySms,
+          notifyInApp: updated.notifyInApp ?? editData.notifyInApp,
+          quietHoursStart: updated.quietHoursStart ?? editData.quietHoursStart,
+          quietHoursEnd: updated.quietHoursEnd ?? editData.quietHoursEnd,
+          digestFrequency: updated.digestFrequency ?? editData.digestFrequency,
         })
-        toast.success(
-          mode === 'auto'
-            ? 'Изменения сохранены'
-            : 'Пользователь обновлён',
-          { id: toastId }
-        )
+        if (data.requiresApproval) {
+          toast.message('\u041d\u0443\u0436\u043d\u043e \u0432\u0442\u043e\u0440\u043e\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435 \u0430\u0434\u043c\u0438\u043d\u0430', { id: toastId })
+          loadApprovals()
+        } else {
+          toast.success(
+            mode === 'auto'
+              ? '\u0410\u0432\u0442\u043e\u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u043e'
+              : '\u0418\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u044b',
+            { id: toastId }
+          )
+        }
       } else {
         const data = await res.json().catch(() => ({}))
-        toast.error(data.error || 'Не удалось обновить', { id: toastId })
+        toast.error(data.error || '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c', { id: toastId })
       }
     } catch (error) {
       console.error('Failed to save user:', error)
-      toast.error('Ошибка обновления', { id: toastId })
+      toast.error('\u041e\u0448\u0438\u0431\u043a\u0430 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u044f', { id: toastId })
     } finally {
       setSavingId(null)
     }
-  }, [editData, editingId])
+  }, [editData, editingId, loadApprovals])
 
   const hasEditChanges =
     !!editingId &&
@@ -230,7 +504,14 @@ export default function SettingsPage() {
       editData.email !== editSnapshot.email ||
       editData.role !== editSnapshot.role ||
       editData.telegramChatId !== editSnapshot.telegramChatId ||
-      editData.canLogin !== editSnapshot.canLogin)
+      editData.canLogin !== editSnapshot.canLogin ||
+      editData.notifyEmail !== editSnapshot.notifyEmail ||
+      editData.notifyTelegram !== editSnapshot.notifyTelegram ||
+      editData.notifySms !== editSnapshot.notifySms ||
+      editData.notifyInApp !== editSnapshot.notifyInApp ||
+      editData.quietHoursStart !== editSnapshot.quietHoursStart ||
+      editData.quietHoursEnd !== editSnapshot.quietHoursEnd ||
+      editData.digestFrequency !== editSnapshot.digestFrequency)
 
   useEffect(() => {
     if (!editingId || !editSnapshot || !hasEditChanges) return
@@ -272,7 +553,7 @@ export default function SettingsPage() {
   }
 
   const deleteUser = async (userId: string) => {
-    if (!confirm('Вы уверены, что хотите удалить этого пользователя?')) {
+    if (!confirm('\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f? \u042d\u0442\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043d\u0435\u043b\u044c\u0437\u044f \u043e\u0442\u043c\u0435\u043d\u0438\u0442\u044c.')) {
       return
     }
 
@@ -282,15 +563,63 @@ export default function SettingsPage() {
       })
 
       if (res.ok) {
-        toast.success('Пользователь удалён')
+        const data = await res.json().catch(() => ({}))
+        if (data.requiresApproval) {
+          toast.message('\u041d\u0443\u0436\u043d\u043e \u0432\u0442\u043e\u0440\u043e\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435 \u0430\u0434\u043c\u0438\u043d\u0430')
+          await loadApprovals()
+          return
+        }
+        toast.success('\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0443\u0434\u0430\u043b\u0435\u043d')
         await loadUsers()
       } else {
         const data = await res.json()
-        toast.error(data.error || 'Ошибка при удалении')
+        toast.error(data.error || '\u041e\u0448\u0438\u0431\u043a\u0430 \u0443\u0434\u0430\u043b\u0435\u043d\u0438\u044f')
       }
     } catch (error) {
       console.error('Failed to delete user:', error)
-      toast.error('Ошибка при удалении')
+      toast.error('\u041e\u0448\u0438\u0431\u043a\u0430 \u0443\u0434\u0430\u043b\u0435\u043d\u0438\u044f')
+    }
+  }
+
+  const toggleUserAccess = async (user: User) => {
+    if (user.role === 'ADMIN') {
+      toast.error('\u041d\u0435\u043b\u044c\u0437\u044f \u043e\u0442\u043a\u043b\u044e\u0447\u0438\u0442\u044c \u0430\u0434\u043c\u0438\u043d\u0430')
+      return
+    }
+
+    const nextAccess = !user.canLogin
+    try {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canLogin: nextAccess }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(data.error || '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f')
+        return
+      }
+
+      if (data.user) {
+        setUsers((prev) =>
+          prev.map((item) => (item.id === user.id ? { ...item, ...data.user } : item))
+        )
+      }
+
+      if (data.requiresApproval) {
+        toast.message('\u041d\u0443\u0436\u043d\u043e \u0432\u0442\u043e\u0440\u043e\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435 \u0430\u0434\u043c\u0438\u043d\u0430')
+        await loadApprovals()
+        return
+      }
+
+      toast.success(
+        nextAccess
+          ? '\u0414\u043e\u0441\u0442\u0443\u043f \u043e\u0442\u043a\u0440\u044b\u0442'
+          : '\u0414\u043e\u0441\u0442\u0443\u043f \u0437\u0430\u043a\u0440\u044b\u0442'
+      )
+    } catch (error) {
+      console.error('Failed to toggle access:', error)
+      toast.error('\u041e\u0448\u0438\u0431\u043a\u0430 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u0434\u043e\u0441\u0442\u0443\u043f\u0430')
     }
   }
 
@@ -307,53 +636,175 @@ export default function SettingsPage() {
 
   const formatRoleLabel = (role: string | null) => {
     if (!role) return '-'
-    return role === 'ADMIN' ? 'Админ' : 'Сотрудник'
+    return ROLE_LABELS[role as User['role']] || role
+  }
+
+  const formatBooleanLabel = (value: string | null) => {
+    if (value === null) return '-'
+    return value === 'true'
+      ? '\u0412\u043a\u043b\u044e\u0447\u0435\u043d\u043e'
+      : '\u0412\u044b\u043a\u043b\u044e\u0447\u0435\u043d\u043e'
   }
 
   const formatAuditValue = (field: string | null, value: string | null) => {
     if (!value) return '-'
     if (field === 'role') return formatRoleLabel(value)
-    if (field === 'canLogin') return value === 'true' ? 'Открыт' : 'Закрыт'
+    if (field === 'canLogin') {
+      return value === 'true'
+        ? '\u041e\u0442\u043a\u0440\u044b\u0442'
+        : '\u0417\u0430\u043a\u0440\u044b\u0442'
+    }
+    if (field === 'digestFrequency') {
+      return DIGEST_LABELS[value as User['digestFrequency']] || value
+    }
+    if (
+      field === 'notifyEmail' ||
+      field === 'notifyTelegram' ||
+      field === 'notifySms' ||
+      field === 'notifyInApp'
+    ) {
+      return formatBooleanLabel(value)
+    }
     return value
   }
 
   const getAuditSummary = (entry: UserAuditEntry) => {
     if (entry.action === 'CREATE') {
-      return 'Создан пользователь'
+      return '\u0421\u043e\u0437\u0434\u0430\u043d \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c'
     }
     if (entry.action === 'DELETE') {
-      return 'Удален пользователь'
+      return '\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0443\u0434\u0430\u043b\u0435\u043d'
+    }
+    if (entry.action === 'ROLE') {
+      return '\u0421\u043c\u0435\u043d\u0430 \u0440\u043e\u043b\u0438'
+    }
+    if (entry.action === 'ACCESS') {
+      return '\u0414\u043e\u0441\u0442\u0443\u043f \u043a \u0441\u0438\u0441\u0442\u0435\u043c\u0435'
     }
 
     const fieldLabels: Record<string, string> = {
-      name: 'Имя',
+      name: '\u0418\u043c\u044f',
       email: 'Email',
-      role: 'Роль',
-      canLogin: 'Доступ',
+      role: '\u0420\u043e\u043b\u044c',
+      canLogin: '\u0414\u043e\u0441\u0442\u0443\u043f',
       telegramChatId: 'Telegram',
+      notifyEmail: 'Email \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f',
+      notifyTelegram: 'Telegram \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f',
+      notifySms: 'SMS \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f',
+      notifyInApp: '\u0412\u043d\u0443\u0442\u0440\u0438 \u0441\u0438\u0441\u0442\u0435\u043c\u044b',
+      quietHoursStart: '\u0422\u0438\u0445\u0438\u0435 \u0447\u0430\u0441\u044b (\u0441)',
+      quietHoursEnd: '\u0422\u0438\u0445\u0438\u0435 \u0447\u0430\u0441\u044b (\u0434\u043e)',
+      digestFrequency: '\u0414\u0430\u0439\u0434\u0436\u0435\u0441\u0442',
     }
-    const label = entry.field ? fieldLabels[entry.field] || entry.field : 'Поле'
-    return `Изменено: ${label}`
+    const label = entry.field ? fieldLabels[entry.field] || entry.field : '\u041f\u043e\u043b\u0435'
+    return `\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e \u043f\u043e\u043b\u0435: ${label}`
   }
+
+  const formatLoginReason = (reason: string | null) => {
+    if (!reason) return '-'
+    const labels: Record<string, string> = {
+      RATE_LIMIT: '\u0421\u043b\u0438\u0448\u043a\u043e\u043c \u043c\u043d\u043e\u0433\u043e \u043f\u043e\u043f\u044b\u0442\u043e\u043a',
+      USER_NOT_FOUND: '\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d',
+      ACCESS_BLOCKED: '\u0414\u043e\u0441\u0442\u0443\u043f \u0437\u0430\u043a\u0440\u044b\u0442',
+    }
+    return labels[reason] || reason
+  }
+
+  const getLoginStatusBadge = (success: boolean) => {
+    return success ? (
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-emerald-500/20 text-emerald-400">
+        <CheckCircle className="w-3 h-3" />
+        {'\u0423\u0441\u043f\u0435\u0448\u043d\u043e'}
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-red-500/20 text-red-400">
+        <XCircle className="w-3 h-3" />
+        {'\u041e\u0448\u0438\u0431\u043a\u0430'}
+      </span>
+    )
+  }
+
+  const formatSummaryDate = (date: string) => {
+    return new Date(date).toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+    })
+  }
+
+  const getInactiveBadge = (user: User) => {
+    if (!user.lastLoginAt) return null
+    const days = Math.floor((Date.now() - new Date(user.lastLoginAt).getTime()) / (1000 * 60 * 60 * 24))
+    if (days < INACTIVE_WARNING_DAYS) return null
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-amber-500/20 text-amber-300">
+        <Clock className="w-3 h-3" />
+        {days} {'\u0434\u043d\u0435\u0439 \u0431\u0435\u0437 \u0432\u0445\u043e\u0434\u0430'}
+      </span>
+    )
+  }
+
+  const buildAuditUrl = useCallback((userId: string, cursor?: string | null) => {
+    const params = new URLSearchParams()
+    if (auditFilters.action !== 'all') {
+      params.set('action', auditFilters.action)
+    }
+    if (auditFilters.field !== 'all') {
+      params.set('field', auditFilters.field)
+    }
+    if (auditFilters.query.trim()) {
+      params.set('q', auditFilters.query.trim())
+    }
+    if (auditFilters.actor.trim()) {
+      params.set('actor', auditFilters.actor.trim())
+    }
+    if (cursor) {
+      params.set('cursor', cursor)
+    }
+    params.set('take', '10')
+    return `/api/users/${userId}/audit?${params.toString()}`
+  }, [auditFilters])
+
+  const loadAudit = useCallback(async (userId: string, mode: 'replace' | 'more' = 'replace') => {
+    setAuditLoading((prev) => ({ ...prev, [userId]: true }))
+    try {
+      const cursor = mode === 'more' ? auditCursorByUser[userId] : null
+      const res = await fetch(buildAuditUrl(userId, cursor))
+      if (res.ok) {
+        const data = await res.json()
+        setAuditByUser((prev) => ({
+          ...prev,
+          [userId]: mode === 'more' ? [...(prev[userId] || []), ...(data.audits || [])] : (data.audits || []),
+        }))
+        setAuditCursorByUser((prev) => ({ ...prev, [userId]: data.nextCursor || null }))
+      }
+    } catch (error) {
+      console.error('Failed to load user audit:', error)
+    } finally {
+      setAuditLoading((prev) => ({ ...prev, [userId]: false }))
+    }
+  }, [auditCursorByUser, buildAuditUrl])
 
   const toggleAudit = async (userId: string) => {
     const nextOpen = auditOpenId === userId ? null : userId
     setAuditOpenId(nextOpen)
-    if (nextOpen && !auditByUser[userId] && !auditLoading[userId]) {
-      setAuditLoading((prev) => ({ ...prev, [userId]: true }))
-      try {
-        const res = await fetch(`/api/users/${userId}/audit`)
-        if (res.ok) {
-          const data = await res.json()
-          setAuditByUser((prev) => ({ ...prev, [userId]: data.audits || [] }))
-        }
-      } catch (error) {
-        console.error('Failed to load user audit:', error)
-      } finally {
-        setAuditLoading((prev) => ({ ...prev, [userId]: false }))
-      }
+    if (nextOpen) {
+      loadAudit(userId, 'replace')
     }
   }
+
+  useEffect(() => {
+    if (auditOpenId) {
+      loadAudit(auditOpenId, 'replace')
+    }
+  }, [auditFilters, auditOpenId, loadAudit])
+
+  useEffect(() => {
+    if (authStatus !== 'authenticated') return
+    const timer = setTimeout(() => {
+      loadLoginAudits('replace')
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [authStatus, loginAuditStatus, loginAuditQuery, loadLoginAudits])
 
   const getUserStatus = (user: User) => {
     if (user.role === 'ADMIN') return 'active'
@@ -416,6 +867,24 @@ export default function SettingsPage() {
     )
   })
 
+  const groupedUsers = useMemo(() => {
+    const groups: Record<User['role'], User[]> = {
+      ADMIN: [],
+      MANAGER: [],
+      AUDITOR: [],
+      EMPLOYEE: [],
+      VIEWER: [],
+    }
+    filteredUsers.forEach((user) => {
+      groups[user.role].push(user)
+    })
+    return groups
+  }, [filteredUsers])
+
+  const sortedUsers = useMemo(() => {
+    return ROLE_ORDER.flatMap((role) => groupedUsers[role])
+  }, [groupedUsers])
+
   const allVisibleSelected =
     filteredUsers.length > 0 &&
     filteredUsers.every((user) => selectedIds.has(user.id))
@@ -425,7 +894,8 @@ export default function SettingsPage() {
   ).length
   const bulkDemoteBlocked =
     bulkAction === 'role' &&
-    bulkValue === 'EMPLOYEE' &&
+    !!bulkValue &&
+    bulkValue !== 'ADMIN' &&
     adminCount - selectedAdminCount <= 0
 
   const toggleSelect = useCallback((userId: string) => {
@@ -489,7 +959,7 @@ export default function SettingsPage() {
       return
     }
 
-    if (bulkAction === 'role' && bulkValue === 'EMPLOYEE') {
+    if (bulkAction === 'role' && bulkValue !== 'ADMIN') {
       const selectedAdmins = users.filter(
         (user) => selectedIds.has(user.id) && user.role === 'ADMIN'
       ).length
@@ -535,6 +1005,12 @@ export default function SettingsPage() {
           ? `\u0423\u0434\u0430\u043b\u0435\u043d\u043e: ${data.deleted ?? 0}`
           : `\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e: ${data.updated ?? 0}`
       )
+      if (data.requiresApproval) {
+        toast.message(
+          `\u041d\u0443\u0436\u043d\u043e \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044c: ${data.pendingApprovals ?? 0}`
+        )
+        await loadApprovals()
+      }
       await loadUsers()
       clearSelection()
       setBulkAction('')
@@ -545,7 +1021,7 @@ export default function SettingsPage() {
     } finally {
       setBulkLoading(false)
     }
-  }, [bulkAction, bulkValue, selectedIds, users, adminCount, loadUsers, clearSelection])
+  }, [bulkAction, bulkValue, selectedIds, users, adminCount, loadUsers, loadApprovals, clearSelection])
 
   const getStatusBadge = (status: SyncLog['status']) => {
     switch (status) {
@@ -588,7 +1064,7 @@ export default function SettingsPage() {
     )
   }
 
-  if (!session || session.user.role !== 'ADMIN') {
+  if (!session || !hasPermission(session.user.role, 'MANAGE_USERS')) {
     return null
   }
 
@@ -696,6 +1172,88 @@ export default function SettingsPage() {
           </div>
 
           <div className="bg-gray-900/40 border border-gray-700/50 rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <ShieldAlert className="w-4 h-4 text-amber-400" />
+                {'\u0417\u0430\u043f\u0440\u043e\u0441\u044b \u043d\u0430 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435'}
+              </div>
+              <button
+                onClick={loadApprovals}
+                aria-label="Refresh approvals"
+                className="p-2 text-gray-400 hover:text-white transition"
+                title={'\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c'}
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
+            {approvalsLoading ? (
+              <div className="text-xs text-gray-500">{'\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430...'}</div>
+            ) : approvals.length > 0 ? (
+              <div className="space-y-3">
+                {approvals.map((approval) => {
+                  const approvalTitle =
+                    approval.action === 'DEMOTE_ADMIN'
+                      ? '\u041f\u043e\u043d\u0438\u0436\u0435\u043d\u0438\u0435 \u0440\u043e\u043b\u0438 \u0430\u0434\u043c\u0438\u043d\u0430'
+                      : '\u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435 \u0430\u0434\u043c\u0438\u043d\u0430'
+                  const requester =
+                    approval.requestedBy.name ||
+                    approval.requestedBy.email ||
+                    '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0439'
+                  const targetLabel =
+                    approval.targetUser.name || approval.targetUser.email || '\u0411\u0435\u0437 \u0438\u043c\u0435\u043d\u0438'
+                  return (
+                    <div
+                      key={approval.id}
+                      className="border border-white/5 rounded-lg p-3 bg-white/5 flex flex-col gap-3"
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="text-sm text-white">{approvalTitle}</div>
+                          <div className="text-xs text-gray-400">
+                            {targetLabel} · {formatRoleLabel(approval.targetUser.role)}
+                          </div>
+                          {approval.action === 'DEMOTE_ADMIN' && approval.payload?.newRole && (
+                            <div className="text-xs text-emerald-400">
+                              {'\u041d\u043e\u0432\u0430\u044f \u0440\u043e\u043b\u044c:'} {formatRoleLabel(approval.payload.newRole)}
+                            </div>
+                          )}
+                          <div className="text-xs text-gray-500">
+                            {requester} · {formatDate(approval.createdAt)}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleApproval(approval.id, 'approve')}
+                            disabled={approvalActionId === approval.id}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded transition disabled:opacity-50"
+                          >
+                            {approvalActionId === approval.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <CheckCircle className="w-3 h-3" />
+                            )}
+                            {'\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044c'}
+                          </button>
+                          <button
+                            onClick={() => handleApproval(approval.id, 'reject')}
+                            disabled={approvalActionId === approval.id}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded transition disabled:opacity-50"
+                          >
+                            <XCircle className="w-3 h-3" />
+                            {'\u041e\u0442\u043a\u043b\u043e\u043d\u0438\u0442\u044c'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="text-xs text-gray-500">{'\u041d\u0435\u0442 \u0437\u0430\u043f\u0440\u043e\u0441\u043e\u0432 \u043d\u0430 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435'}</div>
+            )}
+          </div>
+
+          <div className="bg-gray-900/40 border border-gray-700/50 rounded-lg p-4 mb-6">
             <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
               <UserPlus className="w-4 h-4 text-emerald-400" />
               {'\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f'}
@@ -726,14 +1284,17 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   setCreateData({
                     ...createData,
-                    role: e.target.value as 'EMPLOYEE' | 'ADMIN',
+                    role: e.target.value as User['role'],
                   })
                 }
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
                 aria-label="Role"
               >
-                <option value="EMPLOYEE">{'\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a'}</option>
-                <option value="ADMIN">{'\u0410\u0434\u043c\u0438\u043d'}</option>
+                {ROLE_OPTIONS.map((role) => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
+                  </option>
+                ))}
               </select>
               <input
                 type="text"
@@ -780,13 +1341,16 @@ export default function SettingsPage() {
               </div>
               <select
                 value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value as 'all' | 'ADMIN' | 'EMPLOYEE')}
+                onChange={(e) => setRoleFilter(e.target.value as 'all' | User['role'])}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
                 aria-label="Filter by role"
               >
                 <option value="all">{'\u0412\u0441\u0435 \u0440\u043e\u043b\u0438'}</option>
-                <option value="ADMIN">{'\u0410\u0434\u043c\u0438\u043d'}</option>
-                <option value="EMPLOYEE">{'\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a'}</option>
+                {ROLE_OPTIONS.map((role) => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
+                  </option>
+                ))}
               </select>
               <select
                 value={accessFilter}
@@ -866,8 +1430,11 @@ export default function SettingsPage() {
                   aria-label="Bulk role"
                 >
                   <option value="">{'\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0440\u043e\u043b\u044c'}</option>
-                  <option value="ADMIN">{'\u0410\u0434\u043c\u0438\u043d'}</option>
-                  <option value="EMPLOYEE">{'\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a'}</option>
+                  {ROLE_OPTIONS.map((role) => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
+                    </option>
+                  ))}
                 </select>
               )}
               {bulkAction === 'canLogin' && (
@@ -925,14 +1492,27 @@ export default function SettingsPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {filteredUsers.map((user) => {
+            {sortedUsers.flatMap((user, index) => {
+              const prevRole = index > 0 ? sortedUsers[index - 1]?.role : null
+              const showHeading = user.role !== prevRole
+              const roleCount = groupedUsers[user.role]?.length ?? 0
               const isEditing = editingId === user.id
               const isSaving = savingId === user.id
               const isDirty = isEditing && hasEditChanges
               const isSelected = selectedIds.has(user.id)
               const isLastAdmin = user.role === 'ADMIN' && adminCount <= 1
 
-              return (
+              const items: JSX.Element[] = []
+              if (showHeading) {
+                items.push(
+                  <div key={`${user.role}-heading`} className="md:col-span-2 xl:col-span-3 flex items-center justify-between text-sm text-gray-400">
+                    <span>{formatRoleLabel(user.role)}</span>
+                    <span className="text-xs text-gray-500">{roleCount}</span>
+                  </div>
+                )
+              }
+
+              items.push(
                 <div
                   key={user.id}
                   className={`rounded-2xl border border-white/10 bg-white/5 p-4 transition ${
@@ -963,16 +1543,10 @@ export default function SettingsPage() {
                             {user.name || '\u0411\u0435\u0437 \u0438\u043c\u0435\u043d\u0438'}
                           </h3>
                           <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
-                              user.role === 'ADMIN'
-                                ? 'bg-amber-500/20 text-amber-400'
-                                : 'bg-gray-700 text-gray-400'
-                            }`}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${ROLE_BADGE_CLASSES[user.role]}`}
                           >
                             <Shield className="w-3 h-3" />
-                            {user.role === 'ADMIN'
-                              ? '\u0410\u0434\u043c\u0438\u043d'
-                              : '\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a'}
+                            {formatRoleLabel(user.role)}
                           </span>
                         </div>
                         <div className="text-xs text-gray-400 flex items-center gap-2">
@@ -992,6 +1566,7 @@ export default function SettingsPage() {
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     {getUserStatusBadge(user)}
+                    {getInactiveBadge(user)}
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-white/5 text-gray-300">
                       <FileText className="w-3 h-3" />
                       {user._count.letters} {'\u043f\u0438\u0441\u0435\u043c'}
@@ -1048,15 +1623,18 @@ export default function SettingsPage() {
                           onChange={(e) =>
                             setEditData({
                               ...editData,
-                              role: e.target.value as 'EMPLOYEE' | 'ADMIN',
+                              role: e.target.value as User['role'],
                             })
                           }
                           disabled={isLastAdmin}
                           className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white disabled:opacity-60"
                           aria-label="User role"
                         >
-                          <option value="EMPLOYEE">{'\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a'}</option>
-                          <option value="ADMIN">{'\u0410\u0434\u043c\u0438\u043d'}</option>
+                          {ROLE_OPTIONS.map((role) => (
+                            <option key={role.value} value={role.value}>
+                              {role.label}
+                            </option>
+                          ))}
                         </select>
                         {isLastAdmin && (
                           <span className="text-xs text-amber-400">
@@ -1094,6 +1672,121 @@ export default function SettingsPage() {
                           aria-label="Telegram chat ID"
                           placeholder="Chat ID"
                         />
+                      </div>
+                      <div className="border-t border-white/10 pt-3 grid gap-3 text-xs">
+                        <div className="flex items-center gap-2 text-gray-400">
+                          <Bell className="w-3.5 h-3.5" />
+                          {'\u041a\u0430\u043d\u0430\u043b\u044b \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439'}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-gray-300">
+                          <label className="inline-flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={editData.notifyEmail}
+                              onChange={(e) =>
+                                setEditData({ ...editData, notifyEmail: e.target.checked })
+                              }
+                              className="rounded border-gray-600"
+                              aria-label="Notify by email"
+                            />
+                            Email
+                          </label>
+                          <label className="inline-flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={editData.notifyTelegram}
+                              onChange={(e) =>
+                                setEditData({
+                                  ...editData,
+                                  notifyTelegram: e.target.checked,
+                                })
+                              }
+                              className="rounded border-gray-600"
+                              aria-label="Notify by Telegram"
+                            />
+                            Telegram
+                          </label>
+                          <label className="inline-flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={editData.notifySms}
+                              onChange={(e) =>
+                                setEditData({ ...editData, notifySms: e.target.checked })
+                              }
+                              className="rounded border-gray-600"
+                              aria-label="Notify by SMS"
+                            />
+                            SMS
+                          </label>
+                          <label className="inline-flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={editData.notifyInApp}
+                              onChange={(e) =>
+                                setEditData({ ...editData, notifyInApp: e.target.checked })
+                              }
+                              className="rounded border-gray-600"
+                              aria-label="Notify in app"
+                            />
+                            {'\u0412\u043d\u0443\u0442\u0440\u0438 \u0441\u0438\u0441\u0442\u0435\u043c\u044b'}
+                          </label>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="grid gap-1">
+                            <span className="text-gray-400">
+                              {'\u0422\u0438\u0445\u0438\u0435 \u0447\u0430\u0441\u044b (\u0441)'}
+                            </span>
+                            <input
+                              type="time"
+                              value={editData.quietHoursStart}
+                              onChange={(e) =>
+                                setEditData({
+                                  ...editData,
+                                  quietHoursStart: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                              aria-label="Quiet hours start"
+                            />
+                          </div>
+                          <div className="grid gap-1">
+                            <span className="text-gray-400">
+                              {'\u0422\u0438\u0445\u0438\u0435 \u0447\u0430\u0441\u044b (\u0434\u043e)'}
+                            </span>
+                            <input
+                              type="time"
+                              value={editData.quietHoursEnd}
+                              onChange={(e) =>
+                                setEditData({
+                                  ...editData,
+                                  quietHoursEnd: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                              aria-label="Quiet hours end"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid gap-1">
+                          <span className="text-gray-400">{'\u0414\u0430\u0439\u0434\u0436\u0435\u0441\u0442'}</span>
+                          <select
+                            value={editData.digestFrequency}
+                            onChange={(e) =>
+                              setEditData({
+                                ...editData,
+                                digestFrequency: e.target.value as User['digestFrequency'],
+                              })
+                            }
+                            className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                            aria-label="Digest frequency"
+                          >
+                            {DIGEST_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -1138,6 +1831,27 @@ export default function SettingsPage() {
                         </>
                       ) : (
                         <>
+                          {user.id !== session.user.id && (
+                            <button
+                              onClick={() => toggleUserAccess(user)}
+                              aria-label={user.canLogin ? 'Disable access' : 'Enable access'}
+                              disabled={user.role === 'ADMIN'}
+                              title={
+                                user.role === 'ADMIN'
+                                  ? '\u041d\u0435\u043b\u044c\u0437\u044f \u043e\u0442\u043a\u043b\u044e\u0447\u0438\u0442\u044c \u0430\u0434\u043c\u0438\u043d\u0430'
+                                  : user.canLogin
+                                    ? '\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f'
+                                    : '\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f'
+                              }
+                              className="p-2 text-gray-400 hover:text-emerald-300 transition disabled:opacity-60"
+                            >
+                              {user.canLogin ? (
+                                <Lock className="w-4 h-4" />
+                              ) : (
+                                <Unlock className="w-4 h-4" />
+                              )}
+                            </button>
+                          )}
                           <button
                             onClick={() => startEdit(user)}
                             aria-label="Edit user"
@@ -1179,6 +1893,56 @@ export default function SettingsPage() {
                       <div className="text-sm text-gray-300 mb-2">
                         {'\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439'}
                       </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2 mb-3 text-xs">
+                        <select
+                          value={auditFilters.action}
+                          onChange={(e) =>
+                            setAuditFilters((prev) => ({ ...prev, action: e.target.value }))
+                          }
+                          className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                          aria-label="Audit action filter"
+                        >
+                          {AUDIT_ACTION_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={auditFilters.field}
+                          onChange={(e) =>
+                            setAuditFilters((prev) => ({ ...prev, field: e.target.value }))
+                          }
+                          className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                          aria-label="Audit field filter"
+                        >
+                          {AUDIT_FIELD_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          value={auditFilters.actor}
+                          onChange={(e) =>
+                            setAuditFilters((prev) => ({ ...prev, actor: e.target.value }))
+                          }
+                          className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                          placeholder={'\u0410\u0432\u0442\u043e\u0440'}
+                          aria-label="Audit actor search"
+                        />
+                        <input
+                          type="text"
+                          value={auditFilters.query}
+                          onChange={(e) =>
+                            setAuditFilters((prev) => ({ ...prev, query: e.target.value }))
+                          }
+                          className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                          placeholder={'\u041f\u043e\u0438\u0441\u043a \u043f\u043e \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f\u043c'}
+                          aria-label="Audit search"
+                        />
+                      </div>
                       {auditLoading[user.id] ? (
                         <div className="text-xs text-gray-500">
                           {'\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430...'}
@@ -1211,6 +1975,14 @@ export default function SettingsPage() {
                               </div>
                             )
                           })}
+                          {auditCursorByUser[user.id] && (
+                            <button
+                              onClick={() => loadAudit(user.id, 'more')}
+                              className="text-xs text-emerald-400 hover:text-emerald-300 transition"
+                            >
+                              {'\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0435\u0449\u0435'}
+                            </button>
+                          )}
                         </div>
                       ) : (
                         <div className="text-xs text-gray-500">
@@ -1221,6 +1993,7 @@ export default function SettingsPage() {
                   )}
                 </div>
               )
+              return items
             })}
           </div>
 
@@ -1232,6 +2005,136 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
+        <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <History className="w-6 h-6 text-emerald-400" />
+              <h2 className="text-xl font-semibold text-white">{'\u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u044c: \u0432\u0445\u043e\u0434\u044b'}</h2>
+            </div>
+            <button
+              onClick={() => loadLoginAudits('replace')}
+              aria-label="Refresh login audits"
+              className="p-2 text-gray-400 hover:text-white transition"
+              title={'\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c'}
+            >
+              <RefreshCw className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+            <select
+              value={loginAuditStatus}
+              onChange={(e) => setLoginAuditStatus(e.target.value as 'all' | 'success' | 'failure')}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+              aria-label="Login audit status"
+            >
+              {LOGIN_STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <div className="relative">
+              <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={loginAuditQuery}
+                onChange={(e) => setLoginAuditQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                placeholder={'\u041f\u043e\u0438\u0441\u043a \u043f\u043e email \u0438\u043b\u0438 \u0438\u043c\u0435\u043d\u0438'}
+                aria-label="Login audit search"
+              />
+            </div>
+            <button
+              onClick={() => {
+                setLoginAuditStatus('all')
+                setLoginAuditQuery('')
+              }}
+              className="px-3 py-2 text-gray-300 hover:text-white border border-white/10 rounded"
+            >
+              {'\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c'}
+            </button>
+          </div>
+
+          {loginAuditSummary.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              {loginAuditSummary.map((day) => (
+                <div
+                  key={day.date}
+                  className="rounded-lg border border-white/10 bg-white/5 p-3"
+                >
+                  <div className="text-xs text-gray-400">{formatSummaryDate(day.date)}</div>
+                  <div className="text-sm text-white">
+                    {day.success} {'\u0443\u0441\u043f\u0435\u0448\u043d\u043e'}
+                  </div>
+                  <div className="text-xs text-red-400">
+                    {day.failure} {'\u043e\u0448\u0438\u0431\u043e\u043a'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {loginAuditLoading && loginAudits.length === 0 ? (
+            <div className="text-xs text-gray-500">{'\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430...'}</div>
+          ) : loginAudits.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-700">
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\u0414\u0430\u0442\u0430'}</th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c'}</th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\u0420\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442'}</th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\u041f\u0440\u0438\u0447\u0438\u043d\u0430'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loginAudits.map((event) => {
+                    const displayName =
+                      event.user?.name || event.user?.email || event.email
+                    return (
+                      <tr key={event.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
+                        <td className="py-3 px-4 text-gray-300 text-sm">
+                          {formatDate(event.createdAt)}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="text-sm text-white">{displayName}</div>
+                          <div className="text-xs text-gray-500">{event.email}</div>
+                        </td>
+                        <td className="py-3 px-4">{getLoginStatusBadge(event.success)}</td>
+                        <td className="py-3 px-4 text-xs text-gray-400">
+                          {formatLoginReason(event.reason)}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-xs text-gray-500">{'\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445'} </div>
+          )}
+
+          {loginAuditCursor && (
+            <div className="mt-4">
+              <button
+                onClick={() => loadLoginAudits('more')}
+                disabled={loginAuditLoading}
+                className="text-sm text-emerald-400 hover:text-emerald-300 transition disabled:opacity-50"
+              >
+                {loginAuditLoading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {'\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430...'}
+                  </span>
+                ) : (
+                  '\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0435\u0449\u0435'
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+
       </main>
     </div>
   )

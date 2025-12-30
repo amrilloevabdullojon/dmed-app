@@ -6,6 +6,8 @@ import { cache, CACHE_TTL, CACHE_KEYS } from '@/lib/cache'
 import type { LetterStatus } from '@prisma/client'
 import { URGENT_DAYS, MONTHS_TO_SHOW } from '@/lib/constants'
 
+export const dynamic = 'force-dynamic'
+
 interface StatsData {
   summary: {
     total: number

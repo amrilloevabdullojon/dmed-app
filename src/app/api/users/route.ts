@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
+import { hasPermission } from '@/lib/permissions'
 
 // GET /api/users - получить всех пользователей
 export async function GET(request: NextRequest) {
@@ -9,6 +10,10 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (!hasPermission(session.user.role, 'MANAGE_USERS')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const users = await prisma.user.findMany({
@@ -22,6 +27,13 @@ export async function GET(request: NextRequest) {
         telegramChatId: true,
         createdAt: true,
         lastLoginAt: true,
+        notifyEmail: true,
+        notifyTelegram: true,
+        notifySms: true,
+        notifyInApp: true,
+        quietHoursStart: true,
+        quietHoursEnd: true,
+        digestFrequency: true,
         _count: {
           select: {
             letters: true,
@@ -51,14 +63,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (session.user.role !== 'ADMIN') {
+    if (!hasPermission(session.user.role, 'MANAGE_USERS')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const body = await request.json()
     const name = typeof body.name === 'string' ? body.name.trim() : ''
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
-    const role = body.role === 'ADMIN' ? 'ADMIN' : 'EMPLOYEE'
+    const role = body.role === 'ADMIN' ? 'ADMIN' : body.role === 'MANAGER'
+      ? 'MANAGER'
+      : body.role === 'AUDITOR'
+        ? 'AUDITOR'
+        : body.role === 'VIEWER'
+          ? 'VIEWER'
+          : 'EMPLOYEE'
     const telegramChatId =
       typeof body.telegramChatId === 'string' && body.telegramChatId.trim()
         ? body.telegramChatId.trim()
@@ -95,6 +113,13 @@ export async function POST(request: NextRequest) {
         telegramChatId: true,
         createdAt: true,
         lastLoginAt: true,
+        notifyEmail: true,
+        notifyTelegram: true,
+        notifySms: true,
+        notifyInApp: true,
+        quietHoursStart: true,
+        quietHoursEnd: true,
+        digestFrequency: true,
         _count: {
           select: {
             letters: true,
@@ -116,6 +141,13 @@ export async function POST(request: NextRequest) {
           role: user.role,
           canLogin: user.canLogin,
           telegramChatId: user.telegramChatId,
+          notifyEmail: user.notifyEmail,
+          notifyTelegram: user.notifyTelegram,
+          notifySms: user.notifySms,
+          notifyInApp: user.notifyInApp,
+          quietHoursStart: user.quietHoursStart,
+          quietHoursEnd: user.quietHoursEnd,
+          digestFrequency: user.digestFrequency,
         }),
       },
     })
