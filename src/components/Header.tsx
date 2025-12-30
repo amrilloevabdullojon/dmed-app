@@ -105,8 +105,7 @@ export function Header() {
         {Array.from({ length: 15 }).map((_, i) => (
           <span
             key={i}
-            className="text-xs animate-twinkle"
-            style={{ animationDelay: `${i * 0.15}s` }}
+            className={`text-xs animate-twinkle twinkle-delay-${i}`}
           >
             {['🔴', '🟢', '🟡', '🔵'][i % 4]}
           </span>

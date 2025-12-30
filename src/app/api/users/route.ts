@@ -21,10 +21,12 @@ export async function GET(request: NextRequest) {
         canLogin: true,
         telegramChatId: true,
         createdAt: true,
+        lastLoginAt: true,
         _count: {
           select: {
             letters: true,
             comments: true,
+            sessions: true,
           },
         },
       },
@@ -92,10 +94,12 @@ export async function POST(request: NextRequest) {
         canLogin: true,
         telegramChatId: true,
         createdAt: true,
+        lastLoginAt: true,
         _count: {
           select: {
             letters: true,
             comments: true,
+            sessions: true,
           },
         },
       },

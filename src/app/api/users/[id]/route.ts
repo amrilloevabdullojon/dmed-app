@@ -25,10 +25,12 @@ export async function GET(
         canLogin: true,
         telegramChatId: true,
         createdAt: true,
+        lastLoginAt: true,
         _count: {
           select: {
             letters: true,
             comments: true,
+            sessions: true,
           },
         },
       },
@@ -65,11 +67,11 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { role, name, telegramChatId, email } = body
+    const { role, name, telegramChatId, email, canLogin } = body
 
     const updateData: any = {}
 
-    if (role) {
+    if (role === 'ADMIN' || role === 'EMPLOYEE') {
       updateData.role = role
     }
 
@@ -79,6 +81,10 @@ export async function PATCH(
 
     if (telegramChatId !== undefined) {
       updateData.telegramChatId = telegramChatId || null
+    }
+
+    if (typeof canLogin === 'boolean') {
+      updateData.canLogin = canLogin
     }
 
     if (email !== undefined) {
@@ -103,6 +109,24 @@ export async function PATCH(
       }
     }
 
+    if (updateData.role === 'EMPLOYEE') {
+      const current = await prisma.user.findUnique({
+        where: { id: params.id },
+        select: { role: true },
+      })
+      if (current?.role === 'ADMIN') {
+        const adminCount = await prisma.user.count({
+          where: { role: 'ADMIN' },
+        })
+        if (adminCount <= 1) {
+          return NextResponse.json(
+            { error: 'At least one admin is required' },
+            { status: 400 }
+          )
+        }
+      }
+    }
+
     const user = await prisma.user.update({
       where: { id: params.id },
       data: updateData,
@@ -113,6 +137,7 @@ export async function PATCH(
         role: true,
         canLogin: true,
         telegramChatId: true,
+        lastLoginAt: true,
       },
     })
 
@@ -148,6 +173,23 @@ export async function DELETE(
         { error: 'Cannot delete yourself' },
         { status: 400 }
       )
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: params.id },
+      select: { role: true },
+    })
+
+    if (user?.role === 'ADMIN') {
+      const adminCount = await prisma.user.count({
+        where: { role: 'ADMIN' },
+      })
+      if (adminCount <= 1) {
+        return NextResponse.json(
+          { error: 'Cannot delete the last admin' },
+          { status: 400 }
+        )
+      }
     }
 
     await prisma.user.delete({

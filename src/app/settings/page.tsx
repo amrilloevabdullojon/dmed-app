@@ -23,6 +23,7 @@ import {
   ArrowUpFromLine,
   ArrowDownToLine,
   UserPlus,
+  Search,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -35,9 +36,11 @@ interface User {
   canLogin: boolean
   telegramChatId: string | null
   createdAt: string
+  lastLoginAt: string | null
   _count: {
     letters: number
     comments: number
+    sessions: number
   }
 }
 
@@ -63,7 +66,8 @@ export default function SettingsPage() {
     email: string
     role: 'EMPLOYEE' | 'ADMIN'
     telegramChatId: string
-  }>({ name: '', email: '', role: 'EMPLOYEE', telegramChatId: '' })
+    canLogin: boolean
+  }>({ name: '', email: '', role: 'EMPLOYEE', telegramChatId: '', canLogin: true })
   const [createData, setCreateData] = useState<{
     name: string
     email: string
@@ -71,7 +75,23 @@ export default function SettingsPage() {
     telegramChatId: string
   }>({ name: '', email: '', role: 'EMPLOYEE', telegramChatId: '' })
   const [creating, setCreating] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [editSnapshot, setEditSnapshot] = useState<{
+    name: string
+    email: string
+    role: 'EMPLOYEE' | 'ADMIN'
+    telegramChatId: string
+    canLogin: boolean
+  } | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [roleFilter, setRoleFilter] = useState<'all' | 'ADMIN' | 'EMPLOYEE'>('all')
+  const [accessFilter, setAccessFilter] = useState<'all' | 'active' | 'invited' | 'blocked'>('all')
+  const [telegramFilter, setTelegramFilter] = useState<'all' | 'has' | 'none'>('all')
+  const [emailFilter, setEmailFilter] = useState<'all' | 'has' | 'none'>('all')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkAction, setBulkAction] = useState<'role' | 'canLogin' | 'delete' | ''>('')
+  const [bulkValue, setBulkValue] = useState('')
+  const [bulkLoading, setBulkLoading] = useState(false)
 
   const loadUsers = useCallback(async () => {
     try {
@@ -110,25 +130,41 @@ export default function SettingsPage() {
     }
   }, [authStatus, session, router, loadUsers, loadSyncLogs])
 
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const ids = new Set(users.map((user) => user.id))
+      return new Set(Array.from(prev).filter((id) => ids.has(id)))
+    })
+  }, [users])
+
   const startEdit = (user: User) => {
     setEditingId(user.id)
-    setEditData({
+    const snapshot = {
       name: user.name || '',
       email: user.email || '',
       role: user.role,
       telegramChatId: user.telegramChatId || '',
-    })
+      canLogin: user.canLogin,
+    }
+    setEditData(snapshot)
+    setEditSnapshot(snapshot)
   }
 
   const cancelEdit = () => {
     setEditingId(null)
-    setEditData({ name: '', email: '', role: 'EMPLOYEE', telegramChatId: '' })
+    setEditData({ name: '', email: '', role: 'EMPLOYEE', telegramChatId: '', canLogin: true })
+    setEditSnapshot(null)
   }
 
-  const saveUser = async () => {
+  const saveUser = useCallback(async (mode: 'auto' | 'manual' = 'manual') => {
     if (!editingId) return
 
-    setSaving(true)
+    const toastId = `user-save-${editingId}`
+    if (mode === 'auto') {
+      toast.loading('Сохранение...', { id: toastId })
+    }
+
+    setSavingId(editingId)
     try {
       const res = await fetch(`/api/users/${editingId}`, {
         method: 'PATCH',
@@ -137,19 +173,55 @@ export default function SettingsPage() {
       })
 
       if (res.ok) {
-        toast.success('Пользователь сохранён')
-        await loadUsers()
-        cancelEdit()
+        const data = await res.json()
+        const updated = data.user || {}
+        setUsers((prev) =>
+          prev.map((user) =>
+            user.id === editingId ? { ...user, ...updated } : user
+          )
+        )
+        setEditSnapshot({
+          name: updated.name ?? editData.name,
+          email: updated.email ?? editData.email,
+          role: updated.role ?? editData.role,
+          telegramChatId: updated.telegramChatId ?? editData.telegramChatId,
+          canLogin: updated.canLogin ?? editData.canLogin,
+        })
+        toast.success(
+          mode === 'auto'
+            ? 'Изменения сохранены'
+            : 'Пользователь обновлён',
+          { id: toastId }
+        )
       } else {
-        toast.error('Ошибка при сохранении')
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.error || 'Не удалось обновить', { id: toastId })
       }
     } catch (error) {
       console.error('Failed to save user:', error)
-      toast.error('Ошибка при сохранении')
+      toast.error('Ошибка обновления', { id: toastId })
     } finally {
-      setSaving(false)
+      setSavingId(null)
     }
-  }
+  }, [editData, editingId])
+
+  const hasEditChanges =
+    !!editingId &&
+    !!editSnapshot &&
+    (editData.name !== editSnapshot.name ||
+      editData.email !== editSnapshot.email ||
+      editData.role !== editSnapshot.role ||
+      editData.telegramChatId !== editSnapshot.telegramChatId ||
+      editData.canLogin !== editSnapshot.canLogin)
+
+  useEffect(() => {
+    if (!editingId || !editSnapshot || !hasEditChanges) return
+    if (savingId === editingId) return
+    const timer = setTimeout(() => {
+      saveUser('auto')
+    }, 700)
+    return () => clearTimeout(timer)
+  }, [editingId, editSnapshot, hasEditChanges, saveUser, savingId])
 
   const createUser = async () => {
     if (!createData.email.trim()) {
@@ -204,7 +276,8 @@ export default function SettingsPage() {
     }
   }
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return '-'
     return new Date(dateStr).toLocaleString('ru-RU', {
       day: '2-digit',
       month: '2-digit',
@@ -213,6 +286,178 @@ export default function SettingsPage() {
       minute: '2-digit',
     })
   }
+
+  const getUserStatus = (user: User) => {
+    if (user.role === 'ADMIN') return 'active'
+    if (!user.canLogin) return 'blocked'
+    if (user._count.sessions === 0) return 'invited'
+    return 'active'
+  }
+
+  const getUserStatusBadge = (user: User) => {
+    const status = getUserStatus(user)
+    if (status === 'active') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-emerald-500/20 text-emerald-400">
+          <CheckCircle className="w-3 h-3" />
+          {'\u0410\u043a\u0442\u0438\u0432\u0435\u043d'}
+        </span>
+      )
+    }
+    if (status === 'invited') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-400">
+          <Clock className="w-3 h-3" />
+          {'\u041f\u0440\u0438\u0433\u043b\u0430\u0448\u0435\u043d'}
+        </span>
+      )
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-red-500/20 text-red-400">
+        <XCircle className="w-3 h-3" />
+        {'\u0411\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u0430\u043d'}
+      </span>
+    )
+  }
+
+  const normalizedQuery = searchQuery.trim().toLowerCase()
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
+      !normalizedQuery ||
+      [user.name, user.email, user.telegramChatId]
+        .filter(Boolean)
+        .some((value) => value!.toLowerCase().includes(normalizedQuery))
+
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter
+    const matchesStatus = accessFilter === 'all' || getUserStatus(user) === accessFilter
+    const matchesTelegram =
+      telegramFilter === 'all' ||
+      (telegramFilter === 'has' ? !!user.telegramChatId : !user.telegramChatId)
+    const matchesEmail =
+      emailFilter === 'all' ||
+      (emailFilter === 'has' ? !!user.email : !user.email)
+
+    return (
+      matchesSearch &&
+      matchesRole &&
+      matchesStatus &&
+      matchesTelegram &&
+      matchesEmail
+    )
+  })
+
+  const allVisibleSelected =
+    filteredUsers.length > 0 &&
+    filteredUsers.every((user) => selectedIds.has(user.id))
+
+  const toggleSelect = useCallback((userId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(userId)) {
+        next.delete(userId)
+      } else {
+        next.add(userId)
+      }
+      return next
+    })
+  }, [])
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      const ids = filteredUsers.map((user) => user.id)
+      const shouldClear = ids.every((id) => next.has(id))
+      if (shouldClear) {
+        ids.forEach((id) => next.delete(id))
+        return next
+      }
+      ids.forEach((id) => next.add(id))
+      return next
+    })
+  }, [filteredUsers])
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set())
+  }, [])
+
+  const resetFilters = () => {
+    setSearchQuery('')
+    setRoleFilter('all')
+    setAccessFilter('all')
+    setTelegramFilter('all')
+    setEmailFilter('all')
+  }
+
+  const applyBulkAction = useCallback(async () => {
+    if (!bulkAction || selectedIds.size === 0) return
+
+    if (bulkAction === 'delete') {
+      if (
+        !confirm(
+          `\u0423\u0434\u0430\u043b\u0438\u0442\u044c ${selectedIds.size} \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0435\u0439? \u042d\u0442\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043d\u0435\u043b\u044c\u0437\u044f \u043e\u0442\u043c\u0435\u043d\u0438\u0442\u044c.`
+        )
+      ) {
+        return
+      }
+    }
+
+    if (bulkAction === 'role' && !bulkValue) {
+      toast.error('\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0440\u043e\u043b\u044c')
+      return
+    }
+
+    if (bulkAction === 'canLogin' && !bulkValue) {
+      toast.error('\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u043e\u0441\u0442\u0443\u043f')
+      return
+    }
+
+    setBulkLoading(true)
+    try {
+      const payload: {
+        ids: string[]
+        action: 'role' | 'canLogin' | 'delete'
+        value?: string | boolean
+      } = {
+        ids: Array.from(selectedIds),
+        action: bulkAction,
+      }
+
+      if (bulkAction === 'role') {
+        payload.value = bulkValue
+      }
+
+      if (bulkAction === 'canLogin') {
+        payload.value = bulkValue
+      }
+
+      const res = await fetch('/api/users/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(data.error || '\u041e\u0448\u0438\u0431\u043a\u0430 \u043c\u0430\u0441\u0441\u043e\u0432\u043e\u0433\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f')
+        return
+      }
+
+      toast.success(
+        bulkAction === 'delete'
+          ? `\u0423\u0434\u0430\u043b\u0435\u043d\u043e: ${data.deleted ?? 0}`
+          : `\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e: ${data.updated ?? 0}`
+      )
+      await loadUsers()
+      clearSelection()
+      setBulkAction('')
+      setBulkValue('')
+    } catch (error) {
+      console.error('Bulk user action failed:', error)
+      toast.error('\u041e\u0448\u0438\u0431\u043a\u0430 \u043c\u0430\u0441\u0441\u043e\u0432\u043e\u0433\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f')
+    } finally {
+      setBulkLoading(false)
+    }
+  }, [bulkAction, bulkValue, selectedIds, loadUsers, clearSelection])
 
   const getStatusBadge = (status: SyncLog['status']) => {
     switch (status) {
@@ -275,6 +520,7 @@ export default function SettingsPage() {
             </div>
             <button
               onClick={loadSyncLogs}
+              aria-label="Refresh sync logs"
               className="p-2 text-gray-400 hover:text-white transition"
               title="Обновить"
             >
@@ -374,6 +620,7 @@ export default function SettingsPage() {
                   setCreateData({ ...createData, name: e.target.value })
                 }
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                aria-label="Name"
                 placeholder={'\u0418\u043c\u044f'}
               />
               <input
@@ -383,6 +630,7 @@ export default function SettingsPage() {
                   setCreateData({ ...createData, email: e.target.value })
                 }
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                aria-label="Email"
                 placeholder="email@example.com"
               />
               <select
@@ -394,6 +642,7 @@ export default function SettingsPage() {
                   })
                 }
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                aria-label="Role"
               >
                 <option value="EMPLOYEE">{'\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a'}</option>
                 <option value="ADMIN">{'\u0410\u0434\u043c\u0438\u043d'}</option>
@@ -405,6 +654,7 @@ export default function SettingsPage() {
                   setCreateData({ ...createData, telegramChatId: e.target.value })
                 }
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                aria-label="Telegram chat ID"
                 placeholder="Telegram Chat ID"
               />
             </div>
@@ -427,25 +677,185 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          <div className="bg-gray-900/40 border border-gray-700/50 rounded-lg p-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="relative">
+                <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  placeholder={'\u041f\u043e\u0438\u0441\u043a \u043f\u043e \u0438\u043c\u0435\u043d\u0438, email, Telegram'}
+                  aria-label="Search users"
+                />
+              </div>
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value as 'all' | 'ADMIN' | 'EMPLOYEE')}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                aria-label="Filter by role"
+              >
+                <option value="all">{'\u0412\u0441\u0435 \u0440\u043e\u043b\u0438'}</option>
+                <option value="ADMIN">{'\u0410\u0434\u043c\u0438\u043d'}</option>
+                <option value="EMPLOYEE">{'\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a'}</option>
+              </select>
+              <select
+                value={accessFilter}
+                onChange={(e) => setAccessFilter(e.target.value as 'all' | 'active' | 'invited' | 'blocked')}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                aria-label="Filter by status"
+              >
+                <option value="all">{'\u0412\u0441\u0435 \u0441\u0442\u0430\u0442\u0443\u0441\u044b'}</option>
+                <option value="active">{'\u0410\u043a\u0442\u0438\u0432\u043d\u044b\u0435'}</option>
+                <option value="invited">{'\u041f\u0440\u0438\u0433\u043b\u0430\u0448\u0435\u043d\u044b'}</option>
+                <option value="blocked">{'\u0411\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u0430\u043d\u044b'}</option>
+              </select>
+              <select
+                value={emailFilter}
+                onChange={(e) => setEmailFilter(e.target.value as 'all' | 'has' | 'none')}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                aria-label="Filter by email"
+              >
+                <option value="all">{'\u0412\u0441\u0435 email'}</option>
+                <option value="has">{'\u0421 email'}</option>
+                <option value="none">{'\u0411\u0435\u0437 email'}</option>
+              </select>
+              <select
+                value={telegramFilter}
+                onChange={(e) => setTelegramFilter(e.target.value as 'all' | 'has' | 'none')}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                aria-label="Filter by Telegram"
+              >
+                <option value="all">{'\u0412\u0441\u0435 Telegram'}</option>
+                <option value="has">{'\u0421 Telegram'}</option>
+                <option value="none">{'\u0411\u0435\u0437 Telegram'}</option>
+              </select>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 mt-4 text-xs text-gray-400">
+              <span>
+                {'\u041f\u043e\u043a\u0430\u0437\u0430\u043d\u043e'} {filteredUsers.length} {'\u0438\u0437'} {users.length}
+              </span>
+              {(searchQuery ||
+                roleFilter !== 'all' ||
+                accessFilter !== 'all' ||
+                telegramFilter !== 'all' ||
+                emailFilter !== 'all') && (
+                <button
+                  onClick={resetFilters}
+                  className="text-emerald-400 hover:text-emerald-300 transition"
+                >
+                  {'\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c \u0444\u0438\u043b\u044c\u0442\u0440\u044b'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {selectedIds.size > 0 && (
+            <div className="bg-gray-900/40 border border-gray-700/50 rounded-lg p-4 mb-6 flex flex-wrap items-center gap-3">
+              <span className="text-sm text-white">
+                {'\u0412\u044b\u0431\u0440\u0430\u043d\u043e'}: {selectedIds.size}
+              </span>
+              <select
+                value={bulkAction}
+                onChange={(e) => {
+                  setBulkAction(e.target.value as 'role' | 'canLogin' | 'delete' | '')
+                  setBulkValue('')
+                }}
+                className="px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                aria-label="Bulk action"
+              >
+                <option value="">{'\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u0435'}</option>
+                <option value="role">{'\u0421\u043c\u0435\u043d\u0438\u0442\u044c \u0440\u043e\u043b\u044c'}</option>
+                <option value="canLogin">{'\u0414\u043e\u0441\u0442\u0443\u043f'}</option>
+                <option value="delete">{'\u0423\u0434\u0430\u043b\u0438\u0442\u044c'}</option>
+              </select>
+              {bulkAction === 'role' && (
+                <select
+                  value={bulkValue}
+                  onChange={(e) => setBulkValue(e.target.value)}
+                  className="px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  aria-label="Bulk role"
+                >
+                  <option value="">{'\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0440\u043e\u043b\u044c'}</option>
+                  <option value="ADMIN">{'\u0410\u0434\u043c\u0438\u043d'}</option>
+                  <option value="EMPLOYEE">{'\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a'}</option>
+                </select>
+              )}
+              {bulkAction === 'canLogin' && (
+                <select
+                  value={bulkValue}
+                  onChange={(e) => setBulkValue(e.target.value)}
+                  className="px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  aria-label="Bulk access"
+                >
+                  <option value="">{'\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u043e\u0441\u0442\u0443\u043f'}</option>
+                  <option value="enable">{'\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f'}</option>
+                  <option value="disable">{'\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f'}</option>
+                </select>
+              )}
+              <button
+                onClick={applyBulkAction}
+                disabled={!bulkAction || bulkLoading}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition disabled:opacity-50"
+              >
+                {bulkLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4" />
+                )}
+                {'\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c'}
+              </button>
+              <button
+                onClick={clearSelection}
+                className="px-3 py-2 text-gray-400 hover:text-white transition"
+              >
+                {'\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c'}
+              </button>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-700">
+                  <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                    <input
+                      type="checkbox"
+                      checked={allVisibleSelected}
+                      onChange={toggleSelectAll}
+                      className="rounded border-gray-600"
+                      aria-label="Select all users"
+                    />
+                  </th>
                   <th className="text-left py-3 px-4 text-gray-400 font-medium">Пользователь</th>
                   <th className="text-left py-3 px-4 text-gray-400 font-medium">Email</th>
                   <th className="text-left py-3 px-4 text-gray-400 font-medium">Роль</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\u0414\u043e\u0441\u0442\u0443\u043f'}</th>
+                  <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\u0421\u0442\u0430\u0442\u0443\u0441'}</th>
                   <th className="text-left py-3 px-4 text-gray-400 font-medium">Telegram</th>
                   <th className="text-left py-3 px-4 text-gray-400 font-medium">Статистика</th>
+                  <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0439 \u0432\u0445\u043e\u0434'}</th>
                   <th className="text-right py-3 px-4 text-gray-400 font-medium">Действия</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
-                    
+                {filteredUsers.map((user) => {
+                  const isEditing = editingId === user.id
+                  const isSaving = savingId === user.id
+                  const isDirty = isEditing && hasEditChanges
+                  return (
+                    <tr key={user.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
                     <td className="py-3 px-4">
-                      {editingId === user.id ? (
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(user.id)}
+                        onChange={() => toggleSelect(user.id)}
+                        className="rounded border-gray-600"
+                        aria-label={`Select ${user.name || user.email || 'user'}`}
+                      />
+                    </td>
+                    <td className="py-3 px-4">
+                      {isEditing ? (
                         <input
                           type="text"
                           value={editData.name}
@@ -480,7 +890,7 @@ export default function SettingsPage() {
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      {editingId === user.id ? (
+                      {isEditing ? (
                         <input
                           type="email"
                           value={editData.email}
@@ -498,7 +908,7 @@ export default function SettingsPage() {
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      {editingId === user.id ? (
+                      {isEditing ? (
                         <select
                           value={editData.role}
                           onChange={(e) =>
@@ -508,6 +918,7 @@ export default function SettingsPage() {
                             })
                           }
                           className="px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white"
+                          aria-label="User role"
                         >
                           <option value="EMPLOYEE">Пользователь</option>
                           <option value="ADMIN">Администратор</option>
@@ -526,20 +937,28 @@ export default function SettingsPage() {
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      {user.role === 'ADMIN' || user.canLogin ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-emerald-500/20 text-emerald-400">
-                          <CheckCircle className="w-3 h-3" />
-                          {'\u041e\u0442\u043a\u0440\u044b\u0442'}
-                        </span>
+                      {isEditing ? (
+                        <select
+                          value={editData.canLogin ? 'open' : 'closed'}
+                          onChange={(e) =>
+                            setEditData({
+                              ...editData,
+                              canLogin: e.target.value === 'open',
+                            })
+                          }
+                          disabled={user.role === 'ADMIN'}
+                          className="px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white disabled:opacity-60"
+                          aria-label="Access"
+                        >
+                          <option value="open">{'\u041e\u0442\u043a\u0440\u044b\u0442'}</option>
+                          <option value="closed">{'\u0417\u0430\u043a\u0440\u044b\u0442'}</option>
+                        </select>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-red-500/20 text-red-400">
-                          <XCircle className="w-3 h-3" />
-                          {'\u0417\u0430\u043a\u0440\u044b\u0442'}
-                        </span>
+                        getUserStatusBadge(user)
                       )}
                     </td>
                     <td className="py-3 px-4">
-                      {editingId === user.id ? (
+                      {isEditing ? (
                         <input
                           type="text"
                           value={editData.telegramChatId}
@@ -570,23 +989,37 @@ export default function SettingsPage() {
                         </span>
                       </div>
                     </td>
+                    <td className="py-3 px-4 text-sm text-gray-400">
+                      {formatDate(user.lastLoginAt)}
+                    </td>
                     <td className="py-3 px-4">
-                      <div className="flex items-center justify-end gap-2">
-                        {editingId === user.id ? (
+                      <div className="flex items-center justify-end gap-3">
+                        {isEditing && (
+                          <span className="text-xs text-gray-500">
+                            {isSaving
+                              ? '\u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435...'
+                              : isDirty
+                                ? '\u0410\u0432\u0442\u043e\u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435'
+                                : '\u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u043e'}
+                          </span>
+                        )}
+                        {isEditing ? (
                           <>
                             <button
                               onClick={cancelEdit}
-                              disabled={saving}
+                              aria-label="Cancel edit"
+                              disabled={isSaving}
                               className="p-2 text-gray-400 hover:text-white transition"
                             >
                               <X className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={saveUser}
-                              disabled={saving}
+                              onClick={() => saveUser('manual')}
+                              aria-label="Save user"
+                              disabled={!isDirty || isSaving}
                               className="p-2 text-emerald-400 hover:text-emerald-300 transition"
                             >
-                              {saving ? (
+                              {isSaving ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
                                 <Save className="w-4 h-4" />
@@ -597,6 +1030,7 @@ export default function SettingsPage() {
                           <>
                             <button
                               onClick={() => startEdit(user)}
+                              aria-label="Edit user"
                               className="p-2 text-gray-400 hover:text-white transition"
                             >
                               <Edit2 className="w-4 h-4" />
@@ -604,6 +1038,7 @@ export default function SettingsPage() {
                             {user.id !== session.user.id && (
                               <button
                                 onClick={() => deleteUser(user.id)}
+                                aria-label="Delete user"
                                 className="p-2 text-gray-400 hover:text-red-400 transition"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -613,15 +1048,18 @@ export default function SettingsPage() {
                         )}
                       </div>
                     </td>
-                  </tr>
-                ))}
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
 
-          {users.length === 0 && (
+          {filteredUsers.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              Нет пользователей
+              {users.length === 0
+                ? '\u041d\u0435\u0442 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0435\u0439'
+                : '\u041d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e'}
             </div>
           )}
         </div>

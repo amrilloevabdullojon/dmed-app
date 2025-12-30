@@ -27,11 +27,15 @@ export const authOptions: AuthOptions = {
         return false
       }
 
-      if (dbUser.role === 'ADMIN') {
-        return true
+      const isAllowed = dbUser.role === 'ADMIN' || dbUser.canLogin
+      if (isAllowed) {
+        await prisma.user.update({
+          where: { email: user.email },
+          data: { lastLoginAt: new Date() },
+        })
       }
 
-      return dbUser.canLogin
+      return isAllowed
     },
     async session({ session, user }) {
       if (session.user) {
