@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { Header } from '@/components/Header'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
@@ -185,6 +185,14 @@ const AUDIT_FIELD_OPTIONS = [
   { value: 'digestFrequency', label: '\u0414\u0430\u0439\u0434\u0436\u0435\u0441\u0442' },
 ]
 
+const AUDIT_ACTION_BADGES: Record<string, { label: string; className: string }> = {
+  CREATE: { label: '\u0421\u043e\u0437\u0434\u0430\u043d\u043e', className: 'bg-emerald-500/20 text-emerald-300' },
+  UPDATE: { label: '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e', className: 'bg-blue-500/20 text-blue-300' },
+  ROLE: { label: '\u0420\u043e\u043b\u044c', className: 'bg-amber-500/20 text-amber-300' },
+  ACCESS: { label: '\u0414\u043e\u0441\u0442\u0443\u043f', className: 'bg-purple-500/20 text-purple-300' },
+  DELETE: { label: '\u0423\u0434\u0430\u043b\u0435\u043d\u043e', className: 'bg-red-500/20 text-red-300' },
+}
+
 const LOGIN_STATUS_OPTIONS = [
   { value: 'all', label: '\u0412\u0441\u0435 \u043f\u043e\u043f\u044b\u0442\u043a\u0438' },
   { value: 'success', label: '\u0423\u0441\u043f\u0435\u0448\u043d\u044b\u0435' },
@@ -269,6 +277,9 @@ export default function SettingsPage() {
     query: '',
     actor: '',
   })
+  const [auditFiltersDebounced, setAuditFiltersDebounced] = useState(auditFilters)
+  const auditRequestCounter = useRef(0)
+  const auditRequestByUser = useRef<Record<string, number>>({})
   const [approvals, setApprovals] = useState<AdminApproval[]>([])
   const [approvalsLoading, setApprovalsLoading] = useState(false)
   const [approvalActionId, setApprovalActionId] = useState<string | null>(null)
@@ -324,6 +335,13 @@ export default function SettingsPage() {
       setApprovalsLoading(false)
     }
   }, [isSuperAdmin])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAuditFiltersDebounced(auditFilters)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [auditFilters])
 
   const handleApproval = useCallback(async (approvalId: string, action: 'approve' | 'reject') => {
     setApprovalActionId(approvalId)
@@ -771,32 +789,37 @@ export default function SettingsPage() {
 
   const buildAuditUrl = useCallback((userId: string, cursor?: string | null) => {
     const params = new URLSearchParams()
-    if (auditFilters.action !== 'all') {
-      params.set('action', auditFilters.action)
+    if (auditFiltersDebounced.action !== 'all') {
+      params.set('action', auditFiltersDebounced.action)
     }
-    if (auditFilters.field !== 'all') {
-      params.set('field', auditFilters.field)
+    if (auditFiltersDebounced.field !== 'all') {
+      params.set('field', auditFiltersDebounced.field)
     }
-    if (auditFilters.query.trim()) {
-      params.set('q', auditFilters.query.trim())
+    if (auditFiltersDebounced.query.trim()) {
+      params.set('q', auditFiltersDebounced.query.trim())
     }
-    if (auditFilters.actor.trim()) {
-      params.set('actor', auditFilters.actor.trim())
+    if (auditFiltersDebounced.actor.trim()) {
+      params.set('actor', auditFiltersDebounced.actor.trim())
     }
     if (cursor) {
       params.set('cursor', cursor)
     }
     params.set('take', '10')
     return `/api/users/${userId}/audit?${params.toString()}`
-  }, [auditFilters])
+  }, [auditFiltersDebounced])
 
   const loadAudit = useCallback(async (userId: string, mode: 'replace' | 'more' = 'replace') => {
+    const requestId = ++auditRequestCounter.current
+    auditRequestByUser.current[userId] = requestId
     setAuditLoading((prev) => ({ ...prev, [userId]: true }))
     try {
       const cursor = mode === 'more' ? auditCursorByUser[userId] : null
       const res = await fetch(buildAuditUrl(userId, cursor))
       if (res.ok) {
         const data = await res.json()
+        if (auditRequestByUser.current[userId] !== requestId) {
+          return
+        }
         setAuditByUser((prev) => ({
           ...prev,
           [userId]: mode === 'more' ? [...(prev[userId] || []), ...(data.audits || [])] : (data.audits || []),
@@ -806,23 +829,21 @@ export default function SettingsPage() {
     } catch (error) {
       console.error('Failed to load user audit:', error)
     } finally {
-      setAuditLoading((prev) => ({ ...prev, [userId]: false }))
+      if (auditRequestByUser.current[userId] === requestId) {
+        setAuditLoading((prev) => ({ ...prev, [userId]: false }))
+      }
     }
   }, [auditCursorByUser, buildAuditUrl])
 
-  const toggleAudit = async (userId: string) => {
-    const nextOpen = auditOpenId === userId ? null : userId
-    setAuditOpenId(nextOpen)
-    if (nextOpen) {
-      loadAudit(userId, 'replace')
-    }
+  const toggleAudit = (userId: string) => {
+    setAuditOpenId((prev) => (prev === userId ? null : userId))
   }
 
   useEffect(() => {
     if (auditOpenId) {
       loadAudit(auditOpenId, 'replace')
     }
-  }, [auditFilters, auditOpenId, loadAudit])
+  }, [auditFiltersDebounced, auditOpenId, loadAudit])
 
   useEffect(() => {
     if (authStatus !== 'authenticated') return
@@ -1569,6 +1590,8 @@ export default function SettingsPage() {
               const deleteLocked =
                 (user.role === 'ADMIN' && (!isSuperAdmin || isLastAdmin)) ||
                 (user.role === 'SUPERADMIN' && (!isSuperAdmin || isLastSuperAdmin))
+              const auditEntries = auditByUser[user.id] || []
+              const hasAuditEntries = auditEntries.length > 0
 
               const items: JSX.Element[] = []
               if (showHeading) {
@@ -1977,17 +2000,29 @@ export default function SettingsPage() {
                   </div>
 
                   {auditOpenId === user.id && (
-                    <div className="mt-4 border-t border-white/10 pt-3">
-                      <div className="text-sm text-gray-300 mb-2">
-                        {'\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439'}
+                    <div className="mt-4 border-t border-white/10 pt-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2 text-sm text-gray-200">
+                          <History className="w-4 h-4 text-emerald-400" />
+                          {'\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439'}
+                          <span className="text-xs text-gray-500">{auditEntries.length}</span>
+                        </div>
+                        <button
+                          onClick={() => loadAudit(user.id, 'replace')}
+                          className="inline-flex items-center gap-2 text-xs text-gray-400 hover:text-white transition"
+                          aria-label="Refresh audit history"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          {'\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c'}
+                        </button>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2 mb-3 text-xs">
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2 mb-3 text-xs bg-white/5 border border-white/5 rounded-lg p-3">
                         <select
                           value={auditFilters.action}
                           onChange={(e) =>
                             setAuditFilters((prev) => ({ ...prev, action: e.target.value }))
                           }
-                          className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                          className="px-3 py-1.5 bg-gray-700/70 border border-gray-600/60 rounded text-white"
                           aria-label="Audit action filter"
                         >
                           {AUDIT_ACTION_OPTIONS.map((option) => (
@@ -2001,7 +2036,7 @@ export default function SettingsPage() {
                           onChange={(e) =>
                             setAuditFilters((prev) => ({ ...prev, field: e.target.value }))
                           }
-                          className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                          className="px-3 py-1.5 bg-gray-700/70 border border-gray-600/60 rounded text-white"
                           aria-label="Audit field filter"
                         >
                           {AUDIT_FIELD_OPTIONS.map((option) => (
@@ -2016,7 +2051,7 @@ export default function SettingsPage() {
                           onChange={(e) =>
                             setAuditFilters((prev) => ({ ...prev, actor: e.target.value }))
                           }
-                          className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                          className="px-3 py-1.5 bg-gray-700/70 border border-gray-600/60 rounded text-white"
                           placeholder={'\u0410\u0432\u0442\u043e\u0440'}
                           aria-label="Audit actor search"
                         />
@@ -2026,39 +2061,72 @@ export default function SettingsPage() {
                           onChange={(e) =>
                             setAuditFilters((prev) => ({ ...prev, query: e.target.value }))
                           }
-                          className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                          className="px-3 py-1.5 bg-gray-700/70 border border-gray-600/60 rounded text-white"
                           placeholder={'\u041f\u043e\u0438\u0441\u043a \u043f\u043e \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f\u043c'}
                           aria-label="Audit search"
                         />
                       </div>
-                      {auditLoading[user.id] ? (
-                        <div className="text-xs text-gray-500">
-                          {'\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430...'}
+                      {auditLoading[user.id] && !hasAuditEntries ? (
+                        <div className="space-y-2 animate-pulse">
+                          <div className="h-12 rounded-lg bg-white/5 border border-white/5" />
+                          <div className="h-12 rounded-lg bg-white/5 border border-white/5" />
+                          <div className="h-12 rounded-lg bg-white/5 border border-white/5" />
                         </div>
-                      ) : auditByUser[user.id]?.length ? (
-                        <div className="space-y-3">
-                          {auditByUser[user.id].map((entry) => {
+                      ) : hasAuditEntries ? (
+                        <div className="space-y-4">
+                          {auditEntries.map((entry) => {
                             const actorName =
                               entry.actor?.name ||
                               entry.actor?.email ||
                               '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0439 \u0430\u0432\u0442\u043e\u0440'
+                            const actorInitial = (actorName || '?').trim().charAt(0).toUpperCase()
                             const showValues = entry.action !== 'CREATE' && entry.action !== 'DELETE'
+                            const badge = AUDIT_ACTION_BADGES[entry.action] || {
+                              label: entry.action,
+                              className: 'bg-slate-500/20 text-slate-300',
+                            }
                             return (
-                              <div
-                                key={entry.id}
-                                className="border border-white/5 rounded-lg p-3 bg-white/5"
-                              >
-                                <div className="text-sm text-white">
-                                  {getAuditSummary(entry)}
-                                </div>
-                                {showValues && (
-                                  <div className="text-xs text-gray-400 mt-1">
-                                    {formatAuditValue(entry.field, entry.oldValue)} {'\u2192'}{' '}
-                                    {formatAuditValue(entry.field, entry.newValue)}
+                              <div key={entry.id} className="relative pl-4">
+                                <span className="absolute left-0 top-3 h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
+                                <div className="border border-white/5 rounded-xl p-3 bg-white/5">
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="text-sm text-white font-medium">
+                                      {getAuditSummary(entry)}
+                                    </div>
+                                    <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full ${badge.className}`}>
+                                      {badge.label}
+                                    </span>
                                   </div>
-                                )}
-                                <div className="text-xs text-gray-500 mt-2">
-                                  {actorName} \u00b7 {formatDate(entry.createdAt)}
+                                  {showValues && (
+                                    <div className="text-xs text-gray-300 mt-2 flex flex-wrap items-center gap-2">
+                                      <span className="px-2 py-1 rounded bg-white/5 border border-white/5">
+                                        {formatAuditValue(entry.field, entry.oldValue)}
+                                      </span>
+                                      <span className="text-gray-500">{'\u2192'}</span>
+                                      <span className="px-2 py-1 rounded bg-white/5 border border-white/5">
+                                        {formatAuditValue(entry.field, entry.newValue)}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className="text-xs text-gray-400 mt-3 flex items-center gap-2">
+                                    {entry.actor?.image ? (
+                                      <Image
+                                        src={entry.actor.image}
+                                        alt={actorName}
+                                        width={20}
+                                        height={20}
+                                        className="w-5 h-5 rounded-full"
+                                        unoptimized
+                                      />
+                                    ) : (
+                                      <div className="w-5 h-5 rounded-full bg-white/10 text-[10px] text-gray-200 flex items-center justify-center">
+                                        {actorInitial}
+                                      </div>
+                                    )}
+                                    <span className="truncate">{actorName}</span>
+                                    <span className="text-gray-600">\u00b7</span>
+                                    <span>{formatDate(entry.createdAt)}</span>
+                                  </div>
                                 </div>
                               </div>
                             )
@@ -2066,15 +2134,19 @@ export default function SettingsPage() {
                           {auditCursorByUser[user.id] && (
                             <button
                               onClick={() => loadAudit(user.id, 'more')}
-                              className="text-xs text-emerald-400 hover:text-emerald-300 transition"
+                              className="inline-flex items-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 transition"
                             >
+                              <ArrowDownToLine className="w-3.5 h-3.5" />
                               {'\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0435\u0449\u0435'}
                             </button>
                           )}
+                          {auditLoading[user.id] && (
+                            <div className="text-xs text-gray-500">{'\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435...'}</div>
+                          )}
                         </div>
                       ) : (
-                        <div className="text-xs text-gray-500">
-                          {'\u041d\u0435\u0442 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439'}
+                        <div className="text-xs text-gray-500 border border-dashed border-white/10 rounded-lg p-3">
+                          {'\u041d\u0435\u0442 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439 \u0437\u0430 \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u044b\u0439 \u043f\u0435\u0440\u0438\u043e\u0434'}
                         </div>
                       )}
                     </div>
