@@ -91,6 +91,12 @@ model Letter {
   ijroDate      DateTime?    // Дата исполнения
   comment       String?      @db.Text // Комментарий
   contacts      String?      // Контакты
+  applicantName String?
+  applicantEmail String?
+  applicantPhone String?
+  applicantTelegramChatId String?
+  applicantAccessToken String? @unique
+  applicantAccessTokenExpiresAt DateTime?
   closeDate     DateTime?    // Дата закрытия
   jiraLink      String?      // Ссылка на Jira
   priority      Int          @default(50) // Приоритет (0-100)

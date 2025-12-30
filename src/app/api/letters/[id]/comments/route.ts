@@ -38,7 +38,13 @@ export async function POST(
 
     const letter = await prisma.letter.findUnique({
       where: { id: params.id },
-      include: {
+      select: {
+        id: true,
+        number: true,
+        org: true,
+        applicantEmail: true,
+        applicantPhone: true,
+        applicantTelegramChatId: true,
         watchers: {
           include: {
             user: {

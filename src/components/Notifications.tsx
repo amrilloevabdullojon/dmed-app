@@ -139,6 +139,7 @@ export function Notifications() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 text-gray-400 hover:text-white transition"
+        aria-label="Открыть уведомления"
       >
         <Bell className="w-5 h-5" />
         {totalCount > 0 && (
@@ -172,6 +173,7 @@ export function Notifications() {
                 <button
                   onClick={() => setIsOpen(false)}
                   className="p-1 text-gray-400 hover:text-white transition"
+                  aria-label="Закрыть"
                 >
                   <X className="w-4 h-4" />
                 </button>

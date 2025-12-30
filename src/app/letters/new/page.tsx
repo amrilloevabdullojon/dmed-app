@@ -160,6 +160,7 @@ export default function NewLetterPage() {
                   type="text"
                   required
                   value={formData.number}
+                  aria-label="????? ??????"
                   onChange={(e) =>
                     setFormData({ ...formData, number: e.target.value })
                   }
@@ -177,6 +178,7 @@ export default function NewLetterPage() {
                   type="date"
                   required
                   value={formData.date}
+                  aria-label="???? ??????"
                   onChange={(e) =>
                     setFormData({ ...formData, date: e.target.value })
                   }
@@ -194,6 +196,7 @@ export default function NewLetterPage() {
                 <input
                   type="date"
                   value={formData.deadlineDate}
+                  aria-label="???????"
                   onChange={(e) =>
                     setFormData({ ...formData, deadlineDate: e.target.value })
                   }
@@ -212,6 +215,7 @@ export default function NewLetterPage() {
                 <input
                   type="url"
                   value={formData.jiraLink}
+                  aria-label="?????? Jira"
                   onChange={(e) =>
                     setFormData({ ...formData, jiraLink: e.target.value })
                   }
@@ -230,6 +234,7 @@ export default function NewLetterPage() {
                 type="text"
                 required
                 value={formData.org}
+                aria-label="???????????"
                 onChange={(e) =>
                   setFormData({ ...formData, org: e.target.value })
                 }
@@ -244,6 +249,7 @@ export default function NewLetterPage() {
               </label>
               <input
                 type="file"
+                aria-label="????"
                 accept={ALLOWED_FILE_EXTENSIONS}
                 onChange={handleAttachmentChange}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white file:mr-3 file:py-2 file:px-3 file:border-0 file:bg-gray-600 file:text-white file:rounded-md"
@@ -260,6 +266,7 @@ export default function NewLetterPage() {
               </label>
               <select
                 value={formData.type}
+                aria-label="???"
                 onChange={(e) =>
                   setFormData({ ...formData, type: e.target.value })
                 }
@@ -282,6 +289,7 @@ export default function NewLetterPage() {
               <textarea
                 rows={4}
                 value={formData.content}
+                aria-label="?????????? ??????"
                 onChange={(e) =>
                   setFormData({ ...formData, content: e.target.value })
                 }
@@ -298,6 +306,7 @@ export default function NewLetterPage() {
               <input
                 type="text"
                 value={formData.contacts}
+                aria-label="????????"
                 onChange={(e) =>
                   setFormData({ ...formData, contacts: e.target.value })
                 }
@@ -318,6 +327,7 @@ export default function NewLetterPage() {
                   <input
                     type="text"
                     value={formData.applicantName}
+                    aria-label="??? ?????????"
                     onChange={(e) =>
                       setFormData({ ...formData, applicantName: e.target.value })
                     }
@@ -331,6 +341,7 @@ export default function NewLetterPage() {
                   <input
                     type="email"
                     value={formData.applicantEmail}
+                    aria-label="Email ?????????"
                     onChange={(e) =>
                       setFormData({ ...formData, applicantEmail: e.target.value })
                     }
@@ -346,6 +357,7 @@ export default function NewLetterPage() {
                   <input
                     type="tel"
                     value={formData.applicantPhone}
+                    aria-label="??????? ?????????"
                     onChange={(e) =>
                       setFormData({ ...formData, applicantPhone: e.target.value })
                     }
@@ -361,6 +373,7 @@ export default function NewLetterPage() {
                   <input
                     type="text"
                     value={formData.applicantTelegramChatId}
+                    aria-label="Telegram chat id ?????????"
                     onChange={(e) =>
                       setFormData({ ...formData, applicantTelegramChatId: e.target.value })
                     }
@@ -379,6 +392,7 @@ export default function NewLetterPage() {
               <textarea
                 rows={2}
                 value={formData.comment}
+                aria-label="???????????"
                 onChange={(e) =>
                   setFormData({ ...formData, comment: e.target.value })
                 }
