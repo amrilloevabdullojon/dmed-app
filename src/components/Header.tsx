@@ -144,6 +144,10 @@ export function Header() {
               <BarChart3 className="w-4 h-4" />
               Отчёты
             </Link>
+            <Link href="/profile" className={navLinkClass('/profile')}>
+              <User className="w-4 h-4" />
+              {'\u041f\u0440\u043e\u0444\u0438\u043b\u044c'}
+            </Link>
 
             {isAdminRole && (
               <>
@@ -202,7 +206,11 @@ export function Header() {
             {session?.user && (
               <>
                 <Notifications />
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-full">
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-full hover:bg-white/20 transition"
+                  title={'\u041f\u0440\u043e\u0444\u0438\u043b\u044c'}
+                >
                   {session.user.image ? (
                     <Image
                       src={session.user.image}
@@ -218,7 +226,7 @@ export function Header() {
                   <span className="text-sm text-slate-200 hidden lg:block max-w-[120px] truncate">
                     {session.user.name || session.user.email?.split('@')[0]}
                   </span>
-                </div>
+                </Link>
                 <button
                   onClick={() => signOut()}
                   className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition"
@@ -317,6 +325,16 @@ export function Header() {
           >
             <BarChart3 className="w-5 h-5" />
             Отчёты
+          </Link>
+
+          <Link
+            href="/profile"
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+              isActive('/profile') ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20' : 'text-slate-200/80 hover:bg-white/5'
+            }`}
+          >
+            <User className="w-5 h-5" />
+            {'\u041f\u0440\u043e\u0444\u0438\u043b\u044c'}
           </Link>
 
           {isAdminRole && (
