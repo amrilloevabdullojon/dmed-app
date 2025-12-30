@@ -68,11 +68,29 @@ model User {
   history         History[]
   answerTemplates AnswerTemplate[]
   notifications   Notification[]
+  auditsTarget    UserAudit[]     @relation("UserAuditTarget")
+  auditsActor     UserAudit[]     @relation("UserAuditActor")
 }
 
 enum Role {
   ADMIN
   EMPLOYEE
+}
+
+model UserAudit {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("UserAuditTarget", fields: [userId], references: [id], onDelete: Cascade)
+  actorId   String?
+  actor     User?    @relation("UserAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action    String
+  field     String?
+  oldValue  String?  @db.Text
+  newValue  String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([actorId, createdAt])
 }
 
 // ===== ПИСЬМА =====

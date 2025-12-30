@@ -246,7 +246,7 @@ h3,
   contain: strict;
 }
 
-.virtual-container {
+.virtual-rows {
   width: 100%;
   position: relative;
 }

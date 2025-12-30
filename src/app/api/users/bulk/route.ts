@@ -32,6 +32,18 @@ export async function POST(request: NextRequest) {
 
     const { ids, action, value } = parsed.data
 
+    const targetUsers = await prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        role: true,
+        name: true,
+        email: true,
+        telegramChatId: true,
+        canLogin: true,
+      },
+    })
+
     if (action === 'delete') {
       if (ids.includes(session.user.id)) {
         return NextResponse.json(
@@ -51,6 +63,23 @@ export async function POST(request: NextRequest) {
           { error: 'Cannot delete the last admin' },
           { status: 400 }
         )
+      }
+
+      if (targetUsers.length > 0) {
+        await prisma.userAudit.createMany({
+          data: targetUsers.map((user) => ({
+            userId: user.id,
+            actorId: session.user.id,
+            action: 'DELETE',
+            oldValue: JSON.stringify({
+              name: user.name,
+              email: user.email,
+              role: user.role,
+              canLogin: user.canLogin,
+              telegramChatId: user.telegramChatId,
+            }),
+          })),
+        })
       }
 
       const result = await prisma.user.deleteMany({
@@ -77,6 +106,20 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      const changedUsers = targetUsers.filter((user) => user.role !== role)
+      if (changedUsers.length > 0) {
+        await prisma.userAudit.createMany({
+          data: changedUsers.map((user) => ({
+            userId: user.id,
+            actorId: session.user.id,
+            action: 'ROLE',
+            field: 'role',
+            oldValue: user.role,
+            newValue: role,
+          })),
+        })
+      }
+
       const result = await prisma.user.updateMany({
         where: { id: { in: ids } },
         data: { role },
@@ -86,6 +129,19 @@ export async function POST(request: NextRequest) {
 
     if (action === 'canLogin') {
       const canLogin = value === true || value === 'true' || value === 'enable'
+      const changedUsers = targetUsers.filter((user) => user.canLogin !== canLogin)
+      if (changedUsers.length > 0) {
+        await prisma.userAudit.createMany({
+          data: changedUsers.map((user) => ({
+            userId: user.id,
+            actorId: session.user.id,
+            action: 'ACCESS',
+            field: 'canLogin',
+            oldValue: String(user.canLogin),
+            newValue: String(canLogin),
+          })),
+        })
+      }
       const result = await prisma.user.updateMany({
         where: { id: { in: ids } },
         data: { canLogin },

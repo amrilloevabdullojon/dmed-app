@@ -69,6 +69,22 @@ export async function PATCH(
     const body = await request.json()
     const { role, name, telegramChatId, email, canLogin } = body
 
+    const currentUser = await prisma.user.findUnique({
+      where: { id: params.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        canLogin: true,
+        telegramChatId: true,
+      },
+    })
+
+    if (!currentUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
     const updateData: any = {}
 
     if (role === 'ADMIN' || role === 'EMPLOYEE') {
@@ -110,11 +126,7 @@ export async function PATCH(
     }
 
     if (updateData.role === 'EMPLOYEE') {
-      const current = await prisma.user.findUnique({
-        where: { id: params.id },
-        select: { role: true },
-      })
-      if (current?.role === 'ADMIN') {
+      if (currentUser.role === 'ADMIN') {
         const adminCount = await prisma.user.count({
           where: { role: 'ADMIN' },
         })
@@ -140,6 +152,83 @@ export async function PATCH(
         lastLoginAt: true,
       },
     })
+
+    const auditEntries: Array<{
+      userId: string
+      actorId: string
+      action: string
+      field: string
+      oldValue: string | null
+      newValue: string | null
+    }> = []
+
+    const normalizeValue = (value: string | boolean | null | undefined) =>
+      value === null || value === undefined ? null : String(value)
+
+    const nextName = updateData.name ?? currentUser.name
+    const nextEmail = updateData.email ?? currentUser.email
+    const nextRole = updateData.role ?? currentUser.role
+    const nextCanLogin = updateData.canLogin ?? currentUser.canLogin
+    const nextTelegram = updateData.telegramChatId ?? currentUser.telegramChatId
+
+    if (currentUser.name !== nextName) {
+      auditEntries.push({
+        userId: currentUser.id,
+        actorId: session.user.id,
+        action: 'UPDATE',
+        field: 'name',
+        oldValue: normalizeValue(currentUser.name),
+        newValue: normalizeValue(nextName),
+      })
+    }
+
+    if (currentUser.email !== nextEmail) {
+      auditEntries.push({
+        userId: currentUser.id,
+        actorId: session.user.id,
+        action: 'UPDATE',
+        field: 'email',
+        oldValue: normalizeValue(currentUser.email),
+        newValue: normalizeValue(nextEmail),
+      })
+    }
+
+    if (currentUser.role !== nextRole) {
+      auditEntries.push({
+        userId: currentUser.id,
+        actorId: session.user.id,
+        action: 'ROLE',
+        field: 'role',
+        oldValue: normalizeValue(currentUser.role),
+        newValue: normalizeValue(nextRole),
+      })
+    }
+
+    if (currentUser.canLogin !== nextCanLogin) {
+      auditEntries.push({
+        userId: currentUser.id,
+        actorId: session.user.id,
+        action: 'ACCESS',
+        field: 'canLogin',
+        oldValue: normalizeValue(currentUser.canLogin),
+        newValue: normalizeValue(nextCanLogin),
+      })
+    }
+
+    if (currentUser.telegramChatId !== nextTelegram) {
+      auditEntries.push({
+        userId: currentUser.id,
+        actorId: session.user.id,
+        action: 'UPDATE',
+        field: 'telegramChatId',
+        oldValue: normalizeValue(currentUser.telegramChatId),
+        newValue: normalizeValue(nextTelegram),
+      })
+    }
+
+    if (auditEntries.length > 0) {
+      await prisma.userAudit.createMany({ data: auditEntries })
+    }
 
     return NextResponse.json({ success: true, user })
   } catch (error) {
@@ -177,10 +266,21 @@ export async function DELETE(
 
     const user = await prisma.user.findUnique({
       where: { id: params.id },
-      select: { role: true },
+      select: {
+        id: true,
+        role: true,
+        name: true,
+        email: true,
+        telegramChatId: true,
+        canLogin: true,
+      },
     })
 
-    if (user?.role === 'ADMIN') {
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    if (user.role === 'ADMIN') {
       const adminCount = await prisma.user.count({
         where: { role: 'ADMIN' },
       })
@@ -191,6 +291,21 @@ export async function DELETE(
         )
       }
     }
+
+    await prisma.userAudit.create({
+      data: {
+        userId: params.id,
+        actorId: session.user.id,
+        action: 'DELETE',
+        oldValue: JSON.stringify({
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          canLogin: user.canLogin,
+          telegramChatId: user.telegramChatId,
+        }),
+      },
+    })
 
     await prisma.user.delete({
       where: { id: params.id },

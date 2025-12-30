@@ -105,6 +105,21 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    await prisma.userAudit.create({
+      data: {
+        userId: user.id,
+        actorId: session.user.id,
+        action: 'CREATE',
+        newValue: JSON.stringify({
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          canLogin: user.canLogin,
+          telegramChatId: user.telegramChatId,
+        }),
+      },
+    })
+
     return NextResponse.json({ success: true, user }, { status: 201 })
   } catch (error) {
     console.error('POST /api/users error:', error)

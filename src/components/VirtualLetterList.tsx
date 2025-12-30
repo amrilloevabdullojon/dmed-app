@@ -65,7 +65,7 @@ export function VirtualLetterList({
       className="h-[calc(100vh-300px)] overflow-auto pr-2 virtual-scroll"
     >
       <div
-        className="virtual-container"
+        className="virtual-rows"
         style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
       >
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
@@ -206,7 +206,7 @@ export function VirtualLetterTable({
         className="h-[calc(100vh-350px)] overflow-auto virtual-scroll"
       >
         <div
-          className="virtual-container"
+          className="virtual-rows"
           style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
         >
           {rowVirtualizer.getVirtualItems().map((virtualRow) => {

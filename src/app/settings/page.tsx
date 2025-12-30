@@ -54,6 +54,21 @@ interface SyncLog {
   finishedAt: string | null
 }
 
+interface UserAuditEntry {
+  id: string
+  action: string
+  field: string | null
+  oldValue: string | null
+  newValue: string | null
+  createdAt: string
+  actor: {
+    id: string
+    name: string | null
+    email: string | null
+    image: string | null
+  } | null
+}
+
 export default function SettingsPage() {
   const { data: session, status: authStatus } = useSession()
   const router = useRouter()
@@ -92,6 +107,9 @@ export default function SettingsPage() {
   const [bulkAction, setBulkAction] = useState<'role' | 'canLogin' | 'delete' | ''>('')
   const [bulkValue, setBulkValue] = useState('')
   const [bulkLoading, setBulkLoading] = useState(false)
+  const [auditOpenId, setAuditOpenId] = useState<string | null>(null)
+  const [auditByUser, setAuditByUser] = useState<Record<string, UserAuditEntry[]>>({})
+  const [auditLoading, setAuditLoading] = useState<Record<string, boolean>>({})
 
   const loadUsers = useCallback(async () => {
     try {
@@ -287,6 +305,56 @@ export default function SettingsPage() {
     })
   }
 
+  const formatRoleLabel = (role: string | null) => {
+    if (!role) return '-'
+    return role === 'ADMIN' ? 'Админ' : 'Сотрудник'
+  }
+
+  const formatAuditValue = (field: string | null, value: string | null) => {
+    if (!value) return '-'
+    if (field === 'role') return formatRoleLabel(value)
+    if (field === 'canLogin') return value === 'true' ? 'Открыт' : 'Закрыт'
+    return value
+  }
+
+  const getAuditSummary = (entry: UserAuditEntry) => {
+    if (entry.action === 'CREATE') {
+      return 'Создан пользователь'
+    }
+    if (entry.action === 'DELETE') {
+      return 'Удален пользователь'
+    }
+
+    const fieldLabels: Record<string, string> = {
+      name: 'Имя',
+      email: 'Email',
+      role: 'Роль',
+      canLogin: 'Доступ',
+      telegramChatId: 'Telegram',
+    }
+    const label = entry.field ? fieldLabels[entry.field] || entry.field : 'Поле'
+    return `Изменено: ${label}`
+  }
+
+  const toggleAudit = async (userId: string) => {
+    const nextOpen = auditOpenId === userId ? null : userId
+    setAuditOpenId(nextOpen)
+    if (nextOpen && !auditByUser[userId] && !auditLoading[userId]) {
+      setAuditLoading((prev) => ({ ...prev, [userId]: true }))
+      try {
+        const res = await fetch(`/api/users/${userId}/audit`)
+        if (res.ok) {
+          const data = await res.json()
+          setAuditByUser((prev) => ({ ...prev, [userId]: data.audits || [] }))
+        }
+      } catch (error) {
+        console.error('Failed to load user audit:', error)
+      } finally {
+        setAuditLoading((prev) => ({ ...prev, [userId]: false }))
+      }
+    }
+  }
+
   const getUserStatus = (user: User) => {
     if (user.role === 'ADMIN') return 'active'
     if (!user.canLogin) return 'blocked'
@@ -320,6 +388,8 @@ export default function SettingsPage() {
     )
   }
 
+  const adminCount = users.filter((user) => user.role === 'ADMIN').length
+
   const normalizedQuery = searchQuery.trim().toLowerCase()
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
@@ -349,6 +419,14 @@ export default function SettingsPage() {
   const allVisibleSelected =
     filteredUsers.length > 0 &&
     filteredUsers.every((user) => selectedIds.has(user.id))
+
+  const selectedAdminCount = users.filter(
+    (user) => selectedIds.has(user.id) && user.role === 'ADMIN'
+  ).length
+  const bulkDemoteBlocked =
+    bulkAction === 'role' &&
+    bulkValue === 'EMPLOYEE' &&
+    adminCount - selectedAdminCount <= 0
 
   const toggleSelect = useCallback((userId: string) => {
     setSelectedIds((prev) => {
@@ -411,6 +489,16 @@ export default function SettingsPage() {
       return
     }
 
+    if (bulkAction === 'role' && bulkValue === 'EMPLOYEE') {
+      const selectedAdmins = users.filter(
+        (user) => selectedIds.has(user.id) && user.role === 'ADMIN'
+      ).length
+      if (adminCount - selectedAdmins <= 0) {
+        toast.error('Нельзя понизить единственного админа')
+        return
+      }
+    }
+
     setBulkLoading(true)
     try {
       const payload: {
@@ -457,7 +545,7 @@ export default function SettingsPage() {
     } finally {
       setBulkLoading(false)
     }
-  }, [bulkAction, bulkValue, selectedIds, loadUsers, clearSelection])
+  }, [bulkAction, bulkValue, selectedIds, users, adminCount, loadUsers, clearSelection])
 
   const getStatusBadge = (status: SyncLog['status']) => {
     switch (status) {
@@ -796,7 +884,7 @@ export default function SettingsPage() {
               )}
               <button
                 onClick={applyBulkAction}
-                disabled={!bulkAction || bulkLoading}
+                disabled={!bulkAction || bulkLoading || selectedIds.size === 0 || bulkDemoteBlocked}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition disabled:opacity-50"
               >
                 {bulkLoading ? (
@@ -812,103 +900,149 @@ export default function SettingsPage() {
               >
                 {'\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c'}
               </button>
+              {bulkDemoteBlocked && (
+                <span className="text-xs text-amber-400">
+                  {'\u041d\u0435\u043b\u044c\u0437\u044f \u043f\u043e\u043d\u0438\u0437\u0438\u0442\u044c \u0435\u0434\u0438\u043d\u0441\u0442\u0432\u0435\u043d\u043d\u043e\u0433\u043e \u0430\u0434\u043c\u0438\u043d\u0430'}
+                </span>
+              )}
             </div>
           )}
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">
+          <div className="flex items-center justify-between mb-4">
+            <label className="inline-flex items-center gap-2 text-sm text-gray-400">
+              <input
+                type="checkbox"
+                checked={allVisibleSelected}
+                onChange={toggleSelectAll}
+                className="rounded border-gray-600"
+                aria-label="Select all users"
+              />
+              {'\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0432\u0441\u0435\u0445'}
+            </label>
+            <span className="text-xs text-gray-500">
+              {'\u0412\u044b\u0431\u0440\u0430\u043d\u043e:'} {selectedIds.size}
+            </span>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filteredUsers.map((user) => {
+              const isEditing = editingId === user.id
+              const isSaving = savingId === user.id
+              const isDirty = isEditing && hasEditChanges
+              const isSelected = selectedIds.has(user.id)
+              const isLastAdmin = user.role === 'ADMIN' && adminCount <= 1
+
+              return (
+                <div
+                  key={user.id}
+                  className={`rounded-2xl border border-white/10 bg-white/5 p-4 transition ${
+                    isSelected ? 'ring-2 ring-emerald-400/40' : ''
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      {user.image ? (
+                        <Image
+                          src={user.image}
+                          alt={user.name || user.email || 'User'}
+                          width={44}
+                          height={44}
+                          className="w-11 h-11 rounded-full"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="w-11 h-11 bg-gray-700 rounded-full flex items-center justify-center">
+                          <span className="text-gray-300 text-sm font-semibold">
+                            {(user.name || user.email || '?')[0].toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-white font-semibold">
+                            {user.name || '\u0411\u0435\u0437 \u0438\u043c\u0435\u043d\u0438'}
+                          </h3>
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
+                              user.role === 'ADMIN'
+                                ? 'bg-amber-500/20 text-amber-400'
+                                : 'bg-gray-700 text-gray-400'
+                            }`}
+                          >
+                            <Shield className="w-3 h-3" />
+                            {user.role === 'ADMIN'
+                              ? '\u0410\u0434\u043c\u0438\u043d'
+                              : '\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-400 flex items-center gap-2">
+                          <Mail className="w-3.5 h-3.5" />
+                          <span>{user.email || '-'}</span>
+                        </div>
+                      </div>
+                    </div>
                     <input
                       type="checkbox"
-                      checked={allVisibleSelected}
-                      onChange={toggleSelectAll}
-                      className="rounded border-gray-600"
-                      aria-label="Select all users"
+                      checked={isSelected}
+                      onChange={() => toggleSelect(user.id)}
+                      className="rounded border-gray-600 mt-1"
+                      aria-label={`Select ${user.name || user.email || 'user'}`}
                     />
-                  </th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Пользователь</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Email</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Роль</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\u0421\u0442\u0430\u0442\u0443\u0441'}</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Telegram</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Статистика</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0439 \u0432\u0445\u043e\u0434'}</th>
-                  <th className="text-right py-3 px-4 text-gray-400 font-medium">Действия</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map((user) => {
-                  const isEditing = editingId === user.id
-                  const isSaving = savingId === user.id
-                  const isDirty = isEditing && hasEditChanges
-                  return (
-                    <tr key={user.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
-                    <td className="py-3 px-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(user.id)}
-                        onChange={() => toggleSelect(user.id)}
-                        className="rounded border-gray-600"
-                        aria-label={`Select ${user.name || user.email || 'user'}`}
-                      />
-                    </td>
-                    <td className="py-3 px-4">
-                      {isEditing ? (
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {getUserStatusBadge(user)}
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-white/5 text-gray-300">
+                      <FileText className="w-3 h-3" />
+                      {user._count.letters} {'\u043f\u0438\u0441\u0435\u043c'}
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-white/5 text-gray-400">
+                      <MessageSquare className="w-3 h-3" />
+                      {user._count.comments}
+                    </span>
+                  </div>
+
+                  {!isEditing ? (
+                    <div className="mt-4 grid gap-2 text-sm text-gray-400">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-blue-400" />
+                        {user.telegramChatId || '-'}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        {formatDate(user.lastLoginAt)}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 grid gap-3 text-sm">
+                      <div className="grid gap-1">
+                        <span className="text-xs text-gray-400">{'\u0418\u043c\u044f'}</span>
                         <input
                           type="text"
                           value={editData.name}
                           onChange={(e) =>
                             setEditData({ ...editData, name: e.target.value })
                           }
-                          className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white"
-                          placeholder="Имя"
+                          className="w-full px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                          aria-label="Name"
+                          placeholder={'\u0418\u043c\u044f'}
                         />
-                      ) : (
-                        <div className="flex items-center gap-3">
-                          {user.image ? (
-                            <Image
-                              src={user.image}
-                              alt={user.name || user.email || 'User'}
-                              width={32}
-                              height={32}
-                              className="w-8 h-8 rounded-full"
-                              unoptimized
-                            />
-                          ) : (
-                            <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
-                              <span className="text-gray-400 text-sm">
-                                {(user.name || user.email || '?')[0].toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                          <span className="text-white">
-                            {user.name || 'Без имени'}
-                          </span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      {isEditing ? (
+                      </div>
+                      <div className="grid gap-1">
+                        <span className="text-xs text-gray-400">Email</span>
                         <input
                           type="email"
                           value={editData.email}
                           onChange={(e) =>
                             setEditData({ ...editData, email: e.target.value })
                           }
-                          className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white"
+                          className="w-full px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                          aria-label="Email"
                           placeholder="email@example.com"
                         />
-                      ) : (
-                        <div className="flex items-center gap-2 text-gray-400">
-                          <Mail className="w-4 h-4" />
-                          {user.email || '-'}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      {isEditing ? (
+                      </div>
+                      <div className="grid gap-1">
+                        <span className="text-xs text-gray-400">{'\u0420\u043e\u043b\u044c'}</span>
                         <select
                           value={editData.role}
                           onChange={(e) =>
@@ -917,27 +1051,21 @@ export default function SettingsPage() {
                               role: e.target.value as 'EMPLOYEE' | 'ADMIN',
                             })
                           }
-                          className="px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white"
+                          disabled={isLastAdmin}
+                          className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white disabled:opacity-60"
                           aria-label="User role"
                         >
-                          <option value="EMPLOYEE">Пользователь</option>
-                          <option value="ADMIN">Администратор</option>
+                          <option value="EMPLOYEE">{'\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a'}</option>
+                          <option value="ADMIN">{'\u0410\u0434\u043c\u0438\u043d'}</option>
                         </select>
-                      ) : (
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded text-sm ${
-                            user.role === 'ADMIN'
-                              ? 'bg-amber-500/20 text-amber-400'
-                              : 'bg-gray-700 text-gray-400'
-                          }`}
-                        >
-                          <Shield className="w-3 h-3" />
-                          {user.role === 'ADMIN' ? 'Админ' : 'Пользователь'}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      {isEditing ? (
+                        {isLastAdmin && (
+                          <span className="text-xs text-amber-400">
+                            {'\u0415\u0434\u0438\u043d\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439 \u0430\u0434\u043c\u0438\u043d \u043d\u0435 \u043c\u043e\u0436\u0435\u0442 \u0431\u044b\u0442\u044c \u043f\u043e\u043d\u0438\u0436\u0435\u043d'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid gap-1">
+                        <span className="text-xs text-gray-400">{'\u0414\u043e\u0441\u0442\u0443\u043f'}</span>
                         <select
                           value={editData.canLogin ? 'open' : 'closed'}
                           onChange={(e) =>
@@ -947,112 +1075,153 @@ export default function SettingsPage() {
                             })
                           }
                           disabled={user.role === 'ADMIN'}
-                          className="px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white disabled:opacity-60"
+                          className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white disabled:opacity-60"
                           aria-label="Access"
                         >
                           <option value="open">{'\u041e\u0442\u043a\u0440\u044b\u0442'}</option>
                           <option value="closed">{'\u0417\u0430\u043a\u0440\u044b\u0442'}</option>
                         </select>
-                      ) : (
-                        getUserStatusBadge(user)
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      {isEditing ? (
+                      </div>
+                      <div className="grid gap-1">
+                        <span className="text-xs text-gray-400">Telegram</span>
                         <input
                           type="text"
                           value={editData.telegramChatId}
                           onChange={(e) =>
                             setEditData({ ...editData, telegramChatId: e.target.value })
                           }
-                          className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white"
+                          className="w-full px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                          aria-label="Telegram chat ID"
                           placeholder="Chat ID"
                         />
-                      ) : user.telegramChatId ? (
-                        <div className="flex items-center gap-2 text-blue-400">
-                          <MessageSquare className="w-4 h-4" />
-                          {user.telegramChatId}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex items-center justify-between">
+                    {isEditing ? (
+                      <span className="text-xs text-gray-500">
+                        {isSaving
+                          ? '\u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435...'
+                          : isDirty
+                            ? '\u0410\u0432\u0442\u043e\u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435'
+                            : '\u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u043e'}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-500">
+                        {'\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0439 \u0432\u0445\u043e\u0434:'} {formatDate(user.lastLoginAt)}
+                      </span>
+                    )}
+                    <div className="flex items-center gap-2">
+                      {isEditing ? (
+                        <>
+                          <button
+                            onClick={cancelEdit}
+                            aria-label="Cancel edit"
+                            disabled={isSaving}
+                            className="p-2 text-gray-400 hover:text-white transition"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => saveUser('manual')}
+                            aria-label="Save user"
+                            disabled={!isDirty || isSaving}
+                            className="p-2 text-emerald-400 hover:text-emerald-300 transition"
+                          >
+                            {isSaving ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Save className="w-4 h-4" />
+                            )}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => startEdit(user)}
+                            aria-label="Edit user"
+                            className="p-2 text-gray-400 hover:text-white transition"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          {user.id !== session.user.id && (
+                            <button
+                              onClick={() => deleteUser(user.id)}
+                              aria-label="Delete user"
+                              disabled={isLastAdmin}
+                              title={
+                                isLastAdmin
+                                  ? '\u041d\u0435\u043b\u044c\u0437\u044f \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u0435\u0434\u0438\u043d\u0441\u0442\u0432\u0435\u043d\u043d\u043e\u0433\u043e \u0430\u0434\u043c\u0438\u043d\u0430'
+                                  : undefined
+                              }
+                              className="p-2 text-gray-400 hover:text-red-400 transition disabled:opacity-60"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </>
+                      )}
+                      <button
+                        onClick={() => toggleAudit(user.id)}
+                        aria-label="Toggle audit history"
+                        className="px-2 py-1 text-xs text-gray-400 hover:text-white transition border border-white/10 rounded"
+                      >
+                        {auditOpenId === user.id
+                          ? '\u0421\u043a\u0440\u044b\u0442\u044c \u0438\u0441\u0442\u043e\u0440\u0438\u044e'
+                          : '\u0418\u0441\u0442\u043e\u0440\u0438\u044f'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {auditOpenId === user.id && (
+                    <div className="mt-4 border-t border-white/10 pt-3">
+                      <div className="text-sm text-gray-300 mb-2">
+                        {'\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439'}
+                      </div>
+                      {auditLoading[user.id] ? (
+                        <div className="text-xs text-gray-500">
+                          {'\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430...'}
+                        </div>
+                      ) : auditByUser[user.id]?.length ? (
+                        <div className="space-y-3">
+                          {auditByUser[user.id].map((entry) => {
+                            const actorName =
+                              entry.actor?.name ||
+                              entry.actor?.email ||
+                              '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0439 \u0430\u0432\u0442\u043e\u0440'
+                            const showValues = entry.action !== 'CREATE' && entry.action !== 'DELETE'
+                            return (
+                              <div
+                                key={entry.id}
+                                className="border border-white/5 rounded-lg p-3 bg-white/5"
+                              >
+                                <div className="text-sm text-white">
+                                  {getAuditSummary(entry)}
+                                </div>
+                                {showValues && (
+                                  <div className="text-xs text-gray-400 mt-1">
+                                    {formatAuditValue(entry.field, entry.oldValue)} {'\u2192'}{' '}
+                                    {formatAuditValue(entry.field, entry.newValue)}
+                                  </div>
+                                )}
+                                <div className="text-xs text-gray-500 mt-2">
+                                  {actorName} \u00b7 {formatDate(entry.createdAt)}
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
                       ) : (
-                        <span className="text-gray-500">-</span>
+                        <div className="text-xs text-gray-500">
+                          {'\u041d\u0435\u0442 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439'}
+                        </div>
                       )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-4 text-sm text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <FileText className="w-4 h-4" />
-                          {user._count.letters}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MessageSquare className="w-4 h-4" />
-                          {user._count.comments}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-400">
-                      {formatDate(user.lastLoginAt)}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center justify-end gap-3">
-                        {isEditing && (
-                          <span className="text-xs text-gray-500">
-                            {isSaving
-                              ? '\u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435...'
-                              : isDirty
-                                ? '\u0410\u0432\u0442\u043e\u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435'
-                                : '\u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u043e'}
-                          </span>
-                        )}
-                        {isEditing ? (
-                          <>
-                            <button
-                              onClick={cancelEdit}
-                              aria-label="Cancel edit"
-                              disabled={isSaving}
-                              className="p-2 text-gray-400 hover:text-white transition"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => saveUser('manual')}
-                              aria-label="Save user"
-                              disabled={!isDirty || isSaving}
-                              className="p-2 text-emerald-400 hover:text-emerald-300 transition"
-                            >
-                              {isSaving ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Save className="w-4 h-4" />
-                              )}
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => startEdit(user)}
-                              aria-label="Edit user"
-                              className="p-2 text-gray-400 hover:text-white transition"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            {user.id !== session.user.id && (
-                              <button
-                                onClick={() => deleteUser(user.id)}
-                                aria-label="Delete user"
-                                className="p-2 text-gray-400 hover:text-red-400 transition"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
 
           {filteredUsers.length === 0 && (
