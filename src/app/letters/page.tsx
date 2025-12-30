@@ -508,7 +508,7 @@ function LettersPageContent() {
                   setStatusFilter('all')
                   setPage(1)
                 }}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition app-chip ${quickFilter === filter.value ? 'app-chip-active' : ''}`}`
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition app-chip ${quickFilter === filter.value ? 'app-chip-active' : ''}`}
               >
                 <Icon className="w-4 h-4" />
                 {filter.label}
