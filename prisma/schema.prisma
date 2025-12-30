@@ -75,12 +75,33 @@ model User {
   history         History[]
   answerTemplates AnswerTemplate[]
   notifications   Notification[]
+  profile         UserProfile?
   auditsTarget    UserAudit[]     @relation("UserAuditTarget")
   auditsActor     UserAudit[]     @relation("UserAuditActor")
   loginAudits     LoginAudit[]
   approvalsTarget AdminApproval[] @relation("AdminApprovalTarget")
   approvalsRequested AdminApproval[] @relation("AdminApprovalRequestedBy")
   approvalsApproved AdminApproval[] @relation("AdminApprovalApprovedBy")
+}
+
+model UserProfile {
+  id              String             @id @default(cuid())
+  userId          String             @unique
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio             String?            @db.Text
+  phone           String?
+  position        String?
+  department      String?
+  location        String?
+  timezone        String?
+  skills          String[]           @default([])
+  publicEmail     Boolean            @default(false)
+  publicPhone     Boolean            @default(false)
+  visibility      ProfileVisibility  @default(INTERNAL)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([userId])
 }
 
 enum Role {
@@ -90,6 +111,11 @@ enum Role {
   AUDITOR
   EMPLOYEE
   VIEWER
+}
+
+enum ProfileVisibility {
+  INTERNAL
+  PRIVATE
 }
 
 enum DigestFrequency {

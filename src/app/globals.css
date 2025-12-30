@@ -127,6 +127,22 @@ h3,
   color: #64748b !important;
 }
 
+.light .text-slate-200 {
+  color: #1f2937 !important;
+}
+
+.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+.light .text-slate-400 {
+  color: #475569 !important;
+}
+
+.light .text-slate-500 {
+  color: #64748b !important;
+}
+
 .light .border-gray-700 {
   border-color: #e5e7eb !important;
 }
