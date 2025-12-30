@@ -530,7 +530,7 @@ function LettersPageContent() {
         </div>
 
         {/* Filters Row */}
-        <div className="panel panel-soft panel-glass rounded-2xl p-4 flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="panel panel-soft panel-glass rounded-2xl p-4 flex flex-col sm:flex-row gap-4 mb-6 relative z-20">
           {/* Search */}
           <div className="relative flex-1">
             {isSearching ? (

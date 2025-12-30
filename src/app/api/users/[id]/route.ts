@@ -236,8 +236,6 @@ export async function PATCH(
       }
     }
 
-    let approvalRecord: { id: string } | null = null
-
     let user = {
       ...currentUser,
     }
@@ -426,15 +424,7 @@ export async function PATCH(
       await prisma.userAudit.createMany({ data: auditEntries })
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        user,
-        requiresApproval: !!approvalRecord,
-        approvalId: approvalRecord?.id || null,
-      },
-      { status: approvalRecord ? 202 : 200 }
-    )
+    return NextResponse.json({ success: true, user }, { status: 200 })
   } catch (error) {
     console.error('PATCH /api/users/[id] error:', error)
     return NextResponse.json(
