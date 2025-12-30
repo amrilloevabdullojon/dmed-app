@@ -771,7 +771,7 @@ function LettersPageContent() {
                     return (
                       <tr
                         key={letter.id}
-                        className={`table-row cursor-pointer ${isSelected ? 'table-row-selected' : ''} ${isFocused ? 'ring-2 ring-teal-400/40 ring-inset' : ''}`}
+                        className={`app-row cursor-pointer ${isSelected ? 'app-row-selected' : ''} ${isFocused ? 'ring-2 ring-teal-400/40 ring-inset' : ''}`}
                       >
                         <td className="px-4 py-3">
                           <button

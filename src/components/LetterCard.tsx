@@ -76,6 +76,7 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
   const isUrgent = !isDone && daysLeft <= 2 && daysLeft >= 0
   const priorityInfo = getPriorityLabel(letter.priority)
   const progress = isDone ? 100 : getDeadlineProgress(letter.deadlineDate, letter.date)
+  const progressStep = Math.min(100, Math.max(0, Math.round(progress / 5) * 5))
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -183,14 +184,13 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
             <div className="mb-3">
               <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${
+                  className={`h-full rounded-full transition-all duration-500 progress-${progressStep} ${
                     isOverdue
                       ? 'bg-gradient-to-r from-red-500 to-red-400'
                       : isUrgent
                         ? 'bg-gradient-to-r from-yellow-500 to-yellow-400'
                         : 'bg-gradient-to-r from-teal-500 to-emerald-400'
                   }`}
-                  style={{ width: `${Math.min(progress, 100)}%` }}
                 />
               </div>
             </div>
