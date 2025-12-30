@@ -62,15 +62,11 @@ export function VirtualLetterList({
   return (
     <div
       ref={parentRef}
-      className="h-[calc(100vh-300px)] overflow-auto pr-2"
-      style={{ contain: 'strict' }}
+      className="h-[calc(100vh-300px)] overflow-auto pr-2 virtual-scroll"
     >
       <div
-        style={{
-          height: `${rowVirtualizer.getTotalSize()}px`,
-          width: '100%',
-          position: 'relative',
-        }}
+        className="virtual-container"
+        style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
       >
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
           const startIndex = virtualRow.index * columnCount
@@ -79,11 +75,8 @@ export function VirtualLetterList({
           return (
             <div
               key={virtualRow.key}
+              className="virtual-row"
               style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
                 height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start}px)`,
               }}
@@ -210,15 +203,11 @@ export function VirtualLetterTable({
       {/* Virtual Rows */}
       <div
         ref={parentRef}
-        className="h-[calc(100vh-350px)] overflow-auto"
-        style={{ contain: 'strict' }}
+        className="h-[calc(100vh-350px)] overflow-auto virtual-scroll"
       >
         <div
-          style={{
-            height: `${rowVirtualizer.getTotalSize()}px`,
-            width: '100%',
-            position: 'relative',
-          }}
+          className="virtual-container"
+          style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
         >
           {rowVirtualizer.getVirtualItems().map((virtualRow) => {
             const letter = letters[virtualRow.index]
@@ -227,8 +216,8 @@ export function VirtualLetterTable({
             return (
               <div
                 key={virtualRow.key}
-                className={`absolute top-0 left-0 w-full grid grid-cols-12 gap-2 px-4 py-3 border-b border-white/5 text-sm cursor-pointer table-row ${
-                  isSelected ? 'table-row-selected' : ''
+                className={`virtual-row grid grid-cols-12 gap-2 px-4 py-3 border-b border-white/5 text-sm cursor-pointer app-row ${
+                  isSelected ? 'app-row-selected' : ''
                 }`}
                 style={{
                   height: `${virtualRow.size}px`,
