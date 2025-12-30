@@ -2,8 +2,9 @@
 
 import { useSession } from 'next-auth/react'
 import { Header } from '@/components/Header'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import {
   Loader2,
   Users,
@@ -72,18 +73,7 @@ export default function SettingsPage() {
   const [creating, setCreating] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    if (authStatus === 'authenticated') {
-      if (session?.user.role !== 'ADMIN') {
-        router.push('/letters')
-      } else {
-        loadUsers()
-        loadSyncLogs()
-      }
-    }
-  }, [authStatus, session])
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       const res = await fetch('/api/users')
       if (res.ok) {
@@ -95,9 +85,9 @@ export default function SettingsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const loadSyncLogs = async () => {
+  const loadSyncLogs = useCallback(async () => {
     try {
       const res = await fetch('/api/sync')
       if (res.ok) {
@@ -107,7 +97,18 @@ export default function SettingsPage() {
     } catch (error) {
       console.error('Failed to load sync logs:', error)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (authStatus === 'authenticated') {
+      if (session?.user.role !== 'ADMIN') {
+        router.push('/letters')
+      } else {
+        loadUsers()
+        loadSyncLogs()
+      }
+    }
+  }, [authStatus, session, router, loadUsers, loadSyncLogs])
 
   const startEdit = (user: User) => {
     setEditingId(user.id)
@@ -457,10 +458,13 @@ export default function SettingsPage() {
                       ) : (
                         <div className="flex items-center gap-3">
                           {user.image ? (
-                            <img
+                            <Image
                               src={user.image}
-                              alt=""
+                              alt={user.name || user.email || 'User'}
+                              width={32}
+                              height={32}
                               className="w-8 h-8 rounded-full"
+                              unoptimized
                             />
                           ) : (
                             <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">

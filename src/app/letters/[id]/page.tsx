@@ -6,7 +6,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { EditableField } from '@/components/EditableField'
 import { FileUpload } from '@/components/FileUpload'
 import { TemplateSelector } from '@/components/TemplateSelector'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import type { LetterStatus } from '@prisma/client'
 import {
@@ -124,21 +124,7 @@ export default function LetterDetailPage() {
   const [portalLink, setPortalLink] = useState('')
   const [portalLoading, setPortalLoading] = useState(false)
 
-  useEffect(() => {
-    if (session && params.id) {
-      loadLetter()
-    }
-  }, [session, params.id])
-
-  useEffect(() => {
-    if (letter?.applicantAccessToken && typeof window !== 'undefined') {
-      setPortalLink(`${window.location.origin}/portal/${letter.applicantAccessToken}`)
-    } else {
-      setPortalLink('')
-    }
-  }, [letter?.applicantAccessToken])
-
-  const loadLetter = async () => {
+  const loadLetter = useCallback(async () => {
     try {
       const res = await fetch(`/api/letters/${params.id}`)
       if (res.ok) {
@@ -152,7 +138,21 @@ export default function LetterDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id, router])
+
+  useEffect(() => {
+    if (session && params.id) {
+      loadLetter()
+    }
+  }, [session, params.id, loadLetter])
+
+  useEffect(() => {
+    if (letter?.applicantAccessToken && typeof window !== 'undefined') {
+      setPortalLink(`${window.location.origin}/portal/${letter.applicantAccessToken}`)
+    } else {
+      setPortalLink('')
+    }
+  }, [letter?.applicantAccessToken])
 
   const updateField = async (field: string, value: string) => {
     if (!letter) return

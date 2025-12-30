@@ -4,6 +4,7 @@ import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import Image from 'next/image'
 import {
   Menu,
   X,
@@ -197,10 +198,13 @@ export function Header() {
                 <Notifications />
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-full">
                   {session.user.image ? (
-                    <img
+                    <Image
                       src={session.user.image}
-                      alt=""
+                      alt={session.user.name || session.user.email || 'User'}
+                      width={28}
+                      height={28}
                       className="w-7 h-7 rounded-full"
+                      unoptimized
                     />
                   ) : (
                     <User className="w-7 h-7 p-1 bg-white/10 rounded-full" />
@@ -257,10 +261,13 @@ export function Header() {
           {session?.user && (
             <div className="flex items-center gap-3 p-3 mb-4 bg-white/10 rounded-lg">
               {session.user.image ? (
-                <img
+                <Image
                   src={session.user.image}
-                  alt=""
+                  alt={session.user.name || session.user.email || 'User'}
+                  width={40}
+                  height={40}
                   className="w-10 h-10 rounded-full"
+                  unoptimized
                 />
               ) : (
                 <User className="w-10 h-10 p-2 bg-white/10 rounded-full" />

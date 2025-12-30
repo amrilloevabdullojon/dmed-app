@@ -183,7 +183,7 @@ export function Notifications() {
             <div className="max-h-64 overflow-y-auto">
               {userNotifications.length === 0 ? (
                 <div className="p-4 text-sm text-gray-500 border-b border-gray-700">
-                  D?D??, ??D?D?D'D_D?D?D?D?D,D1
+                  {"D?D??, ??D?D?D'D_D?D?D?D?D,D1"}
                 </div>
               ) : (
                 <div className="divide-y divide-gray-700 border-b border-gray-700">

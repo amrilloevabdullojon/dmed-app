@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   FileText,
   Plus,
@@ -49,13 +49,7 @@ export function TemplateSelector({ onSelect, currentUserId }: TemplateSelectorPr
   const [newIsPublic, setNewIsPublic] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    if (isOpen) {
-      loadTemplates()
-    }
-  }, [isOpen])
-
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
@@ -71,7 +65,13 @@ export function TemplateSelector({ onSelect, currentUserId }: TemplateSelectorPr
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedCategory])
+
+  useEffect(() => {
+    if (isOpen) {
+      loadTemplates()
+    }
+  }, [isOpen, loadTemplates])
 
   const handleSelect = (template: Template) => {
     onSelect(template.content)

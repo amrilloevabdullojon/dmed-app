@@ -128,6 +128,27 @@ function LettersPageContent() {
   const [bulkValue, setBulkValue] = useState('')
   const [bulkLoading, setBulkLoading] = useState(false)
 
+  // Selection helpers
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }, [])
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === letters.length) {
+        return new Set()
+      }
+      return new Set(letters.map((l) => l.id))
+    })
+  }, [letters])
   // Горячие клавиши и быстрый просмотр
   const [focusedIndex, setFocusedIndex] = useState(0)
   const [previewId, setPreviewId] = useState<string | null>(null)
@@ -155,7 +176,7 @@ function LettersPageContent() {
       if (letter) {
         toggleSelect(letter.id)
       }
-    }, [letters, focusedIndex]),
+    }, [letters, focusedIndex, toggleSelect]),
     onEscape: useCallback(() => {
       if (previewId) {
         setPreviewId(null)
@@ -172,37 +193,12 @@ function LettersPageContent() {
       router.push('/letters/new')
     }, [router]),
     onSelectAll: useCallback(() => {
-      if (selectedIds.size === letters.length) {
-        setSelectedIds(new Set())
-      } else {
-        setSelectedIds(new Set(letters.map((l) => l.id)))
-      }
-    }, [letters, selectedIds.size]),
+      toggleSelectAll()
+    }, [toggleSelectAll]),
     enabled: !previewId,
   })
 
-  useEffect(() => {
-    if (session) {
-      loadLetters()
-    }
-  }, [session, statusFilter, quickFilter, ownerFilter, typeFilter, page, sortBy, sortOrder])
-
-  useEffect(() => {
-    if (session) {
-      loadUsers()
-    }
-  }, [session])
-
-  // Debounced search с индикатором
-  useEffect(() => {
-    if (search) setIsSearching(true)
-    const timer = setTimeout(() => {
-      if (session) loadLetters(false)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [search])
-
-  const loadLetters = async (showLoading = true) => {
+  const loadLetters = useCallback(async (showLoading = true) => {
     const requestId = ++lettersRequestIdRef.current
     if (showLoading) setLoading(true)
 
@@ -242,9 +238,18 @@ function LettersPageContent() {
         setIsSearching(false)
       }
     }
-  }
+  }, [
+    page,
+    sortBy,
+    sortOrder,
+    statusFilter,
+    quickFilter,
+    ownerFilter,
+    typeFilter,
+    search,
+  ])
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       const res = await fetch('/api/users')
       const data = await res.json()
@@ -252,7 +257,28 @@ function LettersPageContent() {
     } catch (error) {
       console.error('Failed to load users:', error)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (session) {
+      loadLetters()
+    }
+  }, [session, loadLetters])
+
+  useEffect(() => {
+    if (session) {
+      loadUsers()
+    }
+  }, [session, loadUsers])
+
+  // Debounced search с индикатором
+  useEffect(() => {
+    if (search) setIsSearching(true)
+    const timer = setTimeout(() => {
+      if (session) loadLetters(false)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [search, session, loadLetters])
 
   const handleSort = (field: SortField) => {
     if (sortBy === field) {
@@ -262,24 +288,6 @@ function LettersPageContent() {
       setSortOrder('asc')
     }
     setPage(1)
-  }
-
-  const toggleSelect = (id: string) => {
-    const newSelected = new Set(selectedIds)
-    if (newSelected.has(id)) {
-      newSelected.delete(id)
-    } else {
-      newSelected.add(id)
-    }
-    setSelectedIds(newSelected)
-  }
-
-  const toggleSelectAll = () => {
-    if (selectedIds.size === letters.length) {
-      setSelectedIds(new Set())
-    } else {
-      setSelectedIds(new Set(letters.map((l) => l.id)))
-    }
   }
 
   const executeBulkAction = async () => {
