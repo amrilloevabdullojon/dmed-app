@@ -813,13 +813,17 @@ export default function SettingsPage() {
     return `/api/users/${userId}/audit?${params.toString()}`
   }, [auditFiltersDebounced])
 
-  const loadAudit = useCallback(async (userId: string, mode: 'replace' | 'more' = 'replace') => {
+  const loadAudit = useCallback(async (
+    userId: string,
+    mode: 'replace' | 'more' = 'replace',
+    cursor?: string | null
+  ) => {
     const requestId = ++auditRequestCounter.current
     auditRequestByUser.current[userId] = requestId
     setAuditLoading((prev) => ({ ...prev, [userId]: true }))
     try {
-      const cursor = mode === 'more' ? auditCursorByUser[userId] : null
-      const res = await fetch(buildAuditUrl(userId, cursor))
+      const effectiveCursor = mode === 'more' ? cursor : null
+      const res = await fetch(buildAuditUrl(userId, effectiveCursor))
       if (res.ok) {
         const data = await res.json()
         if (auditRequestByUser.current[userId] !== requestId) {
@@ -838,7 +842,7 @@ export default function SettingsPage() {
         setAuditLoading((prev) => ({ ...prev, [userId]: false }))
       }
     }
-  }, [auditCursorByUser, buildAuditUrl])
+  }, [buildAuditUrl])
 
   const toggleAudit = (userId: string) => {
     setAuditOpenId((prev) => (prev === userId ? null : userId))
@@ -1150,6 +1154,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3">
               <RefreshCw className="w-6 h-6 text-emerald-400" />
               <h2 className="text-xl font-semibold text-white">Логи синхронизации</h2>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide bg-emerald-500/15 text-emerald-300 border border-emerald-400/20">{'\u0418\u043d\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438'}</span>
             </div>
             <button
               onClick={loadSyncLogs}
@@ -1238,6 +1243,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-3 mb-6">
             <Users className="w-6 h-6 text-emerald-400" />
             <h2 className="text-xl font-semibold text-white">Управление пользователями</h2>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide bg-sky-500/15 text-sky-300 border border-sky-400/20">{'\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0438'}</span>
           </div>
 
           {isSuperAdmin && (
@@ -2139,7 +2145,7 @@ export default function SettingsPage() {
                           })}
                           {auditCursorByUser[user.id] && (
                             <button
-                              onClick={() => loadAudit(user.id, 'more')}
+                              onClick={() => loadAudit(user.id, 'more', auditCursorByUser[user.id])}
                               className="inline-flex items-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 transition"
                             >
                               <ArrowDownToLine className="w-3.5 h-3.5" />
@@ -2176,6 +2182,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3">
               <History className="w-6 h-6 text-emerald-400" />
               <h2 className="text-xl font-semibold text-white">{'\u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u044c: \u0432\u0445\u043e\u0434\u044b'}</h2>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide bg-amber-500/15 text-amber-300 border border-amber-400/20">{'\u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u044c'}</span>
             </div>
             <button
               onClick={() => loadLoginAudits('replace')}
