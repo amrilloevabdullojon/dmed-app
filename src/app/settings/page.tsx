@@ -200,6 +200,11 @@ const LOGIN_STATUS_OPTIONS = [
 ]
 
 const INACTIVE_WARNING_DAYS = 7
+const fieldBase =
+  'rounded-xl border border-white/10 bg-white/5 text-white placeholder-slate-400 focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40'
+const fieldCompact =
+  'rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-400 focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40'
+const controlBase = 'rounded border-white/20 bg-white/5'
 
 export default function SettingsPage() {
   const { data: session, status: authStatus } = useSession()
@@ -1121,7 +1126,7 @@ export default function SettingsPage() {
 
   if (authStatus === 'loading' || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="min-h-screen app-shell flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
       </div>
     )
@@ -1132,14 +1137,15 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen app-shell">
       <Header />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-2xl font-bold text-white mb-8">Настройки</h1>
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pageIn relative">
+        <h1 className="text-3xl md:text-4xl font-display font-semibold text-white">Настройки</h1>
+        <p className="text-muted text-sm mt-2 mb-8">{'\u0420\u043e\u043b\u0438, \u0434\u043e\u0441\u0442\u0443\u043f, \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f \u0438 \u0436\u0443\u0440\u043d\u0430\u043b \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u0438.'}</p>
 
         {/* Sync Logs */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 mb-8">
+        <div className="panel panel-glass rounded-2xl p-6 mb-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <RefreshCw className="w-6 h-6 text-emerald-400" />
@@ -1159,7 +1165,7 @@ export default function SettingsPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-700">
+                  <tr className="border-b border-white/10">
                     <th className="text-left py-3 px-4 text-gray-400 font-medium">Время</th>
                     <th className="text-left py-3 px-4 text-gray-400 font-medium">Направление</th>
                     <th className="text-left py-3 px-4 text-gray-400 font-medium">Статус</th>
@@ -1179,7 +1185,7 @@ export default function SettingsPage() {
                       : null
 
                     return (
-                      <tr key={log.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
+                      <tr key={log.id} className="border-b border-white/5 hover:bg-white/5">
                         <td className="py-3 px-4 text-gray-300 text-sm">
                           {formatDate(log.startedAt)}
                         </td>
@@ -1228,14 +1234,14 @@ export default function SettingsPage() {
         </div>
 
         {/* Users Management */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+        <div className="panel panel-glass rounded-2xl p-6 mb-8">
           <div className="flex items-center gap-3 mb-6">
             <Users className="w-6 h-6 text-emerald-400" />
             <h2 className="text-xl font-semibold text-white">Управление пользователями</h2>
           </div>
 
           {isSuperAdmin && (
-            <div className="bg-gray-900/40 border border-gray-700/50 rounded-lg p-4 mb-6">
+            <div className="panel-soft panel-glass rounded-2xl p-4 mb-6">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-sm text-gray-400">
                 <ShieldAlert className="w-4 h-4 text-amber-400" />
@@ -1269,7 +1275,7 @@ export default function SettingsPage() {
                   return (
                     <div
                       key={approval.id}
-                      className="border border-white/5 rounded-lg p-3 bg-white/5 flex flex-col gap-3"
+                      className="panel-soft panel-glass rounded-xl p-3 flex flex-col gap-3"
                     >
                       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                         <div className="space-y-1">
@@ -1309,7 +1315,7 @@ export default function SettingsPage() {
                             onClick={() => handleApproval(approval.id, 'reject')}
                             disabled={approvalActionId === approval.id || needsSecondAdmin}
                             title={needsSecondAdmin ? '\u041d\u0443\u0436\u0435\u043d \u0432\u0442\u043e\u0440\u043e\u0439 \u0430\u0434\u043c\u0438\u043d' : undefined}
-                            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded transition disabled:opacity-50"
+                            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs btn-secondary rounded transition disabled:opacity-50"
                           >
                             <XCircle className="w-3 h-3" />
                             {'\u041e\u0442\u043a\u043b\u043e\u043d\u0438\u0442\u044c'}
@@ -1326,7 +1332,7 @@ export default function SettingsPage() {
             </div>
           )}
 
-          <div className="bg-gray-900/40 border border-gray-700/50 rounded-lg p-4 mb-6">
+          <div className="panel-soft panel-glass rounded-2xl p-4 mb-6">
             <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
               <UserPlus className="w-4 h-4 text-emerald-400" />
               {'\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f'}
@@ -1338,7 +1344,7 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   setCreateData({ ...createData, name: e.target.value })
                 }
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                className={`${fieldBase} w-full px-3 py-2`}
                 aria-label="Name"
                 placeholder={'\u0418\u043c\u044f'}
               />
@@ -1348,7 +1354,7 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   setCreateData({ ...createData, email: e.target.value })
                 }
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                className={`${fieldBase} w-full px-3 py-2`}
                 aria-label="Email"
                 placeholder="email@example.com"
               />
@@ -1361,7 +1367,7 @@ export default function SettingsPage() {
                   })
                 }
                 disabled={!isSuperAdmin}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white disabled:opacity-60"
+                className={`${fieldBase} w-full px-3 py-2 disabled:opacity-60`}
                 aria-label="Role"
               >
                 {ROLE_OPTIONS.map((role) => (
@@ -1376,7 +1382,7 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   setCreateData({ ...createData, telegramChatId: e.target.value })
                 }
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                className={`${fieldBase} w-full px-3 py-2`}
                 aria-label="Telegram chat ID"
                 placeholder="Telegram Chat ID"
               />
@@ -1407,7 +1413,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="bg-gray-900/40 border border-gray-700/50 rounded-lg p-4 mb-6">
+          <div className="panel-soft panel-glass rounded-2xl p-4 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="relative">
                 <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -1415,7 +1421,7 @@ export default function SettingsPage() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  className={`${fieldBase} w-full pl-9 pr-3 py-2`}
                   placeholder={'\u041f\u043e\u0438\u0441\u043a \u043f\u043e \u0438\u043c\u0435\u043d\u0438, email, Telegram'}
                   aria-label="Search users"
                 />
@@ -1423,7 +1429,7 @@ export default function SettingsPage() {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value as 'all' | User['role'])}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                className={`${fieldBase} w-full px-3 py-2`}
                 aria-label="Filter by role"
               >
                 <option value="all">{'\u0412\u0441\u0435 \u0440\u043e\u043b\u0438'}</option>
@@ -1436,7 +1442,7 @@ export default function SettingsPage() {
               <select
                 value={accessFilter}
                 onChange={(e) => setAccessFilter(e.target.value as 'all' | 'active' | 'invited' | 'blocked')}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                className={`${fieldBase} w-full px-3 py-2`}
                 aria-label="Filter by status"
               >
                 <option value="all">{'\u0412\u0441\u0435 \u0441\u0442\u0430\u0442\u0443\u0441\u044b'}</option>
@@ -1447,7 +1453,7 @@ export default function SettingsPage() {
               <select
                 value={emailFilter}
                 onChange={(e) => setEmailFilter(e.target.value as 'all' | 'has' | 'none')}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                className={`${fieldBase} w-full px-3 py-2`}
                 aria-label="Filter by email"
               >
                 <option value="all">{'\u0412\u0441\u0435 email'}</option>
@@ -1457,7 +1463,7 @@ export default function SettingsPage() {
               <select
                 value={telegramFilter}
                 onChange={(e) => setTelegramFilter(e.target.value as 'all' | 'has' | 'none')}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                className={`${fieldBase} w-full px-3 py-2`}
                 aria-label="Filter by Telegram"
               >
                 <option value="all">{'\u0412\u0441\u0435 Telegram'}</option>
@@ -1485,7 +1491,7 @@ export default function SettingsPage() {
           </div>
 
           {selectedIds.size > 0 && (
-            <div className="bg-gray-900/40 border border-gray-700/50 rounded-lg p-4 mb-6 flex flex-wrap items-center gap-3">
+            <div className="panel-soft panel-glass rounded-2xl p-4 mb-6 flex flex-wrap items-center gap-3">
               <span className="text-sm text-white">
                 {'\u0412\u044b\u0431\u0440\u0430\u043d\u043e'}: {selectedIds.size}
               </span>
@@ -1495,7 +1501,7 @@ export default function SettingsPage() {
                   setBulkAction(e.target.value as 'role' | 'canLogin' | 'delete' | '')
                   setBulkValue('')
                 }}
-                className="px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                className={`${fieldBase} px-3 py-2`}
                 aria-label="Bulk action"
               >
                 <option value="">{'\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u0435'}</option>
@@ -1509,7 +1515,7 @@ export default function SettingsPage() {
                 <select
                   value={bulkValue}
                   onChange={(e) => setBulkValue(e.target.value)}
-                  className="px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  className={`${fieldBase} px-3 py-2`}
                   aria-label="Bulk role"
                 >
                   <option value="">{'\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0440\u043e\u043b\u044c'}</option>
@@ -1524,7 +1530,7 @@ export default function SettingsPage() {
                 <select
                   value={bulkValue}
                   onChange={(e) => setBulkValue(e.target.value)}
-                  className="px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                  className={`${fieldBase} px-3 py-2`}
                   aria-label="Bulk access"
                 >
                   <option value="">{'\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u043e\u0441\u0442\u0443\u043f'}</option>
@@ -1564,7 +1570,7 @@ export default function SettingsPage() {
                 type="checkbox"
                 checked={allVisibleSelected}
                 onChange={toggleSelectAll}
-                className="rounded border-gray-600"
+                className={controlBase}
                 aria-label="Select all users"
               />
               {'\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0432\u0441\u0435\u0445'}
@@ -1606,7 +1612,7 @@ export default function SettingsPage() {
               items.push(
                 <div
                   key={user.id}
-                  className={`rounded-2xl border border-white/10 bg-white/5 p-4 transition ${
+                  className={`rounded-2xl panel-soft panel-glass p-4 transition ${
                     isSelected ? 'ring-2 ring-emerald-400/40' : ''
                   } ${isRoyal ? 'border-yellow-400/40 bg-gradient-to-br from-yellow-500/10 via-white/5 to-transparent' : ''}`}
                 >
@@ -1622,7 +1628,7 @@ export default function SettingsPage() {
                           unoptimized
                         />
                       ) : (
-                        <div className="w-11 h-11 bg-gray-700 rounded-full flex items-center justify-center">
+                        <div className="w-11 h-11 bg-white/10 rounded-full flex items-center justify-center">
                           <span className="text-gray-300 text-sm font-semibold">
                             {(user.name || user.email || '?')[0].toUpperCase()}
                           </span>
@@ -1654,7 +1660,7 @@ export default function SettingsPage() {
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => toggleSelect(user.id)}
-                      className="rounded border-gray-600 mt-1"
+                      className={`${controlBase} mt-1`}
                       aria-label={`Select ${user.name || user.email || 'user'}`}
                     />
                   </div>
@@ -1693,7 +1699,7 @@ export default function SettingsPage() {
                           onChange={(e) =>
                             setEditData({ ...editData, name: e.target.value })
                           }
-                          className="w-full px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                          className={`${fieldCompact} w-full px-3 py-1.5`}
                           aria-label="Name"
                           placeholder={'\u0418\u043c\u044f'}
                         />
@@ -1706,7 +1712,7 @@ export default function SettingsPage() {
                           onChange={(e) =>
                             setEditData({ ...editData, email: e.target.value })
                           }
-                          className="w-full px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                          className={`${fieldCompact} w-full px-3 py-1.5`}
                           aria-label="Email"
                           placeholder="email@example.com"
                         />
@@ -1722,7 +1728,7 @@ export default function SettingsPage() {
                             })
                           }
                           disabled={roleChangeLocked}
-                          className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white disabled:opacity-60"
+                          className={`${fieldCompact} px-3 py-1.5 disabled:opacity-60`}
                           aria-label="User role"
                         >
                           {ROLE_OPTIONS.map((role) => (
@@ -1758,7 +1764,7 @@ export default function SettingsPage() {
                             })
                           }
                           disabled={user.role === 'ADMIN' || user.role === 'SUPERADMIN'}
-                          className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white disabled:opacity-60"
+                          className={`${fieldCompact} px-3 py-1.5 disabled:opacity-60`}
                           aria-label="Access"
                         >
                           <option value="open">{'\u041e\u0442\u043a\u0440\u044b\u0442'}</option>
@@ -1773,7 +1779,7 @@ export default function SettingsPage() {
                           onChange={(e) =>
                             setEditData({ ...editData, telegramChatId: e.target.value })
                           }
-                          className="w-full px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                          className={`${fieldCompact} w-full px-3 py-1.5`}
                           aria-label="Telegram chat ID"
                           placeholder="Chat ID"
                         />
@@ -1791,7 +1797,7 @@ export default function SettingsPage() {
                               onChange={(e) =>
                                 setEditData({ ...editData, notifyEmail: e.target.checked })
                               }
-                              className="rounded border-gray-600"
+                              className={controlBase}
                               aria-label="Notify by email"
                             />
                             Email
@@ -1806,7 +1812,7 @@ export default function SettingsPage() {
                                   notifyTelegram: e.target.checked,
                                 })
                               }
-                              className="rounded border-gray-600"
+                              className={controlBase}
                               aria-label="Notify by Telegram"
                             />
                             Telegram
@@ -1818,7 +1824,7 @@ export default function SettingsPage() {
                               onChange={(e) =>
                                 setEditData({ ...editData, notifySms: e.target.checked })
                               }
-                              className="rounded border-gray-600"
+                              className={controlBase}
                               aria-label="Notify by SMS"
                             />
                             SMS
@@ -1830,7 +1836,7 @@ export default function SettingsPage() {
                               onChange={(e) =>
                                 setEditData({ ...editData, notifyInApp: e.target.checked })
                               }
-                              className="rounded border-gray-600"
+                              className={controlBase}
                               aria-label="Notify in app"
                             />
                             {'\u0412\u043d\u0443\u0442\u0440\u0438 \u0441\u0438\u0441\u0442\u0435\u043c\u044b'}
@@ -1850,7 +1856,7 @@ export default function SettingsPage() {
                                   quietHoursStart: e.target.value,
                                 })
                               }
-                              className="w-full px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                              className={`${fieldCompact} w-full px-3 py-1.5`}
                               aria-label="Quiet hours start"
                             />
                           </div>
@@ -1867,7 +1873,7 @@ export default function SettingsPage() {
                                   quietHoursEnd: e.target.value,
                                 })
                               }
-                              className="w-full px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                              className={`${fieldCompact} w-full px-3 py-1.5`}
                               aria-label="Quiet hours end"
                             />
                           </div>
@@ -1882,7 +1888,7 @@ export default function SettingsPage() {
                                 digestFrequency: e.target.value as User['digestFrequency'],
                               })
                             }
-                            className="px-3 py-1.5 bg-gray-700 border border-gray-600 rounded text-white"
+                            className={`${fieldCompact} px-3 py-1.5`}
                             aria-label="Digest frequency"
                           >
                             {DIGEST_OPTIONS.map((option) => (
@@ -2016,13 +2022,13 @@ export default function SettingsPage() {
                           {'\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c'}
                         </button>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2 mb-3 text-xs bg-white/5 border border-white/5 rounded-lg p-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2 mb-3 text-xs panel-soft panel-glass rounded-xl p-3">
                         <select
                           value={auditFilters.action}
                           onChange={(e) =>
                             setAuditFilters((prev) => ({ ...prev, action: e.target.value }))
                           }
-                          className="px-3 py-1.5 bg-gray-700/70 border border-gray-600/60 rounded text-white"
+                          className={`${fieldCompact} px-3 py-1.5`}
                           aria-label="Audit action filter"
                         >
                           {AUDIT_ACTION_OPTIONS.map((option) => (
@@ -2036,7 +2042,7 @@ export default function SettingsPage() {
                           onChange={(e) =>
                             setAuditFilters((prev) => ({ ...prev, field: e.target.value }))
                           }
-                          className="px-3 py-1.5 bg-gray-700/70 border border-gray-600/60 rounded text-white"
+                          className={`${fieldCompact} px-3 py-1.5`}
                           aria-label="Audit field filter"
                         >
                           {AUDIT_FIELD_OPTIONS.map((option) => (
@@ -2051,7 +2057,7 @@ export default function SettingsPage() {
                           onChange={(e) =>
                             setAuditFilters((prev) => ({ ...prev, actor: e.target.value }))
                           }
-                          className="px-3 py-1.5 bg-gray-700/70 border border-gray-600/60 rounded text-white"
+                          className={`${fieldCompact} px-3 py-1.5`}
                           placeholder={'\u0410\u0432\u0442\u043e\u0440'}
                           aria-label="Audit actor search"
                         />
@@ -2061,7 +2067,7 @@ export default function SettingsPage() {
                           onChange={(e) =>
                             setAuditFilters((prev) => ({ ...prev, query: e.target.value }))
                           }
-                          className="px-3 py-1.5 bg-gray-700/70 border border-gray-600/60 rounded text-white"
+                          className={`${fieldCompact} px-3 py-1.5`}
                           placeholder={'\u041f\u043e\u0438\u0441\u043a \u043f\u043e \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f\u043c'}
                           aria-label="Audit search"
                         />
@@ -2088,7 +2094,7 @@ export default function SettingsPage() {
                             return (
                               <div key={entry.id} className="relative pl-4">
                                 <span className="absolute left-0 top-3 h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
-                                <div className="border border-white/5 rounded-xl p-3 bg-white/5">
+                                <div className="panel-soft panel-glass rounded-xl p-3">
                                   <div className="flex flex-wrap items-center justify-between gap-2">
                                     <div className="text-sm text-white font-medium">
                                       {getAuditSummary(entry)}
@@ -2099,11 +2105,11 @@ export default function SettingsPage() {
                                   </div>
                                   {showValues && (
                                     <div className="text-xs text-gray-300 mt-2 flex flex-wrap items-center gap-2">
-                                      <span className="px-2 py-1 rounded bg-white/5 border border-white/5">
+                                      <span className="px-2 py-1 rounded bg-white/10 border border-white/10">
                                         {formatAuditValue(entry.field, entry.oldValue)}
                                       </span>
                                       <span className="text-gray-500">{'\u2192'}</span>
-                                      <span className="px-2 py-1 rounded bg-white/5 border border-white/5">
+                                      <span className="px-2 py-1 rounded bg-white/10 border border-white/10">
                                         {formatAuditValue(entry.field, entry.newValue)}
                                       </span>
                                     </div>
@@ -2165,7 +2171,7 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 mb-8">
+        <div className="panel panel-glass rounded-2xl p-6 mb-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <History className="w-6 h-6 text-emerald-400" />
@@ -2185,7 +2191,7 @@ export default function SettingsPage() {
             <select
               value={loginAuditStatus}
               onChange={(e) => setLoginAuditStatus(e.target.value as 'all' | 'success' | 'failure')}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+              className={`${fieldBase} w-full px-3 py-2`}
               aria-label="Login audit status"
             >
               {LOGIN_STATUS_OPTIONS.map((option) => (
@@ -2200,7 +2206,7 @@ export default function SettingsPage() {
                 type="text"
                 value={loginAuditQuery}
                 onChange={(e) => setLoginAuditQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
+                className={`${fieldBase} w-full pl-9 pr-3 py-2`}
                 placeholder={'\u041f\u043e\u0438\u0441\u043a \u043f\u043e email \u0438\u043b\u0438 \u0438\u043c\u0435\u043d\u0438'}
                 aria-label="Login audit search"
               />
@@ -2221,7 +2227,7 @@ export default function SettingsPage() {
               {loginAuditSummary.map((day) => (
                 <div
                   key={day.date}
-                  className="rounded-lg border border-white/10 bg-white/5 p-3"
+                  className="panel-soft panel-glass rounded-xl p-3"
                 >
                   <div className="text-xs text-gray-400">{formatSummaryDate(day.date)}</div>
                   <div className="text-sm text-white">
@@ -2241,7 +2247,7 @@ export default function SettingsPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-700">
+                  <tr className="border-b border-white/10">
                     <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\u0414\u0430\u0442\u0430'}</th>
                     <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c'}</th>
                     <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\u0420\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442'}</th>
@@ -2253,7 +2259,7 @@ export default function SettingsPage() {
                     const displayName =
                       event.user?.name || event.user?.email || event.email
                     return (
-                      <tr key={event.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
+                      <tr key={event.id} className="border-b border-white/5 hover:bg-white/5">
                         <td className="py-3 px-4 text-gray-300 text-sm">
                           {formatDate(event.createdAt)}
                         </td>
