@@ -95,8 +95,19 @@ model UserProfile {
   location        String?
   timezone        String?
   skills          String[]           @default([])
+  avatarUrl       String?
+  coverUrl        String?
   publicEmail     Boolean            @default(false)
   publicPhone     Boolean            @default(false)
+  publicBio       Boolean            @default(true)
+  publicPosition  Boolean            @default(true)
+  publicDepartment Boolean           @default(true)
+  publicLocation  Boolean            @default(true)
+  publicTimezone  Boolean            @default(true)
+  publicSkills    Boolean            @default(true)
+  publicLastLogin Boolean            @default(false)
+  publicProfileEnabled Boolean       @default(false)
+  publicProfileToken   String?       @unique
   visibility      ProfileVisibility  @default(INTERNAL)
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt

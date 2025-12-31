@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react'
 import { Header } from '@/components/Header'
 import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import {
   Loader2,
   Mail,
@@ -22,6 +23,11 @@ import {
   UserCircle,
   Eye,
   EyeOff,
+  Upload,
+  Link2,
+  Copy,
+  RefreshCw,
+  ExternalLink,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDate } from '@/lib/utils'
@@ -34,8 +40,19 @@ interface ProfileData {
   location: string | null
   timezone: string | null
   skills: string[]
+  avatarUrl: string | null
+  coverUrl: string | null
   publicEmail: boolean
   publicPhone: boolean
+  publicBio: boolean
+  publicPosition: boolean
+  publicDepartment: boolean
+  publicLocation: boolean
+  publicTimezone: boolean
+  publicSkills: boolean
+  publicLastLogin: boolean
+  publicProfileEnabled: boolean
+  publicProfileToken: string | null
   visibility: 'INTERNAL' | 'PRIVATE'
 }
 
@@ -51,6 +68,34 @@ interface UserSummary {
     comments: number
     sessions: number
   }
+}
+
+interface ActivityLetter {
+  id: string
+  number: string
+  org: string
+  status: string
+  updatedAt: string
+}
+
+interface ActivityComment {
+  id: string
+  text: string
+  createdAt: string
+  letter: { id: string; number: string; org: string }
+}
+
+interface ActivityAssignment {
+  id: string
+  createdAt: string
+  user: { id: string; name: string | null; email: string | null } | null
+  letter: { id: string; number: string; org: string }
+}
+
+interface ActivityData {
+  letters: ActivityLetter[]
+  comments: ActivityComment[]
+  assignments: ActivityAssignment[]
 }
 
 const ROLE_LABELS: Record<UserSummary['role'], string> = {
@@ -86,8 +131,19 @@ const emptyProfile: ProfileData = {
   location: null,
   timezone: null,
   skills: [],
+  avatarUrl: null,
+  coverUrl: null,
   publicEmail: false,
   publicPhone: false,
+  publicBio: true,
+  publicPosition: true,
+  publicDepartment: true,
+  publicLocation: true,
+  publicTimezone: true,
+  publicSkills: true,
+  publicLastLogin: false,
+  publicProfileEnabled: false,
+  publicProfileToken: null,
   visibility: 'INTERNAL',
 }
 
@@ -95,9 +151,13 @@ export default function ProfilePage() {
   const { data: session, status: authStatus } = useSession()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [coverUploading, setCoverUploading] = useState(false)
+  const [origin, setOrigin] = useState('')
   const [user, setUser] = useState<UserSummary | null>(null)
   const [profile, setProfile] = useState<ProfileData>(emptyProfile)
   const [skillsInput, setSkillsInput] = useState('')
+  const [activity, setActivity] = useState<ActivityData | null>(null)
 
   const parsedSkills = useMemo(
     () =>
@@ -120,6 +180,7 @@ export default function ProfilePage() {
       const nextProfile: ProfileData = data.profile || emptyProfile
       setProfile(nextProfile)
       setSkillsInput((nextProfile.skills || []).join(', '))
+      setActivity(data.activity || null)
     } catch (error) {
       console.error('Failed to load profile:', error)
       toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u043f\u0440\u043e\u0444\u0438\u043b\u044c')
@@ -133,6 +194,12 @@ export default function ProfilePage() {
       loadProfile()
     }
   }, [authStatus])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setOrigin(window.location.origin)
+    }
+  }, [])
 
   const handleSave = async () => {
     if (!user) return
@@ -163,6 +230,67 @@ export default function ProfilePage() {
     }
   }
 
+  const handleAssetUpload = async (type: 'avatar' | 'cover', file: File) => {
+    const setUploading = type === 'avatar' ? setAvatarUploading : setCoverUploading
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('type', type)
+      const res = await fetch('/api/profile/assets', {
+        method: 'POST',
+        body: formData,
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to upload file')
+      }
+      const data = await res.json()
+      setProfile((prev) => ({ ...prev, ...data.profile }))
+      toast.success(
+        type === 'avatar'
+          ? '\u0410\u0432\u0430\u0442\u0430\u0440 \u043e\u0431\u043d\u043e\u0432\u043b\u0451\u043d'
+          : '\u041e\u0431\u043b\u043e\u0436\u043a\u0430 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0430'
+      )
+    } catch (error) {
+      console.error('Failed to upload asset:', error)
+      toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0444\u0430\u0439\u043b')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleRotateToken = async () => {
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rotatePublicToken: true }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to rotate token')
+      }
+      const data = await res.json()
+      setProfile((prev) => ({ ...prev, ...data.profile }))
+      toast.success('\u0421\u0441\u044b\u043b\u043a\u0430 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0430')
+    } catch (error) {
+      console.error('Failed to rotate token:', error)
+      toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443')
+    }
+  }
+
+  const handleCopyLink = async () => {
+    if (!publicProfileUrl) return
+    try {
+      await navigator.clipboard.writeText(publicProfileUrl)
+      toast.success('\u0421\u0441\u044b\u043b\u043a\u0430 \u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0430')
+    } catch (error) {
+      console.error('Failed to copy link:', error)
+      toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c')
+    }
+  }
+
   if (authStatus === 'loading' || loading) {
     return (
       <div className="min-h-screen app-shell flex items-center justify-center">
@@ -174,6 +302,13 @@ export default function ProfilePage() {
   if (!session || !user) {
     return null
   }
+
+  const displayAvatar = profile.avatarUrl || user.image
+  const coverUrl = profile.coverUrl
+  const publicProfileUrl =
+    origin && profile.publicProfileEnabled && profile.publicProfileToken
+      ? `${origin}/u/${profile.publicProfileToken}`
+      : ''
 
   return (
     <div className="min-h-screen app-shell">
@@ -206,13 +341,13 @@ export default function ProfilePage() {
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="panel panel-glass rounded-2xl p-6 space-y-6">
             <div className="flex items-center gap-3">
-              {user.image ? (
+              {displayAvatar ? (
                 <Image
-                  src={user.image}
+                  src={displayAvatar}
                   alt={user.name || user.email || 'User'}
                   width={64}
                   height={64}
-                  className="w-16 h-16 rounded-full"
+                  className="w-16 h-16 rounded-full object-cover"
                   unoptimized
                 />
               ) : (
@@ -257,6 +392,67 @@ export default function ProfilePage() {
                 <Clock className="w-4 h-4 text-amber-300 mx-auto mb-1" />
                 <div className="text-white">{user._count.sessions}</div>
                 <div className="text-gray-500">{'\u0421\u0435\u0441\u0441\u0438\u0438'}</div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <Upload className="w-3.5 h-3.5 text-emerald-400" />
+                {'\u041e\u0444\u043e\u0440\u043c\u043b\u0435\u043d\u0438\u0435'}
+              </div>
+              <div className="rounded-xl overflow-hidden h-20 bg-white/10 border border-white/10">
+                {coverUrl ? (
+                  <Image
+                    src={coverUrl}
+                    alt="Cover"
+                    width={600}
+                    height={160}
+                    className="w-full h-full object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs text-gray-500">
+                    {'\u041d\u0435\u0442 \u043e\u0431\u043b\u043e\u0436\u043a\u0438'}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 transition cursor-pointer">
+                  {avatarUploading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="w-3.5 h-3.5" />
+                  )}
+                  {'\u0410\u0432\u0430\u0442\u0430\u0440'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleAssetUpload('avatar', file)
+                      e.currentTarget.value = ''
+                    }}
+                  />
+                </label>
+                <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 transition cursor-pointer">
+                  {coverUploading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="w-3.5 h-3.5" />
+                  )}
+                  {'\u041e\u0431\u043b\u043e\u0436\u043a\u0430'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleAssetUpload('cover', file)
+                      e.currentTarget.value = ''
+                    }}
+                  />
+                </label>
               </div>
             </div>
 
@@ -390,9 +586,9 @@ export default function ProfilePage() {
                 <Eye className="w-4 h-4 text-emerald-400" />
                 {'\u0412\u0438\u0434\u0438\u043c\u043e\u0441\u0442\u044c \u043f\u0440\u043e\u0444\u0438\u043b\u044f'}
               </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div>
-                  <label className="text-xs text-gray-400 mb-1 block">
+              <div className="grid gap-4 lg:grid-cols-3">
+                <div className="space-y-3">
+                  <label className="text-xs text-gray-400 block">
                     {'\u0423\u0440\u043e\u0432\u0435\u043d\u044c'}
                   </label>
                   <select
@@ -409,8 +605,108 @@ export default function ProfilePage() {
                     <option value="INTERNAL">{'\u0412\u0438\u0434\u043d\u043e \u0432\u043d\u0443\u0442\u0440\u0438 \u0441\u0438\u0441\u0442\u0435\u043c\u044b'}</option>
                     <option value="PRIVATE">{'\u0422\u043e\u043b\u044c\u043a\u043e \u044f'}</option>
                   </select>
+                  <label className="inline-flex items-center gap-2 text-xs text-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={profile.publicProfileEnabled}
+                      onChange={(e) =>
+                        setProfile({ ...profile, publicProfileEnabled: e.target.checked })
+                      }
+                      className={controlBase}
+                      aria-label="Public profile link"
+                    />
+                    <Link2 className="w-3.5 h-3.5" />
+                    {'\u041f\u0443\u0431\u043b\u0438\u0447\u043d\u0430\u044f \u0441\u0441\u044b\u043b\u043a\u0430'}
+                  </label>
+                  <p className="text-[11px] text-gray-500">
+                    {'\u0421\u0441\u044b\u043b\u043a\u0443 \u043c\u043e\u0436\u043d\u043e \u0440\u0430\u0441\u043f\u0440\u043e\u0441\u0442\u0440\u0430\u043d\u044f\u0442\u044c \u0432\u043d\u0435 \u0441\u0438\u0441\u0442\u0435\u043c\u044b.'}
+                  </p>
                 </div>
-                <div className="space-y-2 text-xs text-gray-300">
+                <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-300">
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={profile.publicBio}
+                      onChange={(e) =>
+                        setProfile({ ...profile, publicBio: e.target.checked })
+                      }
+                      className={controlBase}
+                      aria-label="Public bio"
+                    />
+                    {'\u041e \u0441\u0435\u0431\u0435'}
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={profile.publicPosition}
+                      onChange={(e) =>
+                        setProfile({ ...profile, publicPosition: e.target.checked })
+                      }
+                      className={controlBase}
+                      aria-label="Public position"
+                    />
+                    {'\u0414\u043e\u043b\u0436\u043d\u043e\u0441\u0442\u044c'}
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={profile.publicDepartment}
+                      onChange={(e) =>
+                        setProfile({ ...profile, publicDepartment: e.target.checked })
+                      }
+                      className={controlBase}
+                      aria-label="Public department"
+                    />
+                    {'\u041e\u0442\u0434\u0435\u043b'}
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={profile.publicLocation}
+                      onChange={(e) =>
+                        setProfile({ ...profile, publicLocation: e.target.checked })
+                      }
+                      className={controlBase}
+                      aria-label="Public location"
+                    />
+                    {'\u041b\u043e\u043a\u0430\u0446\u0438\u044f'}
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={profile.publicTimezone}
+                      onChange={(e) =>
+                        setProfile({ ...profile, publicTimezone: e.target.checked })
+                      }
+                      className={controlBase}
+                      aria-label="Public timezone"
+                    />
+                    {'\u0427\u0430\u0441\u043e\u0432\u043e\u0439 \u043f\u043e\u044f\u0441'}
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={profile.publicSkills}
+                      onChange={(e) =>
+                        setProfile({ ...profile, publicSkills: e.target.checked })
+                      }
+                      className={controlBase}
+                      aria-label="Public skills"
+                    />
+                    {'\u041d\u0430\u0432\u044b\u043a\u0438'}
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={profile.publicLastLogin}
+                      onChange={(e) =>
+                        setProfile({ ...profile, publicLastLogin: e.target.checked })
+                      }
+                      className={controlBase}
+                      aria-label="Public last login"
+                    />
+                    {'\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0439 \u0432\u0445\u043e\u0434'}
+                  </label>
                   <label className="inline-flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -422,7 +718,6 @@ export default function ProfilePage() {
                       disabled={!user.email}
                       aria-label="Public email"
                     />
-                    <Mail className="w-3.5 h-3.5" />
                     {'\u041f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0442\u044c email'}
                   </label>
                   <label className="inline-flex items-center gap-2">
@@ -435,16 +730,126 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public phone"
                     />
-                    <Phone className="w-3.5 h-3.5" />
                     {'\u041f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0442\u044c \u0442\u0435\u043b\u0435\u0444\u043e\u043d'}
                   </label>
                 </div>
               </div>
+              {profile.publicProfileEnabled && (
+                <div className="mt-4 panel-soft panel-glass rounded-xl p-3">
+                  <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
+                    <Link2 className="w-3.5 h-3.5 text-emerald-400" />
+                    {'\u0421\u0441\u044b\u043b\u043a\u0430 \u0434\u043b\u044f \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u0430'}
+                  </div>
+                  {publicProfileUrl ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a
+                        href={publicProfileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-emerald-300 hover:text-emerald-200 transition truncate max-w-full"
+                      >
+                        {publicProfileUrl}
+                      </a>
+                      <button
+                        onClick={handleCopyLink}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition"
+                      >
+                        <Copy className="w-3 h-3" />
+                        {'\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c'}
+                      </button>
+                      <button
+                        onClick={handleRotateToken}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        {'\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c'}
+                      </button>
+                      <a
+                        href={publicProfileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        {'\u041e\u0442\u043a\u0440\u044b\u0442\u044c'}
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-500">
+                      {'\u0414\u043e\u0441\u0442\u0443\u043f\u043d\u043e \u043f\u043e\u0441\u043b\u0435 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u044f.'}
+                    </div>
+                  )}
+                </div>
+              )}
               {profile.visibility === 'PRIVATE' && (
                 <div className="mt-3 text-xs text-amber-400 flex items-center gap-2">
                   <EyeOff className="w-4 h-4" />
                   {'\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0432\u0438\u0434\u0435\u043d \u0442\u043e\u043b\u044c\u043a\u043e \u0432\u0430\u043c \u0438 \u0430\u0434\u043c\u0438\u043d\u0430\u043c.'}
                 </div>
+              )}
+            </div>
+
+            <div className="panel-soft panel-glass rounded-2xl p-4">
+              <div className="flex items-center gap-2 text-sm text-gray-300 mb-4">
+                <Clock className="w-4 h-4 text-emerald-400" />
+                {'\u0410\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u044c'}
+              </div>
+              {activity ? (
+                <div className="grid gap-4 md:grid-cols-3 text-xs">
+                  <div className="space-y-2">
+                    <div className="text-gray-400">{'\u041f\u0438\u0441\u044c\u043c\u0430'}</div>
+                    {activity.letters.length > 0 ? (
+                      activity.letters.map((item) => (
+                        <Link
+                          key={item.id}
+                          href={`/letters/${item.id}`}
+                          className="block rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-slate-200 hover:bg-white/10 transition"
+                        >
+                          <div className="font-medium">#{item.number}</div>
+                          <div className="text-gray-500 truncate">{item.org}</div>
+                        </Link>
+                      ))
+                    ) : (
+                      <div className="text-gray-500">{'\u041d\u0435\u0442 \u043f\u0438\u0441\u0435\u043c'}</div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-gray-400">{'\u041a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0438'}</div>
+                    {activity.comments.length > 0 ? (
+                      activity.comments.map((item) => (
+                        <Link
+                          key={item.id}
+                          href={`/letters/${item.letter.id}`}
+                          className="block rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-slate-200 hover:bg-white/10 transition"
+                        >
+                          <div className="font-medium">#{item.letter.number}</div>
+                          <div className="text-gray-500 truncate">{item.text}</div>
+                        </Link>
+                      ))
+                    ) : (
+                      <div className="text-gray-500">{'\u041d\u0435\u0442 \u043a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0435\u0432'}</div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-gray-400">{'\u041d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f'}</div>
+                    {activity.assignments.length > 0 ? (
+                      activity.assignments.map((item) => (
+                        <Link
+                          key={item.id}
+                          href={`/letters/${item.letter.id}`}
+                          className="block rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-slate-200 hover:bg-white/10 transition"
+                        >
+                          <div className="font-medium">#{item.letter.number}</div>
+                          <div className="text-gray-500 truncate">{item.letter.org}</div>
+                        </Link>
+                      ))
+                    ) : (
+                      <div className="text-gray-500">{'\u041d\u0435\u0442 \u043d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0439'}</div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-gray-500">{'\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430...'}</div>
               )}
             </div>
           </div>

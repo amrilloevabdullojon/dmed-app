@@ -144,10 +144,6 @@ export function Header() {
               <BarChart3 className="w-4 h-4" />
               Отчёты
             </Link>
-            <Link href="/profile" className={navLinkClass('/profile')}>
-              <User className="w-4 h-4" />
-              {'\u041f\u0440\u043e\u0444\u0438\u043b\u044c'}
-            </Link>
 
             {isAdminRole && (
               <>
@@ -294,6 +290,13 @@ export function Header() {
                   {roleLabel}
                 </p>
               </div>
+              <Link
+                href="/profile"
+                className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white/10 text-teal-200 hover:bg-teal-500/20 transition text-xs"
+              >
+                <User className="w-3.5 h-3.5" />
+                {'\u041f\u0440\u043e\u0444\u0438\u043b\u044c'}
+              </Link>
             </div>
           )}
 
@@ -325,16 +328,6 @@ export function Header() {
           >
             <BarChart3 className="w-5 h-5" />
             Отчёты
-          </Link>
-
-          <Link
-            href="/profile"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-              isActive('/profile') ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20' : 'text-slate-200/80 hover:bg-white/5'
-            }`}
-          >
-            <User className="w-5 h-5" />
-            {'\u041f\u0440\u043e\u0444\u0438\u043b\u044c'}
           </Link>
 
           {isAdminRole && (
