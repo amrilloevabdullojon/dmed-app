@@ -62,7 +62,7 @@ export function VirtualLetterList({
   return (
     <div
       ref={parentRef}
-      className="h-[calc(100vh-300px)] overflow-auto pr-2 virtual-scroll"
+      className="h-[calc(100vh-320px)] sm:h-[calc(100vh-300px)] overflow-auto pr-1 sm:pr-2 virtual-scroll"
     >
       <div
         className="virtual-rows"
@@ -81,7 +81,7 @@ export function VirtualLetterList({
                 transform: `translateY(${virtualRow.start}px)`,
               }}
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 px-2 stagger-animation">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 px-0 sm:px-2 stagger-animation">
                 {rowLetters.map((letter) => (
                   <div key={letter.id} className="relative">
                     <button

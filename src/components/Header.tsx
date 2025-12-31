@@ -108,7 +108,7 @@ export function Header() {
   return (
     <header className="app-header sticky top-0 z-50 relative backdrop-blur">
       {/* Christmas lights */}
-      <div className="absolute top-0 left-0 right-0 flex justify-around pointer-events-none overflow-hidden">
+      <div className="absolute top-0 left-0 right-0 hidden sm:flex justify-around pointer-events-none overflow-hidden">
         {Array.from({ length: 15 }).map((_, i) => (
           <span
             key={i}
@@ -121,13 +121,21 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center shadow-lg shadow-teal-500/30">
-              <span className="text-lg">🎄</span>
+          <Link href="/" className="flex items-center gap-3 shrink-0">
+            <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-lg shadow-teal-500/30">
+              <Image
+                src="/logo-mark.svg"
+                alt="DMED"
+                fill
+                className="object-contain"
+                priority
+              />
             </div>
-            <span className="text-xl font-bold text-white hidden sm:block">
-              DMED Letters <span className="text-amber-300 text-sm">✨</span>
-            </span>
+            <div className="leading-tight hidden sm:block">
+              <span className="text-lg font-semibold text-white">DMED Letters</span>
+              <span className="block text-xs text-amber-300/80 tracking-wide">Document Flow</span>
+            </div>
+            <span className="text-sm font-semibold text-white sm:hidden">DMED</span>
           </Link>
 
           {/* Desktop Navigation */}

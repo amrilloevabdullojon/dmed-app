@@ -114,8 +114,8 @@ export default function ReportsPage() {
     <div className="min-h-screen bg-gray-900">
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
           <div>
             <h1 className="text-2xl font-bold text-white">
               {'\u041e\u0442\u0447\u0451\u0442\u044b \u0438 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430'}
@@ -129,7 +129,7 @@ export default function ReportsPage() {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white hover:bg-gray-700 transition disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white hover:bg-gray-700 transition disabled:opacity-50 w-full sm:w-auto"
           >
             {refreshing ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -141,8 +141,8 @@ export default function ReportsPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-3 sm:p-4">
             <div className="flex items-center gap-3 mb-2">
               <FileText className="w-5 h-5 text-emerald-400" />
               <span className="text-gray-400 text-sm">Всего писем</span>
@@ -150,7 +150,7 @@ export default function ReportsPage() {
             <div className="text-3xl font-bold text-white">{stats.summary.total}</div>
           </div>
 
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-3 sm:p-4">
             <div className="flex items-center gap-3 mb-2">
               <AlertTriangle className="w-5 h-5 text-red-400" />
               <span className="text-gray-400 text-sm">Просроченных</span>
@@ -158,7 +158,7 @@ export default function ReportsPage() {
             <div className="text-3xl font-bold text-red-400">{stats.summary.overdue}</div>
           </div>
 
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-3 sm:p-4">
             <div className="flex items-center gap-3 mb-2">
               <Clock className="w-5 h-5 text-yellow-400" />
               <span className="text-gray-400 text-sm">Срочных (3 дня)</span>
@@ -166,7 +166,7 @@ export default function ReportsPage() {
             <div className="text-3xl font-bold text-yellow-400">{stats.summary.urgent}</div>
           </div>
 
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-3 sm:p-4">
             <div className="flex items-center gap-3 mb-2">
               <CheckCircle className="w-5 h-5 text-emerald-400" />
               <span className="text-gray-400 text-sm">Выполнено</span>
@@ -176,8 +176,8 @@ export default function ReportsPage() {
         </div>
 
         {/* Second Row of Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-3 sm:p-4">
             <div className="flex items-center gap-3 mb-2">
               <TrendingUp className="w-5 h-5 text-blue-400" />
               <span className="text-gray-400 text-sm">В работе</span>
@@ -185,7 +185,7 @@ export default function ReportsPage() {
             <div className="text-3xl font-bold text-blue-400">{stats.summary.inProgress}</div>
           </div>
 
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-3 sm:p-4">
             <div className="flex items-center gap-3 mb-2">
               <Calendar className="w-5 h-5 text-purple-400" />
               <span className="text-gray-400 text-sm">Новых за месяц</span>
@@ -193,7 +193,7 @@ export default function ReportsPage() {
             <div className="text-3xl font-bold text-purple-400">{stats.summary.monthNew}</div>
           </div>
 
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-3 sm:p-4">
             <div className="flex items-center gap-3 mb-2">
               <CheckCircle className="w-5 h-5 text-green-400" />
               <span className="text-gray-400 text-sm">Закрыто за месяц</span>
@@ -201,7 +201,7 @@ export default function ReportsPage() {
             <div className="text-3xl font-bold text-green-400">{stats.summary.monthDone}</div>
           </div>
 
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-3 sm:p-4">
             <div className="flex items-center gap-3 mb-2">
               <Timer className="w-5 h-5 text-orange-400" />
               <span className="text-gray-400 text-sm">Среднее время (дней)</span>

@@ -16,7 +16,8 @@ export function Snowfall() {
 
   useEffect(() => {
     // Создаём снежинки
-    const flakes: Snowflake[] = Array.from({ length: 50 }, (_, i) => ({
+    const flakeCount = typeof window !== 'undefined' && window.innerWidth < 768 ? 24 : 50
+    const flakes: Snowflake[] = Array.from({ length: flakeCount }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       size: Math.random() * 4 + 2,
@@ -78,13 +79,13 @@ export function NewYearBanner() {
   if (!show) return null
 
   return (
-    <div className="bg-gradient-to-r from-red-600 via-green-600 to-red-600 text-white py-2 px-4 text-center relative">
-      <span className="text-lg">
+    <div className="bg-gradient-to-r from-red-600 via-green-600 to-red-600 text-white py-1.5 sm:py-2 px-3 sm:px-4 text-center relative">
+      <span className="text-xs sm:text-sm md:text-base font-medium">
         🎄 С Новым 2025 годом! 🎅 Желаем успехов и отличного настроения! 🎁
       </span>
       <button
         onClick={() => setShow(false)}
-        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white"
+        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white"
       >
         ✕
       </button>
