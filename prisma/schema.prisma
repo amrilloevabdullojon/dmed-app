@@ -219,6 +219,7 @@ model Letter {
   closeDate     DateTime?    // Дата закрытия
   jiraLink      String?      // Ссылка на Jira
   priority      Int          @default(50) // Приоритет (0-100)
+  attachmentsFolderId String?
 
   ownerId       String?
   owner         User?        @relation("OwnerLetters", fields: [ownerId], references: [id])
@@ -270,11 +271,33 @@ model File {
   id        String   @id @default(cuid())
   name      String
   url       String
+  driveFileId String?
+  storageProvider FileStorageProvider @default(DRIVE)
+  storagePath String?
+  status    FileStatus @default(READY)
+  uploadError String? @db.Text
+  syncAttempts Int @default(0)
+  lastSyncAttemptAt DateTime?
   mimeType  String?
   size      Int?
   letterId  String
   letter    Letter   @relation(fields: [letterId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+enum FileStorageProvider {
+  DRIVE
+  LOCAL
+}
+
+enum FileStatus {
+  READY
+  UPLOADING
+  FAILED
+  PENDING_SYNC
 }
 
 // ===== ТЕГИ =====

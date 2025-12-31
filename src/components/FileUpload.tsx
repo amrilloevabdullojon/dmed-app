@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Upload, X, Loader2, FileText, Trash2, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 import { MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL } from '@/lib/constants'
@@ -9,8 +9,10 @@ interface FileInfo {
   id: string
   name: string
   url: string
-  size?: number
-  mimeType?: string
+  size?: number | null
+  mimeType?: string | null
+  status?: string | null
+  uploadError?: string | null
 }
 
 interface FileUploadProps {
@@ -24,6 +26,17 @@ export function FileUpload({ letterId, files, onFilesChange }: FileUploadProps) 
   const [deleting, setDeleting] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const hasPendingFiles = files.some(
+    (file) => file.status && file.status !== 'READY'
+  )
+
+  useEffect(() => {
+    if (!hasPendingFiles) return
+    const timer = setTimeout(() => {
+      onFilesChange()
+    }, 5000)
+    return () => clearTimeout(timer)
+  }, [hasPendingFiles, onFilesChange])
 
   const handleUpload = async (file: File) => {
     // Проверка размера файла на клиенте
@@ -44,6 +57,11 @@ export function FileUpload({ letterId, files, onFilesChange }: FileUploadProps) 
         method: 'POST',
         body: formData,
       })
+
+      if (res.status === 413) {
+        toast.error('DDøD1D¯ ¥?D¯D,¥^D§D_D¬ DñD_D¯¥O¥^D_D1 (413)')
+        return
+      }
 
       const data = await res.json()
 
@@ -181,13 +199,27 @@ export function FileUpload({ letterId, files, onFilesChange }: FileUploadProps) 
                 <FileText className="w-5 h-5 text-gray-400 flex-shrink-0" />
                 <div className="min-w-0">
                   <a
-                    href={file.url}
+                    href={`/api/files/${file.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-white hover:text-emerald-400 transition truncate block"
                   >
                     {file.name}
                   </a>
+                  {file.status && file.status !== 'READY' && (
+                    <span
+                      className={`text-xs ${
+                        file.status === 'FAILED' ? 'text-red-300' : 'text-amber-300'
+                      }`}
+                      title={file.uploadError || undefined}
+                    >
+                      {file.status === 'PENDING_SYNC'
+                        ? 'D¥?D_D¬D_Dñ¥?DøD«D«¥<¥.'
+                        : file.status === 'UPLOADING'
+                          ? 'D-DøD3¥?¥ŸDúD§Dø...'
+                          : 'D?¥?D8D1D,D1 D?D_D¬D_Dñ¥?DøD«D«¥<¥.'}
+                    </span>
+                  )}
                   {file.size && (
                     <span className="text-xs text-gray-500">
                       {formatFileSize(file.size)}
@@ -198,7 +230,7 @@ export function FileUpload({ letterId, files, onFilesChange }: FileUploadProps) 
 
               <div className="flex items-center gap-2 flex-shrink-0">
                 <a
-                  href={file.url}
+                  href={`/api/files/${file.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 text-gray-400 hover:text-white transition"

@@ -2,6 +2,8 @@ import { google } from 'googleapis'
 import { Readable } from 'stream'
 
 const DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive']
+const DRIVE_SHARE_MODE = process.env.GOOGLE_DRIVE_SHARE_MODE || 'public'
+const DRIVE_SHARE_DOMAIN = process.env.GOOGLE_DRIVE_SHARE_DOMAIN || ''
 
 function getDriveClient() {
   const auth = new google.auth.GoogleAuth({
@@ -13,6 +15,49 @@ function getDriveClient() {
   })
 
   return google.drive({ version: 'v3', auth })
+}
+
+function escapeDriveQueryValue(value: string) {
+  return value.replace(/'/g, "\\'")
+}
+
+export async function findOrCreateDriveFolder(params: {
+  name: string
+  parentId?: string | null
+}) {
+  const drive = getDriveClient()
+  const parentFilter = params.parentId
+    ? `'${params.parentId}' in parents`
+    : "'root' in parents"
+  const name = escapeDriveQueryValue(params.name)
+
+  const listRes = await drive.files.list({
+    q: `mimeType='application/vnd.google-apps.folder' and name='${name}' and ${parentFilter} and trashed=false`,
+    fields: 'files(id,name)',
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
+  })
+
+  const existingId = listRes.data.files?.[0]?.id
+  if (existingId) {
+    return existingId
+  }
+
+  const createRes = await drive.files.create({
+    requestBody: {
+      name: params.name,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: params.parentId ? [params.parentId] : undefined,
+    },
+    fields: 'id',
+    supportsAllDrives: true,
+  })
+
+  const folderId = createRes.data.id
+  if (!folderId) {
+    throw new Error('Drive folder create failed')
+  }
+  return folderId
 }
 
 export async function uploadFileToDrive(params: {
@@ -41,15 +86,33 @@ export async function uploadFileToDrive(params: {
     throw new Error('Drive upload failed')
   }
 
-  await drive.permissions.create({
-    fileId,
-    requestBody: {
-      role: 'reader',
-      type: 'anyone',
-    },
-    supportsAllDrives: true,
-    sendNotificationEmail: false,
-  })
+  try {
+    if (DRIVE_SHARE_MODE === 'public') {
+      await drive.permissions.create({
+        fileId,
+        requestBody: {
+          role: 'reader',
+          type: 'anyone',
+          allowFileDiscovery: false,
+        },
+        supportsAllDrives: true,
+        sendNotificationEmail: false,
+      })
+    } else if (DRIVE_SHARE_MODE === 'domain' && DRIVE_SHARE_DOMAIN) {
+      await drive.permissions.create({
+        fileId,
+        requestBody: {
+          role: 'reader',
+          type: 'domain',
+          domain: DRIVE_SHARE_DOMAIN,
+        },
+        supportsAllDrives: true,
+        sendNotificationEmail: false,
+      })
+    }
+  } catch (error) {
+    console.warn('Drive share skipped:', error)
+  }
 
   const url =
     createRes.data.webViewLink ||
@@ -57,6 +120,15 @@ export async function uploadFileToDrive(params: {
     `https://drive.google.com/file/d/${fileId}/view`
 
   return { fileId, url }
+}
+
+export async function getDriveFileStream(fileId: string) {
+  const drive = getDriveClient()
+  const res = await drive.files.get(
+    { fileId, alt: 'media', supportsAllDrives: true },
+    { responseType: 'stream' }
+  )
+  return res.data
 }
 
 export async function deleteDriveFile(fileId: string) {

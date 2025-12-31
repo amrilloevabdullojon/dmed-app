@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
-import { uploadFileToDrive } from '@/lib/google-drive'
+import { findOrCreateDriveFolder, uploadFileToDrive } from '@/lib/google-drive'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
@@ -40,12 +40,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID
+    let folderId = process.env.GOOGLE_DRIVE_FOLDER_ID
     if (!folderId) {
-      return NextResponse.json(
-        { error: 'Google Drive folder is not configured' },
-        { status: 500 }
-      )
+      folderId = await findOrCreateDriveFolder({
+        name: 'DMED Profile Assets',
+      })
     }
 
     const timestamp = Date.now()

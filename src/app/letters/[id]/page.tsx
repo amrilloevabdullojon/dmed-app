@@ -81,7 +81,15 @@ interface Letter {
     name: string | null
     email: string | null
   } | null
-  files: Array<{ id: string; name: string; url: string }>
+  files: Array<{
+    id: string
+    name: string
+    url: string
+    size?: number | null
+    mimeType?: string | null
+    status?: string | null
+    uploadError?: string | null
+  }>
   comments: CommentItem[]
   history: Array<{
     id: string
