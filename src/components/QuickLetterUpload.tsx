@@ -241,7 +241,9 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
           body: formData,
         })
 
-        if (!uploadRes.ok) {
+        if (uploadRes.status === 413) {
+          toast.error('DDøD1D¯ ¥?D¯D,¥^D§D_D¬ DñD_D¯¥O¥^D_D1 (413)')
+        } else if (!uploadRes.ok) {
           const uploadError = await uploadRes.json().catch(() => null)
           const uploadMessage = uploadError?.error || 'Failed to upload file'
           console.error(uploadMessage)

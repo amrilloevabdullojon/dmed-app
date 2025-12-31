@@ -91,9 +91,24 @@ export async function GET(
     const isFavorite = letter.favorites.length > 0
 
     // Удалить массив favorites из ответа, чтобы не передавать лишние данные
-    const { favorites, ...letterData } = letter
+    const sanitizedFiles = letter.files.map((file) => ({
+      id: file.id,
+      name: file.name,
+      url: `/api/files/${file.id}`,
+      size: file.size,
+      mimeType: file.mimeType,
+      status: file.status,
+      uploadError: file.uploadError,
+    }))
 
-    return NextResponse.json({ ...letterData, isWatching, isFavorite })
+    const { favorites, files, ...letterData } = letter
+
+    return NextResponse.json({
+      ...letterData,
+      files: sanitizedFiles,
+      isWatching,
+      isFavorite,
+    })
   } catch (error) {
     console.error('GET /api/letters/[id] error:', error)
     return NextResponse.json(

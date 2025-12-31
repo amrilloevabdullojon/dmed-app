@@ -2,24 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
-import { uploadFileToDrive } from '@/lib/google-drive'
+import { FileStatus, FileStorageProvider } from '@prisma/client'
+import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '@/lib/constants'
+import { saveLocalUpload } from '@/lib/file-storage'
+import { syncFileToDrive } from '@/lib/file-sync'
 
+const UPLOAD_STRATEGY = process.env.FILE_UPLOAD_STRATEGY || 'async'
+const ENABLE_ASYNC_SYNC = process.env.FILE_SYNC_ASYNC !== 'false'
 // Максимальный размер файла (10 MB)
-const MAX_FILE_SIZE = 10 * 1024 * 1024
-
-// Допустимые типы файлов
-const ALLOWED_TYPES = [
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'text/plain',
-]
-
 // POST /api/upload - загрузить файл
 export async function POST(request: NextRequest) {
   try {
@@ -49,7 +39,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Проверить тип файла
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (
+      !ALLOWED_FILE_TYPES.includes(
+        file.type as (typeof ALLOWED_FILE_TYPES)[number]
+      )
+    ) {
       return NextResponse.json(
         { error: 'File type not allowed' },
         { status: 400 }
@@ -66,40 +60,65 @@ export async function POST(request: NextRequest) {
     }
 
     // Создать директорию для загрузок если не существует
-    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID
-    if (!folderId) {
-      return NextResponse.json(
-        { error: 'Google Drive folder is not configured' },
-        { status: 500 }
-      )
-    }
-
-    // Сгенерировать уникальное имя файла
     const timestamp = Date.now()
     const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
-    const fileName = `${timestamp}_${safeFileName}`
+    const storedFileName = `${timestamp}_${safeFileName}`
 
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    const uploadResult = await uploadFileToDrive({
+    const localUpload = await saveLocalUpload({
       buffer,
-      name: fileName,
-      mimeType: file.type || 'application/octet-stream',
-      folderId,
+      letterId,
+      fileName: storedFileName,
     })
 
-    // Создать запись в базе данных
-    const fileRecord = await prisma.file.create({
+    let fileRecord = await prisma.file.create({
       data: {
         name: file.name,
-        url: uploadResult.url,
+        url: localUpload.url,
         size: file.size,
         mimeType: file.type,
         letterId,
+        storageProvider: FileStorageProvider.LOCAL,
+        storagePath: localUpload.storagePath,
+        status: FileStatus.PENDING_SYNC,
       },
     })
 
-    // Записать в историю
+    const queueSync = () => {
+      if (!ENABLE_ASYNC_SYNC) return
+      setTimeout(() => {
+        syncFileToDrive(fileRecord.id).catch((error) => {
+          console.error('Background drive sync failed:', error)
+        })
+      }, 0)
+    }
+
+    if (UPLOAD_STRATEGY === 'sync') {
+      try {
+        const uploadResult = await syncFileToDrive(fileRecord.id)
+        if (uploadResult) {
+          const refreshed = await prisma.file.findUnique({
+            where: { id: fileRecord.id },
+          })
+          if (refreshed) {
+            fileRecord = refreshed
+          }
+        } else {
+          queueSync()
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Drive upload failed'
+        await prisma.file.update({
+          where: { id: fileRecord.id },
+          data: { uploadError: message, status: FileStatus.PENDING_SYNC },
+        })
+        queueSync()
+      }
+    } else {
+      queueSync()
+    }
     await prisma.history.create({
       data: {
         letterId,
@@ -109,10 +128,13 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({
-      success: true,
-      file: fileRecord,
-    })
+    return NextResponse.json(
+      {
+        success: true,
+        file: fileRecord,
+      },
+      { status: UPLOAD_STRATEGY === 'sync' ? 200 : 202 }
+    )
   } catch (error) {
     console.error('POST /api/upload error:', error)
     return NextResponse.json(

@@ -1,4 +1,10 @@
 {
   "buildCommand": "npx prisma generate && npm run build",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "crons": [
+    {
+      "path": "/api/files/sync",
+      "schedule": "*/10 * * * *"
+    }
+  ]
 }
