@@ -66,11 +66,11 @@ export async function GET(
       return NextResponse.json({ error: 'File location unknown' }, { status: 404 })
     }
 
-    const driveStream = await getDriveFileStream(driveFileId)
+    const { stream: driveStream, contentType } = await getDriveFileStream(driveFileId)
     const stream = Readable.toWeb(driveStream as any)
     return new NextResponse(stream as any, {
       headers: {
-        'Content-Type': file.mimeType || 'application/octet-stream',
+        'Content-Type': contentType || file.mimeType || 'application/octet-stream',
         'Content-Disposition': `inline; filename=\"${encodeURIComponent(
           file.name
         )}\"`,

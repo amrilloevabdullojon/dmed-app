@@ -2,10 +2,62 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
-import { findOrCreateDriveFolder, uploadFileToDrive } from '@/lib/google-drive'
+import {
+  extractDriveFileId,
+  findOrCreateDriveFolder,
+  getDriveFileStream,
+  uploadFileToDrive,
+} from '@/lib/google-drive'
+import { Readable } from 'stream'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+
+export async function GET(request: NextRequest) {
+  try {
+    const fileIdParam = request.nextUrl.searchParams.get('fileId')
+    const urlParam = request.nextUrl.searchParams.get('url')
+    const fileId = fileIdParam || (urlParam ? extractDriveFileId(urlParam) : null)
+
+    if (!fileId) {
+      return NextResponse.json({ error: 'Missing file id' }, { status: 400 })
+    }
+
+    const session = await getServerSession(authOptions)
+    const profile = await prisma.userProfile.findFirst({
+      where: {
+        OR: [
+          { avatarUrl: { contains: fileId } },
+          { coverUrl: { contains: fileId } },
+        ],
+      },
+      select: { publicProfileEnabled: true },
+    })
+
+    if (!profile) {
+      return NextResponse.json({ error: 'File not found' }, { status: 404 })
+    }
+
+    if (!session && !profile.publicProfileEnabled) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { stream: driveStream, contentType } = await getDriveFileStream(fileId)
+    const stream = Readable.toWeb(driveStream as any)
+    return new NextResponse(stream as any, {
+      headers: {
+        'Content-Type': contentType || 'application/octet-stream',
+        'Cache-Control': 'private, max-age=300',
+      },
+    })
+  } catch (error) {
+    console.error('GET /api/profile/assets error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,10 +112,10 @@ export async function POST(request: NextRequest) {
       folderId,
     })
 
-    const data =
-      type === 'avatar'
-        ? { avatarUrl: uploadResult.url }
-        : { coverUrl: uploadResult.url }
+    const assetUrl = `/api/profile/assets?fileId=${encodeURIComponent(
+      uploadResult.fileId
+    )}&v=${timestamp}`
+    const data = type === 'avatar' ? { avatarUrl: assetUrl } : { coverUrl: assetUrl }
 
     const profile = await prisma.userProfile.upsert({
       where: { userId: session.user.id },

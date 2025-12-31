@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
 import { formatDate } from '@/lib/utils'
+import { resolveProfileAssetUrl } from '@/lib/profile-assets'
 import {
   Mail,
   Phone,
@@ -68,8 +69,9 @@ export default async function PublicProfilePage({
   }
 
   const user = profile.user
-  const displayAvatar = profile.avatarUrl || user.image
-  const coverUrl = profile.coverUrl
+  const avatarUrl = resolveProfileAssetUrl(profile.avatarUrl)
+  const coverUrl = resolveProfileAssetUrl(profile.coverUrl)
+  const displayAvatar = avatarUrl || user.image
 
   const showEmail = profile.publicEmail && user.email
   const showPhone = profile.publicPhone && profile.phone

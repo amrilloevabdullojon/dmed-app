@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { randomUUID } from 'crypto'
+import { resolveProfileAssetUrl } from '@/lib/profile-assets'
 
 const emptyProfile = {
   bio: null,
@@ -122,6 +123,13 @@ export async function GET() {
 
     const activity = await buildActivity(user.id)
 
+    const profile = user.profile ?? emptyProfile
+    const normalizedProfile = {
+      ...profile,
+      avatarUrl: resolveProfileAssetUrl(profile.avatarUrl),
+      coverUrl: resolveProfileAssetUrl(profile.coverUrl),
+    }
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -132,7 +140,7 @@ export async function GET() {
         lastLoginAt: user.lastLoginAt,
         _count: user._count,
       },
-      profile: user.profile ?? emptyProfile,
+      profile: normalizedProfile,
       activity,
     })
   } catch (error) {

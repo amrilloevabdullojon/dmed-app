@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { hasPermission } from '@/lib/permissions'
+import { resolveProfileAssetUrl } from '@/lib/profile-assets'
 
 const emptyProfile = {
   bio: null,
@@ -133,6 +134,11 @@ export async function GET(
       phone: canShowPhone ? profile.phone : null,
       publicProfileToken: canViewAll ? profile.publicProfileToken : null,
     }
+    const normalizedProfile = {
+      ...filteredProfile,
+      avatarUrl: resolveProfileAssetUrl(filteredProfile.avatarUrl),
+      coverUrl: resolveProfileAssetUrl(filteredProfile.coverUrl),
+    }
 
     const activity = await buildActivity(user.id)
 
@@ -146,7 +152,7 @@ export async function GET(
         lastLoginAt: canShowLastLogin ? user.lastLoginAt : null,
         _count: user._count,
       },
-      profile: filteredProfile,
+      profile: normalizedProfile,
       activity,
     })
   } catch (error) {

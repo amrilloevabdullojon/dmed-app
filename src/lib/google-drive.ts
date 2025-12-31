@@ -128,7 +128,9 @@ export async function getDriveFileStream(fileId: string) {
     { fileId, alt: 'media', supportsAllDrives: true },
     { responseType: 'stream' }
   )
-  return res.data
+  const headerType = res.headers['content-type']
+  const contentType = Array.isArray(headerType) ? headerType[0] : headerType
+  return { stream: res.data, contentType }
 }
 
 export async function deleteDriveFile(fileId: string) {
