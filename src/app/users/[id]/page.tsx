@@ -305,7 +305,7 @@ export default function UserProfilePage() {
         {!error && user && (
           <div
             ref={actionPanelRef}
-            className="panel panel-glass rounded-2xl p-4 mb-6 relative"
+            className="panel panel-glass rounded-2xl p-4 mb-6 relative z-20 isolate"
           >
             <div className="flex flex-wrap items-center gap-2">
               <Link
@@ -336,7 +336,7 @@ export default function UserProfilePage() {
             </div>
 
             {actionOpen && (
-              <div className="absolute left-0 right-0 mt-3 z-40 md:left-auto md:right-0 md:w-[520px]">
+              <div className="absolute left-0 right-0 mt-3 z-50 md:left-auto md:right-0 md:w-[520px]">
                 <div className="panel panel-glass rounded-2xl p-5 border border-white/10 shadow-xl animate-scaleIn origin-top">
                   <div className="flex items-center justify-between mb-4">
                     <div className="text-lg font-semibold text-white">

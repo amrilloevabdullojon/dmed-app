@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { hasPermission } from '@/lib/permissions'
+import { resolveProfileAssetUrl } from '@/lib/profile-assets'
 
 // GET /api/users - получить всех пользователей
 export async function GET(request: NextRequest) {
@@ -41,11 +42,22 @@ export async function GET(request: NextRequest) {
             sessions: true,
           },
         },
+        profile: {
+          select: {
+            avatarUrl: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     })
 
-    return NextResponse.json({ users })
+    const normalizedUsers = users.map((user) => ({
+      ...user,
+      image: resolveProfileAssetUrl(user.profile?.avatarUrl ?? null) || user.image,
+      profile: undefined,
+    }))
+
+    return NextResponse.json({ users: normalizedUsers })
   } catch (error) {
     console.error('GET /api/users error:', error)
     return NextResponse.json(
