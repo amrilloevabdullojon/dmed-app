@@ -103,7 +103,7 @@ export default function NewLetterPage() {
     <div className="min-h-screen bg-gray-900">
       <Header />
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Back button */}
         <Link
           href="/letters"
@@ -114,10 +114,10 @@ export default function NewLetterPage() {
         </Link>
 
         {/* Mode switcher */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-col sm:flex-row gap-2 mb-6">
           <button
             onClick={() => setMode('quick')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition w-full sm:w-auto ${
               mode === 'quick'
                 ? 'bg-emerald-600 text-white'
                 : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -128,7 +128,7 @@ export default function NewLetterPage() {
           </button>
           <button
             onClick={() => setMode('manual')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition w-full sm:w-auto ${
               mode === 'manual'
                 ? 'bg-emerald-600 text-white'
                 : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -142,7 +142,7 @@ export default function NewLetterPage() {
         {mode === 'quick' ? (
           <QuickLetterUpload />
         ) : (
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+        <div className="bg-gray-800 rounded-lg border border-gray-700 p-4 sm:p-6">
           <h1 className="text-2xl font-bold text-white mb-6">Новое письмо</h1>
 
           {error && (
@@ -404,7 +404,7 @@ export default function NewLetterPage() {
             </div>
 
             {/* Submit */}
-            <div className="flex justify-end gap-4">
+            <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
               <Link
                 href="/letters"
                 className="px-4 py-2 text-gray-400 hover:text-white transition"

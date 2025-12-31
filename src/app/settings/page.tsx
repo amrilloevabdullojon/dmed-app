@@ -1148,9 +1148,9 @@ export default function SettingsPage() {
     <div className="min-h-screen app-shell">
       <Header />
 
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pageIn relative">
-        <h1 className="text-3xl md:text-4xl font-display font-semibold text-white">Настройки</h1>
-        <p className="text-muted text-sm mt-2 mb-8">{'\u0420\u043e\u043b\u0438, \u0434\u043e\u0441\u0442\u0443\u043f, \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f \u0438 \u0436\u0443\u0440\u043d\u0430\u043b \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u0438.'}</p>
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 animate-pageIn relative">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-semibold text-white">Настройки</h1>
+        <p className="text-muted text-sm mt-2 mb-6 sm:mb-8">{'\u0420\u043e\u043b\u0438, \u0434\u043e\u0441\u0442\u0443\u043f, \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f \u0438 \u0436\u0443\u0440\u043d\u0430\u043b \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u0438.'}</p>
 
         {/* Sync Logs */}
         <div className="panel panel-glass rounded-2xl p-6 mb-8">

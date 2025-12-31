@@ -493,6 +493,15 @@ textarea:focus-visible {
   background: rgba(0, 0, 0, 0.3);
 }
 
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* New Year animations */
 @keyframes snowfall {
   0% {

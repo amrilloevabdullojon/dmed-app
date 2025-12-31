@@ -123,6 +123,7 @@ function LettersPageContent() {
   const [sortBy, setSortBy] = useState<SortField>('created')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
+  const [isMobile, setIsMobile] = useState(false)
 
   // Массовый выбор
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -199,6 +200,21 @@ function LettersPageContent() {
     }, [toggleSelectAll]),
     enabled: !previewId,
   })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const media = window.matchMedia('(max-width: 767px)')
+    const update = () => setIsMobile(media.matches)
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+
+  useEffect(() => {
+    if (isMobile && viewMode !== 'cards') {
+      setViewMode('cards')
+    }
+  }, [isMobile, viewMode])
 
   const loadLetters = useCallback(async (showLoading = true) => {
     const requestId = ++lettersRequestIdRef.current
@@ -375,7 +391,7 @@ function LettersPageContent() {
     <div className="min-h-screen app-shell">
       <Header />
 
-      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pageIn relative">
+      <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 animate-pageIn relative">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
@@ -386,7 +402,7 @@ function LettersPageContent() {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
             <a
               href={`/api/export?${new URLSearchParams({
                 ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
@@ -395,14 +411,14 @@ function LettersPageContent() {
                 ...(typeFilter ? { type: typeFilter } : {}),
                 ...(selectedIds.size > 0 ? { ids: Array.from(selectedIds).join(',') } : {}),
               }).toString()}`}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg transition btn-secondary"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition btn-secondary w-full sm:w-auto"
             >
               <Download className="w-5 h-5" />
               Экспорт
             </a>
             <Link
               href="/letters/new"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg transition btn-primary"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition btn-primary w-full sm:w-auto"
             >
               <Plus className="w-5 h-5" />
               Новое письмо
@@ -412,7 +428,7 @@ function LettersPageContent() {
 
         {/* Bulk Actions Bar */}
         {selectedIds.size > 0 && (
-          <div className="panel panel-soft rounded-2xl p-4 mb-4 flex flex-wrap items-center gap-4">
+          <div className="panel panel-soft rounded-2xl p-4 mb-4 flex flex-col lg:flex-row lg:items-center gap-4">
             <div className="flex items-center gap-2">
               <CheckSquare className="w-5 h-5 text-teal-300" />
               <span className="text-white font-medium">
@@ -420,7 +436,7 @@ function LettersPageContent() {
               </span>
             </div>
 
-            <div className="flex items-center gap-2 flex-1">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1 w-full">
               <select
                 value={bulkAction || ''}
                 onChange={(e) => {
@@ -428,7 +444,7 @@ function LettersPageContent() {
                   setBulkAction(value || null)
                   setBulkValue('')
                 }}
-                className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white"
+                className="w-full sm:w-auto px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white"
                 aria-label="Массовое действие"
               >
                 <option value="">Выберите действие</option>
@@ -443,7 +459,7 @@ function LettersPageContent() {
                 <select
                   value={bulkValue}
                   onChange={(e) => setBulkValue(e.target.value)}
-                  className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white"
+                  className="w-full sm:w-auto px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white"
                   aria-label="Статус для массового действия"
                 >
                   <option value="">Выберите статус</option>
@@ -459,7 +475,7 @@ function LettersPageContent() {
                 <select
                   value={bulkValue}
                   onChange={(e) => setBulkValue(e.target.value)}
-                  className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white"
+                  className="w-full sm:w-auto px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white"
                   aria-label="Исполнитель для массового действия"
                 >
                   <option value="">Выберите ответственного</option>
@@ -476,7 +492,7 @@ function LettersPageContent() {
                 <button
                   onClick={executeBulkAction}
                   disabled={bulkLoading}
-                  className={`px-4 py-2 rounded-lg text-white transition flex items-center gap-2 ${
+                  className={`w-full sm:w-auto px-4 py-2 rounded-lg text-white transition flex items-center justify-center gap-2 ${
                     bulkAction === 'delete'
                       ? 'bg-red-500 hover:bg-red-600'
                       : 'bg-emerald-500 hover:bg-emerald-600'
@@ -502,7 +518,7 @@ function LettersPageContent() {
                 setBulkAction(null)
                 setBulkValue('')
               }}
-              className="p-2 text-slate-300 hover:text-white transition hover:bg-white/10 rounded-lg"
+              className="p-2 text-slate-300 hover:text-white transition hover:bg-white/10 rounded-lg self-start lg:self-auto"
               aria-label="Скрыть массовые действия"
             >
               <X className="w-5 h-5" />
@@ -511,7 +527,7 @@ function LettersPageContent() {
         )}
 
         {/* Quick Filters */}
-        <div className="flex flex-wrap gap-2 mb-4 p-2 rounded-2xl panel-soft panel-glass">
+        <div className="flex gap-2 mb-4 p-2 rounded-2xl panel-soft panel-glass overflow-x-auto no-scrollbar sm:flex-wrap">
           {FILTERS.map((filter) => {
             const Icon = filter.icon
             return (
@@ -561,7 +577,7 @@ function LettersPageContent() {
           </div>
 
           {/* Status filter */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <Filter className="w-5 h-5 text-slate-400" />
             <select
               value={statusFilter}
@@ -570,7 +586,7 @@ function LettersPageContent() {
                 setQuickFilter('')
                 setPage(1)
               }}
-              className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
+              className="w-full sm:w-auto px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
               aria-label="Фильтр по статусу"
             >
               <option value="all">Все статусы</option>
@@ -582,7 +598,7 @@ function LettersPageContent() {
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <Users className="w-5 h-5 text-slate-400" />
             <select
               value={ownerFilter}
@@ -590,7 +606,7 @@ function LettersPageContent() {
                 setOwnerFilter(e.target.value)
                 setPage(1)
               }}
-              className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
+              className="w-full sm:w-auto px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
               aria-label="Фильтр по исполнителю"
             >
               <option value="">{'\u0412\u0441\u0435 \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u0438'}</option>
@@ -602,7 +618,7 @@ function LettersPageContent() {
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <FileText className="w-5 h-5 text-slate-400" />
             <select
               value={typeFilter}
@@ -610,7 +626,7 @@ function LettersPageContent() {
                 setTypeFilter(e.target.value)
                 setPage(1)
               }}
-              className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
+              className="w-full sm:w-auto px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
               aria-label="Фильтр по типу"
             >
               <option value="">{'\u0412\u0441\u0435 \u0442\u0438\u043f\u044b'}</option>
@@ -623,7 +639,7 @@ function LettersPageContent() {
           </div>
 
           {/* View toggle */}
-          <div className="flex rounded-xl p-1 panel-soft panel-glass">
+          <div className="hidden sm:flex rounded-xl p-1 panel-soft panel-glass">
             <button
               onClick={() => setViewMode('table')}
               className={`p-2 rounded-lg transition ${viewMode === 'table' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
@@ -643,7 +659,7 @@ function LettersPageContent() {
           </div>
 
           {/* Keyboard shortcuts help */}
-          <div className="relative">
+          <div className="relative hidden sm:block">
             <button
               onClick={() => setShowShortcuts(!showShortcuts)}
               className={`p-2 rounded-lg transition ${showShortcuts ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:text-white'}`}

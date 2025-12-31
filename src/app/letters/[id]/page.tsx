@@ -401,9 +401,9 @@ export default function LetterDetailPage() {
     <div className="min-h-screen bg-gray-900">
       <Header />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Back button */}
-        <div className="flex items-center justify-between mb-6 print:hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 print:hidden">
           <Link
             href="/letters"
             className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition"
@@ -412,11 +412,11 @@ export default function LetterDetailPage() {
             Назад к списку
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <button
               onClick={toggleFavorite}
               disabled={togglingFavorite}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition disabled:opacity-50 ${
+              className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition disabled:opacity-50 w-full sm:w-auto ${
                 letter.isFavorite
                   ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
                   : 'bg-gray-700 hover:bg-gray-600 text-white'
@@ -433,7 +433,7 @@ export default function LetterDetailPage() {
 
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition w-full sm:w-auto"
               title="Печать"
             >
               <Printer className="w-4 h-4" />
@@ -443,7 +443,7 @@ export default function LetterDetailPage() {
             <button
               onClick={handleDuplicate}
               disabled={duplicating}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition disabled:opacity-50 w-full sm:w-auto"
               title="Дублировать письмо"
             >
               {duplicating ? (
@@ -457,7 +457,7 @@ export default function LetterDetailPage() {
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition disabled:opacity-50 w-full sm:w-auto"
             >
               {deleting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

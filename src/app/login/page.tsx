@@ -3,7 +3,6 @@
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect } from 'react'
-import { FileText } from 'lucide-react'
 
 function LoginContent() {
   const { data: session, status } = useSession()
@@ -28,8 +27,8 @@ function LoginContent() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 p-4">
       <div className="text-center max-w-md">
-        <div className="w-20 h-20 bg-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-          <FileText className="w-10 h-10 text-white" />
+        <div className="relative w-20 h-20 rounded-2xl overflow-hidden mx-auto mb-6 shadow-lg shadow-teal-500/30">
+          <img src="/logo-mark.svg" alt="DMED" className="w-full h-full object-contain" />
         </div>
         <h1 className="text-3xl font-bold text-white mb-2">DMED Letters</h1>
         <p className="text-gray-400 mb-8">

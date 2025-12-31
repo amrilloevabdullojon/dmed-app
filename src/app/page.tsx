@@ -162,9 +162,9 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-900">
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Welcome */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-bold text-white">
               Добро пожаловать, {session.user.name || session.user.email?.split('@')[0]}!
@@ -181,7 +181,7 @@ export default function HomePage() {
           </div>
           <Link
             href="/letters/new"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition w-full sm:w-auto"
           >
             <Plus className="w-5 h-5" />
             Новое письмо
@@ -192,7 +192,7 @@ export default function HomePage() {
         {loading ? (
           <StatsSkeleton />
         ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8 stagger-animation">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8 stagger-animation">
           <Link
             href="/letters"
             className="bg-gray-800 rounded-lg p-5 border border-gray-700 hover:border-gray-600 transition"

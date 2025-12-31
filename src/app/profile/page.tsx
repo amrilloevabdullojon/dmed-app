@@ -319,7 +319,7 @@ export default function ProfilePage() {
     <div className="min-h-screen app-shell">
       <Header />
 
-      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pageIn">
+      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 animate-pageIn">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl md:text-4xl font-display font-semibold text-white">
@@ -332,7 +332,7 @@ export default function ProfilePage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg btn-primary text-white disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg btn-primary text-white disabled:opacity-60 w-full sm:w-auto"
           >
             {saving ? (
               <Loader2 className="w-4 h-4 animate-spin" />

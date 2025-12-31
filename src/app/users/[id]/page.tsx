@@ -294,7 +294,7 @@ export default function UserProfilePage() {
     <div className="min-h-screen app-shell">
       <Header />
 
-      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-pageIn">
+      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 animate-pageIn">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-display font-semibold text-white">
             {'\u041f\u0440\u043e\u0444\u0438\u043b\u044c'}
@@ -312,7 +312,7 @@ export default function UserProfilePage() {
             <div className="flex flex-wrap items-center gap-2">
               <Link
                 href={`/letters?owner=${user.id}`}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 transition text-sm"
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 transition text-sm w-full sm:w-auto"
               >
                 <ExternalLink className="w-4 h-4" />
                 {'\u041f\u0438\u0441\u044c\u043c\u0430 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f'}
@@ -321,7 +321,7 @@ export default function UserProfilePage() {
                 onClick={() =>
                   setActionOpen(actionOpen === 'assign' ? null : 'assign')
                 }
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 transition text-sm"
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 transition text-sm w-full sm:w-auto"
               >
                 <UserCheck className="w-4 h-4" />
                 {'\u041d\u0430\u0437\u043d\u0430\u0447\u0438\u0442\u044c \u043f\u0438\u0441\u044c\u043c\u043e'}
@@ -330,7 +330,7 @@ export default function UserProfilePage() {
                 onClick={() =>
                   setActionOpen(actionOpen === 'comment' ? null : 'comment')
                 }
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 transition text-sm"
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 transition text-sm w-full sm:w-auto"
               >
                 <MessageSquarePlus className="w-4 h-4" />
                 {'\u041d\u0430\u043f\u0438\u0441\u0430\u0442\u044c \u043a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0439'}
