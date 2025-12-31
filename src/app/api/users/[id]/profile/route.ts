@@ -12,9 +12,63 @@ const emptyProfile = {
   location: null,
   timezone: null,
   skills: [] as string[],
+  avatarUrl: null,
+  coverUrl: null,
   publicEmail: false,
   publicPhone: false,
+  publicBio: true,
+  publicPosition: true,
+  publicDepartment: true,
+  publicLocation: true,
+  publicTimezone: true,
+  publicSkills: true,
+  publicLastLogin: false,
+  publicProfileEnabled: false,
+  publicProfileToken: null,
   visibility: 'INTERNAL' as const,
+}
+
+const buildActivity = async (userId: string) => {
+  const [letters, comments, assignments] = await Promise.all([
+    prisma.letter.findMany({
+      where: { ownerId: userId, deletedAt: null },
+      select: {
+        id: true,
+        number: true,
+        org: true,
+        status: true,
+        updatedAt: true,
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 5,
+    }),
+    prisma.comment.findMany({
+      where: { authorId: userId },
+      select: {
+        id: true,
+        text: true,
+        createdAt: true,
+        letter: {
+          select: { id: true, number: true, org: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
+    prisma.history.findMany({
+      where: { field: 'owner', newValue: userId },
+      select: {
+        id: true,
+        createdAt: true,
+        user: { select: { id: true, name: true, email: true } },
+        letter: { select: { id: true, number: true, org: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
+  ])
+
+  return { letters, comments, assignments }
 }
 
 // GET /api/users/[id]/profile - view user profile
@@ -60,8 +114,27 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const canShowEmail = isSelf || isPrivileged || profile.publicEmail
-    const canShowPhone = isSelf || isPrivileged || profile.publicPhone
+    const canViewAll = isSelf || isPrivileged
+    const canShowEmail = canViewAll || profile.publicEmail
+    const canShowPhone = canViewAll || profile.publicPhone
+    const canShowLastLogin = canViewAll || profile.publicLastLogin
+
+    const allowField = (flag: boolean | null | undefined) =>
+      canViewAll ? true : flag === true
+
+    const filteredProfile = {
+      ...profile,
+      bio: allowField(profile.publicBio) ? profile.bio : null,
+      position: allowField(profile.publicPosition) ? profile.position : null,
+      department: allowField(profile.publicDepartment) ? profile.department : null,
+      location: allowField(profile.publicLocation) ? profile.location : null,
+      timezone: allowField(profile.publicTimezone) ? profile.timezone : null,
+      skills: allowField(profile.publicSkills) ? profile.skills : [],
+      phone: canShowPhone ? profile.phone : null,
+      publicProfileToken: canViewAll ? profile.publicProfileToken : null,
+    }
+
+    const activity = await buildActivity(user.id)
 
     return NextResponse.json({
       user: {
@@ -70,13 +143,11 @@ export async function GET(
         email: canShowEmail ? user.email : null,
         image: user.image,
         role: user.role,
-        lastLoginAt: user.lastLoginAt,
+        lastLoginAt: canShowLastLogin ? user.lastLoginAt : null,
         _count: user._count,
       },
-      profile: {
-        ...profile,
-        phone: canShowPhone ? profile.phone : null,
-      },
+      profile: filteredProfile,
+      activity,
     })
   } catch (error) {
     console.error('GET /api/users/[id]/profile error:', error)
