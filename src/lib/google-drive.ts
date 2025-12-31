@@ -2,7 +2,7 @@ import { google } from 'googleapis'
 import { Readable } from 'stream'
 
 const DRIVE_SCOPES = ['https://www.googleapis.com/auth/drive']
-const DRIVE_SHARE_MODE = process.env.GOOGLE_DRIVE_SHARE_MODE || 'public'
+const DRIVE_SHARE_MODE = (process.env.GOOGLE_DRIVE_SHARE_MODE || 'private').toLowerCase()
 const DRIVE_SHARE_DOMAIN = process.env.GOOGLE_DRIVE_SHARE_DOMAIN || ''
 
 function getDriveClient() {
