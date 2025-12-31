@@ -106,7 +106,7 @@ export function Header() {
     }`
 
   return (
-    <header className="app-header sticky top-0 z-[90] relative backdrop-blur">
+    <header className="app-header sticky top-0 z-[120] relative backdrop-blur">
       {/* Christmas lights */}
       <div className="absolute top-0 left-0 right-0 hidden sm:flex justify-around pointer-events-none overflow-hidden">
         {Array.from({ length: 15 }).map((_, i) => (
@@ -159,6 +159,8 @@ export function Header() {
                   <button
                     onClick={() => setSyncMenuOpen(!syncMenuOpen)}
                     disabled={syncing}
+                    aria-haspopup="menu"
+                    aria-expanded={syncMenuOpen}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg transition ${
                       syncing ? 'opacity-50' : 'text-slate-200/80 hover:bg-white/5 hover:text-white'
                     }`}
@@ -248,6 +250,9 @@ export function Header() {
             {session?.user && <Notifications />}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? '\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u043c\u0435\u043d\u044e' : '\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043c\u0435\u043d\u044e'}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-menu"
               className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition"
             >
               {mobileMenuOpen ? (
@@ -263,14 +268,15 @@ export function Header() {
       {/* Mobile menu overlay */}
       {mobileMenuOpen && (
       <div
-        className="fixed inset-0 bg-black/50 z-[80] md:hidden"
+        className="fixed inset-0 mobile-overlay z-[110] md:hidden"
         onClick={() => setMobileMenuOpen(false)}
       />
       )}
 
       {/* Mobile menu */}
       <div
-        className={`fixed top-16 right-0 bottom-0 w-[85vw] max-w-[320px] panel panel-solid border-l border-white/10 z-[85] transform transition-transform duration-300 md:hidden overflow-y-auto ${
+        id="mobile-menu"
+        className={`fixed top-16 right-0 bottom-0 w-[85vw] max-w-[320px] mobile-menu z-[120] transform transition-transform duration-300 md:hidden overflow-y-auto ${
           mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >

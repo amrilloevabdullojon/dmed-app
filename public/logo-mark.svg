@@ -1,17 +1,18 @@
 <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="logoGradient" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop stop-color="#14B8A6"/>
       <stop offset="1" stop-color="#F59E0B"/>
     </linearGradient>
-    <linearGradient id="logoShade" x1="0" y1="0" x2="0" y2="1">
-      <stop stop-color="#0F172A" stop-opacity="0"/>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#FFFFFF" stop-opacity="0.25"/>
       <stop offset="1" stop-color="#0F172A" stop-opacity="0.35"/>
     </linearGradient>
   </defs>
-  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#logoGradient)"/>
-  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#logoShade)"/>
-  <path d="M20 18H36C45 18 52 25 52 32C52 39 45 46 36 46H20V18Z" fill="#F8FAFC"/>
-  <path d="M32 26H36C41 26 44 29 44 32C44 35 41 38 36 38H32V26Z" fill="#0F172A"/>
-  <circle cx="46" cy="18" r="3" fill="#FBBF24"/>
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#bg)"/>
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#shine)"/>
+  <path d="M18 22H46C48.2091 22 50 23.7909 50 26V42C50 44.2091 48.2091 46 46 46H18C15.7909 46 14 44.2091 14 42V26C14 23.7909 15.7909 22 18 22Z" fill="#F8FAFC"/>
+  <path d="M18 26L32 36L46 26" stroke="#0F172A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M22 40L32 33L42 40" stroke="#0F172A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+  <circle cx="48" cy="18" r="3" fill="#FDE047"/>
 </svg>

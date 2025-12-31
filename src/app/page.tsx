@@ -6,7 +6,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { StatsSkeleton } from '@/components/Skeleton'
-import { useRouter } from 'next/navigation'
+import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 import {
   FileText,
   Clock,
@@ -49,7 +49,7 @@ interface Stats {
 
 export default function HomePage() {
   const { data: session, status } = useSession()
-  const router = useRouter()
+  useAuthRedirect(status)
   const [stats, setStats] = useState<Stats | null>(null)
   const [recentLetters, setRecentLetters] = useState<Letter[]>([])
   const [urgentLetters, setUrgentLetters] = useState<Letter[]>([])
@@ -127,25 +127,7 @@ export default function HomePage() {
   }
 
   if (!session) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 p-4">
-        <div className="text-center max-w-md">
-          <div className="w-20 h-20 bg-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <FileText className="w-10 h-10 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-white mb-2">DMED Letters</h1>
-          <p className="text-gray-400 mb-8">
-            Система управления входящими письмами
-          </p>
-          <Link
-            href="/api/auth/signin"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition"
-          >
-            Войти через Google
-          </Link>
-        </div>
-      </div>
-    )
+    return null
   }
 
   const completionRate = stats
@@ -153,10 +135,10 @@ export default function HomePage() {
     : 0
   const roleLabel =
     session.user.role === 'SUPERADMIN'
-      ? 'Суперадмин'
+      ? '\u0421\u0443\u043f\u0435\u0440\u0430\u0434\u043c\u0438\u043d'
       : session.user.role === 'ADMIN'
-        ? 'Администратор'
-        : 'Сотрудник'
+        ? '\u0410\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440'
+        : '\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a'
 
   return (
     <div className="min-h-screen bg-gray-900">

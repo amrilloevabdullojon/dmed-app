@@ -126,8 +126,8 @@ export async function GET() {
     const profile = user.profile ?? emptyProfile
     const normalizedProfile = {
       ...profile,
-      avatarUrl: resolveProfileAssetUrl(profile.avatarUrl),
-      coverUrl: resolveProfileAssetUrl(profile.coverUrl),
+      avatarUrl: resolveProfileAssetUrl(profile.avatarUrl, profile.updatedAt),
+      coverUrl: resolveProfileAssetUrl(profile.coverUrl, profile.updatedAt),
     }
 
     return NextResponse.json({

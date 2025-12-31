@@ -94,11 +94,14 @@ export const authOptions: AuthOptions = {
           where: { id: user.id },
           select: {
             role: true,
-            profile: { select: { avatarUrl: true } },
+            profile: { select: { avatarUrl: true, updatedAt: true } },
           },
         })
         session.user.role = dbUser?.role || 'EMPLOYEE'
-        const avatarUrl = resolveProfileAssetUrl(dbUser?.profile?.avatarUrl ?? null)
+        const avatarUrl = resolveProfileAssetUrl(
+          dbUser?.profile?.avatarUrl ?? null,
+          dbUser?.profile?.updatedAt ?? null
+        )
         if (avatarUrl) {
           session.user.image = avatarUrl
         }

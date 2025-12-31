@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
         profile: {
           select: {
             avatarUrl: true,
+            updatedAt: true,
           },
         },
       },
@@ -53,7 +54,9 @@ export async function GET(request: NextRequest) {
 
     const normalizedUsers = users.map((user) => ({
       ...user,
-      image: resolveProfileAssetUrl(user.profile?.avatarUrl ?? null) || user.image,
+      image:
+        resolveProfileAssetUrl(user.profile?.avatarUrl ?? null, user.profile?.updatedAt ?? null) ||
+        user.image,
       profile: undefined,
     }))
 

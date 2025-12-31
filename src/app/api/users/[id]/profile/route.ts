@@ -108,6 +108,7 @@ export async function GET(
     }
 
     const profile = user.profile ?? emptyProfile
+    const profileUpdatedAt = user.profile?.updatedAt ?? null
     const isSelf = session.user.id === user.id
     const isPrivileged = hasPermission(session.user.role, 'MANAGE_USERS')
 
@@ -136,8 +137,8 @@ export async function GET(
     }
     const normalizedProfile = {
       ...filteredProfile,
-      avatarUrl: resolveProfileAssetUrl(filteredProfile.avatarUrl),
-      coverUrl: resolveProfileAssetUrl(filteredProfile.coverUrl),
+      avatarUrl: resolveProfileAssetUrl(filteredProfile.avatarUrl, profileUpdatedAt),
+      coverUrl: resolveProfileAssetUrl(filteredProfile.coverUrl, profileUpdatedAt),
     }
 
     const activity = await buildActivity(user.id)

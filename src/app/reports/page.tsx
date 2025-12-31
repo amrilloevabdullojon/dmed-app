@@ -304,7 +304,7 @@ export default function ReportsPage() {
 
   if (authStatus === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center app-shell">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
       </div>
     )
@@ -312,7 +312,7 @@ export default function ReportsPage() {
 
   if (!session) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center app-shell">
         <p className="text-gray-400">
           {'\u041f\u043e\u0436\u0430\u043b\u0443\u0439\u0441\u0442\u0430, \u0432\u043e\u0439\u0434\u0438\u0442\u0435 \u0432 \u0441\u0438\u0441\u0442\u0435\u043c\u0443'}
         </p>
@@ -323,7 +323,7 @@ export default function ReportsPage() {
   const isInitialLoading = loading && !stats
   if (isInitialLoading) {
     return (
-      <div className="min-h-screen bg-gray-900">
+      <div className="min-h-screen app-shell">
         <Header />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
           <div className="h-16 rounded-2xl bg-white/5 animate-shimmer" />
@@ -341,7 +341,7 @@ export default function ReportsPage() {
 
   if (!stats) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center app-shell">
         <p className="text-gray-400">{'\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445.'}</p>
       </div>
     )
@@ -387,7 +387,7 @@ export default function ReportsPage() {
   const SortIcon = ownerSortDir === 'asc' ? ArrowUpRight : ArrowDownRight
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen app-shell">
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">

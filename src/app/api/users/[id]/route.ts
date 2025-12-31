@@ -51,6 +51,7 @@ export async function GET(
         profile: {
           select: {
             avatarUrl: true,
+            updatedAt: true,
           },
         },
       },
@@ -62,7 +63,9 @@ export async function GET(
 
     const normalizedUser = {
       ...user,
-      image: resolveProfileAssetUrl(user.profile?.avatarUrl ?? null) || user.image,
+      image:
+        resolveProfileAssetUrl(user.profile?.avatarUrl ?? null, user.profile?.updatedAt ?? null) ||
+        user.image,
       profile: undefined,
     }
 

@@ -69,8 +69,9 @@ export default async function PublicProfilePage({
   }
 
   const user = profile.user
-  const avatarUrl = resolveProfileAssetUrl(profile.avatarUrl)
-  const coverUrl = resolveProfileAssetUrl(profile.coverUrl)
+  const assetVersion = profile.updatedAt
+  const avatarUrl = resolveProfileAssetUrl(profile.avatarUrl, assetVersion)
+  const coverUrl = resolveProfileAssetUrl(profile.coverUrl, assetVersion)
   const displayAvatar = avatarUrl || user.image
 
   const showEmail = profile.publicEmail && user.email

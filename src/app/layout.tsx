@@ -4,6 +4,7 @@ import './globals.css'
 import { Providers } from '@/components/Providers'
 import { Snowfall, NewYearBanner } from '@/components/Snowfall'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
+import { AuthGuard } from '@/components/AuthGuard'
 
 const manrope = Manrope({
   subsets: ['latin', 'cyrillic'],
@@ -20,8 +21,8 @@ const spaceGrotesk = Space_Grotesk({
 })
 
 export const metadata: Metadata = {
-  title: '🎄 DMED Letters - С Новым Годом!',
-  description: 'Система управления письмами DMED',
+  title: '\u0421\u0438\u0441\u0442\u0435\u043c\u0430 \u0443\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u044f \u043f\u0438\u0441\u044c\u043c\u0430\u043c\u0438 \u2014 DMED Letters',
+  description: '\u0415\u0434\u0438\u043d\u044b\u0439 \u0446\u0435\u043d\u0442\u0440 \u0434\u043b\u044f \u043f\u0438\u0441\u0435\u043c, \u043e\u0442\u0447\u0451\u0442\u043e\u0432 \u0438 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044f \u0438\u0441\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u044f \u0432 DMED.',
   icons: {
     icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
     apple: [{ url: '/apple-touch-icon.svg', type: 'image/svg+xml' }],
@@ -37,10 +38,12 @@ export default function RootLayout({
     <html lang="ru" className="dark">
       <body className={`${manrope.variable} ${spaceGrotesk.variable} app-body text-white min-h-screen`}>
         <Providers>
-          <NewYearBanner />
-          {children}
-          <Snowfall />
-          <OfflineIndicator />
+          <AuthGuard>
+            <NewYearBanner />
+            {children}
+            <Snowfall />
+            <OfflineIndicator />
+          </AuthGuard>
         </Providers>
       </body>
     </html>
