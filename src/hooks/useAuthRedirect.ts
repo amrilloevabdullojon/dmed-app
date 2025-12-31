@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import type { SessionStatus } from 'next-auth/react'
+type SessionStatus = 'authenticated' | 'unauthenticated' | 'loading'
 
 export function useAuthRedirect(status: SessionStatus) {
   const router = useRouter()
