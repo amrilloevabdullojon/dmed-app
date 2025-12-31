@@ -224,7 +224,7 @@ export function Header() {
                   </span>
                 </Link>
                 <button
-                  onClick={() => signOut()}
+                  onClick={() => signOut({ callbackUrl: '/login' })}
                   className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition"
                   title="Выйти"
                 >
@@ -367,7 +367,7 @@ export function Header() {
           <div className="my-2 border-t border-white/10" />
 
           <button
-            onClick={() => signOut()}
+            onClick={() => signOut({ callbackUrl: '/login' })}
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition"
           >
             <LogOut className="w-5 h-5" />
