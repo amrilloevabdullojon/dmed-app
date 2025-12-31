@@ -106,7 +106,7 @@ export function Header() {
     }`
 
   return (
-    <header className="app-header sticky top-0 z-50 relative backdrop-blur">
+    <header className="app-header sticky top-0 z-[90] relative backdrop-blur">
       {/* Christmas lights */}
       <div className="absolute top-0 left-0 right-0 hidden sm:flex justify-around pointer-events-none overflow-hidden">
         {Array.from({ length: 15 }).map((_, i) => (
@@ -262,15 +262,15 @@ export function Header() {
 
       {/* Mobile menu overlay */}
       {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
+      <div
+        className="fixed inset-0 bg-black/50 z-[80] md:hidden"
+        onClick={() => setMobileMenuOpen(false)}
+      />
       )}
 
       {/* Mobile menu */}
       <div
-        className={`fixed top-16 right-0 bottom-0 w-[85vw] max-w-[320px] panel panel-solid border-l border-white/10 z-50 transform transition-transform duration-300 md:hidden overflow-y-auto ${
+        className={`fixed top-16 right-0 bottom-0 w-[85vw] max-w-[320px] panel panel-solid border-l border-white/10 z-[85] transform transition-transform duration-300 md:hidden overflow-y-auto ${
           mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
