@@ -249,7 +249,10 @@ export default function ReportsPage() {
   const prevCreated = prevMonthly.length > 0 ? sumBy(prevMonthly, 'created') : null
   const prevDone = prevMonthly.length > 0 ? sumBy(prevMonthly, 'done') : null
 
-  const getTrend = (current: number, previous: number | null) => {
+  const getTrend = (
+    current: number,
+    previous: number | null
+  ): { direction: 'up' | 'down' | 'flat'; label: string } => {
     if (previous === null) return { direction: 'flat', label: '\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445' }
     if (previous === 0) {
       return current === 0
