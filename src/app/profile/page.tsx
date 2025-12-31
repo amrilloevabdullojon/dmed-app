@@ -148,7 +148,7 @@ const emptyProfile: ProfileData = {
 }
 
 export default function ProfilePage() {
-  const { data: session, status: authStatus } = useSession()
+  const { data: session, status: authStatus, update: updateSession } = useSession()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
@@ -247,6 +247,9 @@ export default function ProfilePage() {
       }
       const data = await res.json()
       setProfile((prev) => ({ ...prev, ...data.profile }))
+      if (type === 'avatar' && updateSession) {
+        await updateSession({ image: data.profile?.avatarUrl || null })
+      }
       toast.success(
         type === 'avatar'
           ? '\u0410\u0432\u0430\u0442\u0430\u0440 \u043e\u0431\u043d\u043e\u0432\u043b\u0451\u043d'

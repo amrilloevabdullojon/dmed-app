@@ -126,6 +126,14 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    if (type === 'avatar') {
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data: { image: assetUrl },
+        select: { id: true },
+      })
+    }
+
     return NextResponse.json({ success: true, profile })
   } catch (error) {
     console.error('POST /api/profile/assets error:', error)

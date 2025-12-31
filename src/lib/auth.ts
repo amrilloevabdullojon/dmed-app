@@ -2,6 +2,7 @@ import { AuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
+import { resolveProfileAssetUrl } from '@/lib/profile-assets'
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
@@ -91,9 +92,16 @@ export const authOptions: AuthOptions = {
         // Получить роль пользователя
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { role: true },
+          select: {
+            role: true,
+            profile: { select: { avatarUrl: true } },
+          },
         })
         session.user.role = dbUser?.role || 'EMPLOYEE'
+        const avatarUrl = resolveProfileAssetUrl(dbUser?.profile?.avatarUrl ?? null)
+        if (avatarUrl) {
+          session.user.image = avatarUrl
+        }
       }
       return session
     },

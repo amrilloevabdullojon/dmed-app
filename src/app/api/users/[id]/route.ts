@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { hasPermission } from '@/lib/permissions'
+import { resolveProfileAssetUrl } from '@/lib/profile-assets'
 
 // GET /api/users/[id] - получить пользователя по ID
 export async function GET(
@@ -47,6 +48,11 @@ export async function GET(
             sessions: true,
           },
         },
+        profile: {
+          select: {
+            avatarUrl: true,
+          },
+        },
       },
     })
 
@@ -54,7 +60,13 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    return NextResponse.json(user)
+    const normalizedUser = {
+      ...user,
+      image: resolveProfileAssetUrl(user.profile?.avatarUrl ?? null) || user.image,
+      profile: undefined,
+    }
+
+    return NextResponse.json(normalizedUser)
   } catch (error) {
     console.error('GET /api/users/[id] error:', error)
     return NextResponse.json(
