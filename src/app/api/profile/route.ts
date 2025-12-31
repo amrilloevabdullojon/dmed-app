@@ -124,10 +124,11 @@ export async function GET() {
     const activity = await buildActivity(user.id)
 
     const profile = user.profile ?? emptyProfile
+    const profileUpdatedAt = user.profile?.updatedAt ?? null
     const normalizedProfile = {
       ...profile,
-      avatarUrl: resolveProfileAssetUrl(profile.avatarUrl, profile.updatedAt),
-      coverUrl: resolveProfileAssetUrl(profile.coverUrl, profile.updatedAt),
+      avatarUrl: resolveProfileAssetUrl(profile.avatarUrl, profileUpdatedAt),
+      coverUrl: resolveProfileAssetUrl(profile.coverUrl, profileUpdatedAt),
     }
 
     return NextResponse.json({
