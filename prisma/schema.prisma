@@ -398,6 +398,39 @@ model SyncLog {
   finishedAt  DateTime?
 }
 
+// Лог изменений для автоматической синхронизации с Google Sheets
+model LetterChangeLog {
+  id         String              @id @default(cuid())
+  letterId   String
+  action     LetterChangeAction
+  field      String?             // Какое поле изменилось (null для create/delete)
+  oldValue   String?             @db.Text
+  newValue   String?             @db.Text
+  syncStatus LetterSyncStatus    @default(PENDING)
+  syncError  String?             @db.Text
+  retryCount Int                 @default(0)
+  userId     String?             // Кто сделал изменение
+  createdAt  DateTime            @default(now())
+  syncedAt   DateTime?           // Когда синхронизировано
+
+  @@index([syncStatus, createdAt])  // Для выборки несинхронизированных
+  @@index([letterId])
+}
+
+enum LetterChangeAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum LetterSyncStatus {
+  PENDING     // Ожидает синхронизации
+  PROCESSING  // В процессе
+  SYNCED      // Синхронизировано
+  FAILED      // Ошибка (будет retry)
+  SKIPPED     // Пропущено (дубликат или устарело)
+}
+
 enum SyncDirection {
   TO_SHEETS    // Из приложения в Google Sheets
   FROM_SHEETS  // Из Google Sheets в приложение
