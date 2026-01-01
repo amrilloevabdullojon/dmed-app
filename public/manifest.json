@@ -1,0 +1,59 @@
+{
+  "name": "DMED Letters",
+  "short_name": "DMED",
+  "description": "Система управления документами и письмами",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#14b8a6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.svg",
+      "sizes": "180x180",
+      "type": "image/svg+xml",
+      "purpose": "apple touch icon"
+    },
+    {
+      "src": "/logo-mark.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Новое письмо",
+      "short_name": "Новое",
+      "description": "Создать новое письмо",
+      "url": "/letters/new",
+      "icons": [{ "src": "/logo-mark.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Все письма",
+      "short_name": "Письма",
+      "description": "Список всех писем",
+      "url": "/letters",
+      "icons": [{ "src": "/logo-mark.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Отчёты",
+      "short_name": "Отчёты",
+      "description": "Статистика и отчёты",
+      "url": "/reports",
+      "icons": [{ "src": "/logo-mark.svg", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

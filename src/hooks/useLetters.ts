@@ -1,4 +1,8 @@
+'use client'
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useDebouncedState } from '@/hooks/useDebounce'
+import { SEARCH_DEBOUNCE_MS } from '@/lib/constants'
 import type { LetterStatus } from '@prisma/client'
 
 interface Letter {
@@ -62,7 +66,17 @@ export function useLetters(params: LettersParams = {}) {
       if (!res.ok) throw new Error('Failed to fetch letters')
       return res.json()
     },
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
   })
+}
+
+/**
+ * Hook for search with debounce.
+ * Returns [immediateValue, debouncedValue, setValue]
+ */
+export function useLetterSearch() {
+  return useDebouncedState('', SEARCH_DEBOUNCE_MS)
 }
 
 // Получение одного письма
@@ -76,25 +90,51 @@ export function useLetter(id: string | null) {
       return res.json()
     },
     enabled: !!id,
+    staleTime: 60 * 1000, // 1 minute
   })
 }
 
-// Обновление письма
+// Обновление письма с оптимистичным обновлением
 export function useUpdateLetter() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ id, field, value }: { id: string; field: string; value: string }) => {
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: string | null }) => {
       const res = await fetch(`/api/letters/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ field, value }),
       })
-      if (!res.ok) throw new Error('Failed to update letter')
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to update letter')
+      }
       return res.json()
     },
-    onSuccess: (_, variables) => {
-      // Инвалидировать кеш письма и списка
+    // Оптимистичное обновление
+    onMutate: async ({ id, field, value }) => {
+      // Отменить текущие запросы
+      await queryClient.cancelQueries({ queryKey: ['letter', id] })
+
+      // Сохранить предыдущее значение
+      const previousLetter = queryClient.getQueryData(['letter', id])
+
+      // Оптимистично обновить кеш
+      queryClient.setQueryData(['letter', id], (old: Record<string, unknown> | undefined) => {
+        if (!old) return old
+        return { ...old, [field]: value }
+      })
+
+      return { previousLetter }
+    },
+    onError: (_err, variables, context) => {
+      // Откатить при ошибке
+      if (context?.previousLetter) {
+        queryClient.setQueryData(['letter', variables.id], context.previousLetter)
+      }
+    },
+    onSettled: (_, __, variables) => {
+      // Инвалидировать кеш после завершения
       queryClient.invalidateQueries({ queryKey: ['letter', variables.id] })
       queryClient.invalidateQueries({ queryKey: ['letters'] })
     },
@@ -153,7 +193,7 @@ export function useBulkAction() {
   })
 }
 
-// Избранное
+// Избранное с оптимистичным обновлением
 export function useToggleFavorite() {
   const queryClient = useQueryClient()
 
@@ -167,8 +207,69 @@ export function useToggleFavorite() {
       if (!res.ok) throw new Error('Failed to toggle favorite')
       return res.json()
     },
-    onSuccess: (_, letterId) => {
+    // Оптимистичное обновление
+    onMutate: async (letterId) => {
+      await queryClient.cancelQueries({ queryKey: ['letter', letterId] })
+
+      const previousLetter = queryClient.getQueryData(['letter', letterId])
+
+      queryClient.setQueryData(['letter', letterId], (old: Record<string, unknown> | undefined) => {
+        if (!old) return old
+        return { ...old, isFavorite: !old.isFavorite }
+      })
+
+      return { previousLetter }
+    },
+    onError: (_err, letterId, context) => {
+      if (context?.previousLetter) {
+        queryClient.setQueryData(['letter', letterId], context.previousLetter)
+      }
+    },
+    onSettled: (_, __, letterId) => {
       queryClient.invalidateQueries({ queryKey: ['letter', letterId] })
+      queryClient.invalidateQueries({ queryKey: ['letters'] })
+    },
+  })
+}
+
+// Добавление комментария
+export function useAddComment() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ letterId, text }: { letterId: string; text: string }) => {
+      const res = await fetch(`/api/letters/${letterId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      })
+      if (!res.ok) throw new Error('Failed to add comment')
+      return res.json()
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['letter', variables.letterId] })
+    },
+  })
+}
+
+// Создание письма
+export function useCreateLetter() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const res = await fetch('/api/letters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Failed to create letter')
+      }
+      return res.json()
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['letters'] })
     },
   })
