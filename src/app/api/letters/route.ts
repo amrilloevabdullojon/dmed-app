@@ -4,7 +4,14 @@ import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { addWorkingDays, sanitizeInput, STATUS_FROM_LABEL } from '@/lib/utils'
 import { buildApplicantPortalLink, sendMultiChannelNotification } from '@/lib/notifications'
-import type { LetterStatus } from '@prisma/client'
+import { logger } from '@/lib/logger'
+import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
+import {
+  PAGE_SIZE,
+  PORTAL_TOKEN_EXPIRY_DAYS,
+  DEFAULT_DEADLINE_WORKING_DAYS,
+} from '@/lib/constants'
+import type { LetterStatus, Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { randomUUID } from 'crypto'
 
@@ -63,6 +70,21 @@ const resolveAutoOwnerId = async () => {
 // GET /api/letters - получить все письма
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientId = getClientIdentifier(request.headers)
+    const rateLimitResult = checkRateLimit(
+      `${clientId}:/api/letters`,
+      RATE_LIMITS.search.limit,
+      RATE_LIMITS.search.windowMs
+    )
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Слишком много запросов. Попробуйте позже.' },
+        { status: 429 }
+      )
+    }
+
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -77,10 +99,10 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'created' // created, deadline, date, priority, status
     const sortOrder = searchParams.get('sortOrder') || 'desc'
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '50')
+    const limit = parseInt(searchParams.get('limit') || String(PAGE_SIZE))
 
-    // Построить фильтры
-    const where: any = {
+    // Построить фильтры с правильной типизацией
+    const where: Prisma.LetterWhereInput = {
       deletedAt: null, // Исключаем soft-deleted письма
     }
 
@@ -177,7 +199,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('GET /api/letters error:', error)
+    logger.error('GET /api/letters', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -188,6 +210,21 @@ export async function GET(request: NextRequest) {
 // POST /api/letters - создать новое письмо
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientId = getClientIdentifier(request.headers)
+    const rateLimitResult = checkRateLimit(
+      `${clientId}:/api/letters:POST`,
+      RATE_LIMITS.standard.limit,
+      RATE_LIMITS.standard.windowMs
+    )
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Слишком много запросов. Попробуйте позже.' },
+        { status: 429 }
+      )
+    }
+
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -240,10 +277,10 @@ export async function POST(request: NextRequest) {
     const hasApplicantContact = !!(data.applicantEmail || data.applicantPhone || data.applicantTelegramChatId)
     const applicantAccessToken = hasApplicantContact ? randomUUID() : null
     const applicantAccessTokenExpiresAt = hasApplicantContact
-      ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 90)
+      ? new Date(Date.now() + 1000 * 60 * 60 * 24 * PORTAL_TOKEN_EXPIRY_DAYS)
       : null
 
-    const deadlineDate = data.deadlineDate || addWorkingDays(data.date, 7)
+    const deadlineDate = data.deadlineDate || addWorkingDays(data.date, DEFAULT_DEADLINE_WORKING_DAYS)
 
     // Создать письмо
     const letter = await prisma.letter.create({
@@ -342,7 +379,7 @@ ${letter.org}
     }
     return NextResponse.json({ success: true, letter }, { status: 201 })
   } catch (error) {
-    console.error('POST /api/letters error:', error)
+    logger.error('POST /api/letters', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -134,3 +134,25 @@ export const API_ENDPOINTS = {
   SYNC: '/api/sync',
   EXPORT: '/api/export',
 } as const
+
+// ==================== ТОКЕНЫ И БЕЗОПАСНОСТЬ ====================
+
+/** Срок действия токена портала для заявителя (в днях) */
+export const PORTAL_TOKEN_EXPIRY_DAYS = 90
+
+/** Окно rate limiting для авторизации (в минутах) */
+export const RATE_LIMIT_WINDOW_MINUTES = 15
+
+/** Максимальное количество попыток входа */
+export const MAX_LOGIN_ATTEMPTS = 5
+
+/** Количество рабочих дней для дедлайна по умолчанию */
+export const DEFAULT_DEADLINE_WORKING_DAYS = 7
+
+// ==================== DEBOUNCE ====================
+
+/** Задержка debounce для поиска (в мс) */
+export const SEARCH_DEBOUNCE_MS = 300
+
+/** Задержка debounce для автосохранения (в мс) */
+export const AUTOSAVE_DEBOUNCE_MS = 1000

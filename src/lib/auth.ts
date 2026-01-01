@@ -3,6 +3,7 @@ import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
 import { resolveProfileAssetUrl } from '@/lib/profile-assets'
+import { RATE_LIMIT_WINDOW_MINUTES, MAX_LOGIN_ATTEMPTS } from '@/lib/constants'
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
@@ -21,7 +22,7 @@ export const authOptions: AuthOptions = {
 
       const email = user.email.toLowerCase()
       const now = new Date()
-      const rateWindowStart = new Date(now.getTime() - 15 * 60 * 1000)
+      const rateWindowStart = new Date(now.getTime() - RATE_LIMIT_WINDOW_MINUTES * 60 * 1000)
 
       const recentFailures = await prisma.loginAudit.count({
         where: {
@@ -31,7 +32,7 @@ export const authOptions: AuthOptions = {
         },
       })
 
-      if (recentFailures >= 5) {
+      if (recentFailures >= MAX_LOGIN_ATTEMPTS) {
         await prisma.loginAudit.create({
           data: {
             email,
