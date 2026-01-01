@@ -20,11 +20,11 @@ function startCleanup() {
 
   cleanupTimer = setInterval(() => {
     const now = Date.now()
-    for (const [key, entry] of cache.entries()) {
+    cache.forEach((entry, key) => {
       if (entry.resetAt < now) {
         cache.delete(key)
       }
-    }
+    })
   }, CLEANUP_INTERVAL)
 
   // Don't prevent process exit
