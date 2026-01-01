@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { resolveProfileAssetUrl } from '@/lib/profile-assets'
 import { RATE_LIMIT_WINDOW_MINUTES, MAX_LOGIN_ATTEMPTS } from '@/lib/constants'
 import type { JWT } from 'next-auth/jwt'
+import type { Role } from '@prisma/client'
 
 /**
  * NextAuth configuration with JWT strategy for better performance.
@@ -143,7 +144,7 @@ export const authOptions: AuthOptions = {
     async session({ session, token }) {
       if (session.user && token) {
         session.user.id = token.id as string
-        session.user.role = (token.role as string) || 'EMPLOYEE'
+        session.user.role = (token.role as Role) || 'EMPLOYEE'
         if (token.avatarUrl) {
           session.user.image = token.avatarUrl as string
         }
@@ -160,7 +161,7 @@ export const authOptions: AuthOptions = {
 declare module 'next-auth/jwt' {
   interface JWT {
     id?: string
-    role?: string
+    role?: Role
     avatarUrl?: string | null
   }
 }
