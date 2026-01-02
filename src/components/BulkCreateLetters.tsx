@@ -612,7 +612,9 @@ export function BulkCreateLetters({ onClose, onSuccess }: BulkCreateLettersProps
                           <Loader2 className="h-3 w-3 animate-spin text-purple-400" />
                         )}
                         {row.parsedByAI && !row.parsing && (
-                          <Bot className="h-3 w-3 text-purple-400" title="Распознано AI" />
+                          <span title="Распознано AI">
+                            <Bot className="h-3 w-3 text-purple-400" />
+                          </span>
                         )}
                       </div>
                     </td>
