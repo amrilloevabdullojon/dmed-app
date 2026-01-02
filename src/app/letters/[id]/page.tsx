@@ -42,6 +42,7 @@ import {
 import Link from 'next/link'
 import { useToast } from '@/components/Toast'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
+import { useOptimisticList } from '@/hooks/useOptimistic'
 
 interface CommentItem {
   id: string
@@ -134,7 +135,33 @@ export default function LetterDetailPage() {
   const [togglingFavorite, setTogglingFavorite] = useState(false)
   const [notifyingOwner, setNotifyingOwner] = useState(false)
   const [commentText, setCommentText] = useState('')
-  const [commentSubmitting, setCommentSubmitting] = useState(false)
+  const {
+    items: comments,
+    add: addComment,
+    pending: commentPending,
+    setItems: setComments,
+  } = useOptimisticList<CommentItem>([], {
+    addFn: async (item) => {
+      if (!letter) {
+        throw new Error('Missing letter')
+      }
+      const res = await fetch(`/api/letters/${letter.id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: item.text }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to add comment")
+      }
+      return data.comment as CommentItem
+    },
+    onError: (error) => {
+      console.error(error)
+      toast.error('Failed to add comment')
+    },
+  })
+  const isCommentSubmitting = commentPending.size > 0
   const [portalLink, setPortalLink] = useState('')
   const [portalLoading, setPortalLoading] = useState(false)
 
@@ -159,6 +186,14 @@ export default function LetterDetailPage() {
       loadLetter()
     }
   }, [authStatus, params.id, loadLetter])
+
+  useEffect(() => {
+    if (letter?.comments) {
+      setComments(letter.comments)
+    } else {
+      setComments([])
+    }
+  }, [letter, setComments])
 
   useEffect(() => {
     if (letter?.applicantAccessToken && typeof window !== 'undefined') {
@@ -316,23 +351,24 @@ export default function LetterDetailPage() {
     event.preventDefault()
     if (!letter || !commentText.trim()) return
 
-    setCommentSubmitting(true)
-    try {
-      const res = await fetch(`/api/letters/${letter.id}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: commentText }),
-      })
-      const data = await res.json()
+    const author = {
+      id: session?.user?.id || 'unknown',
+      name: session?.user?.name || null,
+      email: session?.user?.email || null,
+    }
+    const optimisticComment = {
+      text: commentText.trim(),
+      createdAt: new Date().toISOString(),
+      author,
+      replies: [],
+    }
 
-      if (res.ok && data.success) {
-        setCommentText('')
-        await loadLetter()
-        toast.success('Комментарий добавлен')
-      } else {
-        toast.error(data.error || 'Не удалось добавить комментарий')
-      }
-    } catch (error) {
+    const result = await addComment(optimisticComment)
+    if (result) {
+      setCommentText('')
+      toast.success('Комментарий добавлен')
+    }
+  }    } catch (error) {
       console.error('Failed to add comment:', error)
       toast.error('Ошибка добавления комментария')
     } finally {
@@ -642,13 +678,13 @@ export default function LetterDetailPage() {
                 {'\u041a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0438'}
               </h3>
 
-              {letter.comments.length === 0 ? (
+              {comments.length === 0 ? (
                 <p className="text-sm text-gray-400">
                   {'\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u043a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0435\u0432'}
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {letter.comments.map((comment) => renderComment(comment))}
+                  {comments.map((comment) => renderComment(comment))}
                 </div>
               )}
 
@@ -663,10 +699,10 @@ export default function LetterDetailPage() {
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    disabled={commentSubmitting || !commentText.trim()}
+                    disabled={isCommentSubmitting || !commentText.trim()}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition disabled:opacity-50"
                   >
-                    {commentSubmitting ? (
+                    {isCommentSubmitting ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <MessageSquare className="w-4 h-4" />
@@ -711,9 +747,9 @@ export default function LetterDetailPage() {
                 <div className="flex items-center gap-3">
                   <User className="w-5 h-5 text-gray-500" />
                   <div>
-                    <div className="text-xs text-gray-500">?????????????</div>
+                    <div className="text-xs text-gray-500">Исполнитель</div>
                     <div className="text-white">
-                      {letter.owner?.name || letter.owner?.email || '?? ????????'}
+                      {letter.owner?.name || letter.owner?.email || 'Не назначен'}
                     </div>
                   </div>
                 </div>

@@ -5,6 +5,7 @@ import { Bell, X, AlertTriangle, Clock, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate, getDaysUntilDeadline, pluralizeDays } from '@/lib/utils'
 import { useFetch, useMutation } from '@/hooks/useFetch'
+import { useVirtualList } from '@/hooks/useVirtualList'
 
 interface Notification {
   id: string
@@ -17,7 +18,6 @@ interface Notification {
   }
   daysLeft: number
 }
-
 
 interface UserNotification {
   id: string
@@ -52,6 +52,7 @@ const buildNotifications = (
 
 export function Notifications() {
   const [isOpen, setIsOpen] = useState(false)
+  const notificationRowHeight = 92
 
   const userNotificationsQuery = useFetch<UserNotification[]>('/api/notifications', {
     initialData: [],
@@ -83,6 +84,16 @@ export function Notifications() {
     ...buildNotifications(overdueQuery.data?.letters || [], 'overdue'),
     ...buildNotifications(urgentQuery.data?.letters || [], 'urgent'),
   ]
+  const {
+    containerRef: notificationsRef,
+    virtualItems: notificationVirtualItems,
+    totalSize: notificationsTotalSize,
+  } = useVirtualList({
+    items: notifications,
+    itemHeight: notificationRowHeight,
+    overscan: 4,
+    getKey: (item) => item.id,
+  })
 
   const overdueCount = notifications.filter((n) => n.type === 'overdue').length
   const urgentCount = notifications.filter((n) => n.type === 'urgent').length
@@ -112,6 +123,7 @@ export function Notifications() {
       setUserNotifications(previous)
     }
   }
+
   return (
     <div className="relative">
       <button
@@ -129,23 +141,18 @@ export function Notifications() {
 
       {isOpen && (
         <>
-          {/* Overlay */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
 
-          {/* Dropdown */}
           <div className="absolute right-0 top-full mt-2 w-96 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 max-h-[70vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
-              <h3 className="text-white font-medium">???????????</h3>
+              <h3 className="text-white font-medium">Уведомления</h3>
               <div className="flex items-center gap-2">
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllRead}
                     className="text-xs text-emerald-400 hover:text-emerald-300 transition"
                   >
-                    ???????? ???
+                    Прочитать все
                   </button>
                 )}
                 <button
@@ -161,7 +168,7 @@ export function Notifications() {
             <div className="max-h-64 overflow-y-auto">
               {userNotifications.length === 0 ? (
                 <div className="p-4 text-sm text-gray-500 border-b border-gray-700">
-                  {"D?D??, ??D?D?D'D_D?D?D?D?D,D1"}
+                  Нет новых уведомлений
                 </div>
               ) : (
                 <div className="divide-y divide-gray-700 border-b border-gray-700">
@@ -190,7 +197,7 @@ export function Notifications() {
                       </div>
                       {notif.letter?.number && (
                         <span className="text-xs text-emerald-400 font-mono">
-                          ?{notif.letter.number}
+                          №{notif.letter.number}
                         </span>
                       )}
                     </Link>
@@ -199,7 +206,6 @@ export function Notifications() {
               )}
             </div>
 
-            {/* Stats */}
             <div className="flex border-b border-gray-700">
               <div className="flex-1 px-4 py-2 text-center border-r border-gray-700">
                 <div className="text-red-400 font-bold">{overdueCount}</div>
@@ -211,66 +217,68 @@ export function Notifications() {
               </div>
             </div>
 
-            {/* List */}
-            <div className="overflow-y-auto flex-1">
+            <div ref={notificationsRef} className="overflow-y-auto flex-1">
               {notifications.length === 0 ? (
                 <div className="p-8 text-center text-gray-500">
                   Нет уведомлений
                 </div>
               ) : (
-                <div className="divide-y divide-gray-700">
-                  {notifications.map((notif) => (
-                    <Link
-                      key={notif.id}
-                      href={`/letters/${notif.letter.id}`}
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-start gap-3 px-4 py-3 hover:bg-gray-700/50 transition"
-                    >
-                      <div
-                        className={`p-2 rounded-lg ${
-                          notif.type === 'overdue'
-                            ? 'bg-red-500/20 text-red-400'
-                            : 'bg-yellow-500/20 text-yellow-400'
-                        }`}
+                <div className="relative" style={{ height: `${notificationsTotalSize}px` }}>
+                  {notificationVirtualItems.map((virtualItem) => {
+                    const notif = notifications[virtualItem.index]
+                    return (
+                      <Link
+                        key={notif.id}
+                        href={`/letters/${notif.letter.id}`}
+                        onClick={() => setIsOpen(false)}
+                        className="absolute left-0 right-0 flex items-start gap-3 px-4 py-3 border-b border-gray-700 hover:bg-gray-700/50 transition"
+                        style={{
+                          top: `${virtualItem.start}px`,
+                          height: `${virtualItem.size}px`,
+                        }}
                       >
-                        {notif.type === 'overdue' ? (
-                          <AlertTriangle className="w-4 h-4" />
-                        ) : (
-                          <Clock className="w-4 h-4" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-emerald-400 text-sm">
-                            №{notif.letter.number}
-                          </span>
-                          <span
-                            className={`text-xs ${
-                              notif.type === 'overdue'
-                                ? 'text-red-400'
-                                : 'text-yellow-400'
-                            }`}
-                          >
-                            {notif.type === 'overdue'
-                              ? `Просрочено на ${Math.abs(notif.daysLeft)} ${pluralizeDays(notif.daysLeft)}`
-                              : `${notif.daysLeft} ${pluralizeDays(notif.daysLeft)}`}
-                          </span>
+                        <div
+                          className={`p-2 rounded-lg ${
+                            notif.type === 'overdue'
+                              ? 'bg-red-500/20 text-red-400'
+                              : 'bg-yellow-500/20 text-yellow-400'
+                          }`}
+                        >
+                          {notif.type === 'overdue' ? (
+                            <AlertTriangle className="w-4 h-4" />
+                          ) : (
+                            <Clock className="w-4 h-4" />
+                          )}
                         </div>
-                        <div className="text-white text-sm truncate">
-                          {notif.letter.org}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-emerald-400 text-sm">
+                              №{notif.letter.number}
+                            </span>
+                            <span
+                              className={`text-xs ${
+                                notif.type === 'overdue' ? 'text-red-400' : 'text-yellow-400'
+                              }`}
+                            >
+                              {notif.type === 'overdue'
+                                ? `Просрочено на ${Math.abs(notif.daysLeft)} ${pluralizeDays(notif.daysLeft)}`
+                                : `${notif.daysLeft} ${pluralizeDays(notif.daysLeft)}`}
+                            </span>
+                          </div>
+                          <div className="text-white text-sm truncate">
+                            {notif.letter.org}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Дедлайн: {formatDate(notif.letter.deadlineDate)}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500">
-                          Дедлайн: {formatDate(notif.letter.deadlineDate)}
-                        </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                    </Link>
-                  ))}
+                        <ChevronRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                      </Link>
+                    )
+                  })}
                 </div>
               )}
             </div>
-
-            {/* Footer */}
             <Link
               href="/letters?filter=overdue"
               onClick={() => setIsOpen(false)}

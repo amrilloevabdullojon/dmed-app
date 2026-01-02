@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
+import { applySecurityHeaders, setCsrfTokenCookie } from '@/lib/security'
 
 /**
  * Защищённые маршруты, требующие авторизации
@@ -69,16 +70,6 @@ function isManagerRoute(pathname: string): boolean {
   return MANAGER_ROUTES.some((route) => pathname.startsWith(route))
 }
 
-/**
- * Security headers
- */
-const securityHeaders = {
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'X-XSS-Protection': '1; mode=block',
-  'Referrer-Policy': 'strict-origin-when-cross-origin',
-}
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -98,12 +89,13 @@ export async function middleware(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   })
 
-  const response = NextResponse.next()
-
-  // Apply security headers
-  Object.entries(securityHeaders).forEach(([key, value]) => {
-    response.headers.set(key, value)
-  })
+  const response = applySecurityHeaders(NextResponse.next())
+  if (request.method === 'GET' && !pathname.startsWith('/api')) {
+    const csrfCookie = request.cookies.get('csrf-token')
+    if (!csrfCookie) {
+      setCsrfTokenCookie(response)
+    }
+  }
 
   // Public routes - allow access
   if (isPublicRoute(pathname)) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { StatusBadge } from './StatusBadge'
 import {
   X,
@@ -17,6 +17,7 @@ import {
 import { formatDate, getDaysUntilDeadline, pluralizeDays, isDoneStatus, STATUS_LABELS } from '@/lib/utils'
 import type { LetterStatus } from '@prisma/client'
 import Link from 'next/link'
+import { useLetter } from '@/hooks/useLetters'
 
 interface LetterPreviewProps {
   letterId: string | null
@@ -44,31 +45,8 @@ interface Letter {
 }
 
 export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
-  const [letter, setLetter] = useState<Letter | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (letterId) {
-      loadLetter(letterId)
-    } else {
-      setLetter(null)
-    }
-  }, [letterId])
-
-  const loadLetter = async (id: string) => {
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/letters/${id}`)
-      if (res.ok) {
-        const data = await res.json()
-        setLetter(data)
-      }
-    } catch (error) {
-      console.error('Failed to load letter:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { data, isLoading } = useLetter(letterId)
+  const letter = letterId ? (data as Letter | null) : null
 
   // Закрытие по Escape
   useEffect(() => {
@@ -112,7 +90,7 @@ export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          {loading ? (
+          {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
             </div>
