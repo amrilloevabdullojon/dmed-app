@@ -7,7 +7,10 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { CardsSkeleton, TableSkeleton } from '@/components/Skeleton'
 import { LetterPreview } from '@/components/LetterPreview'
 import { BulkCreateLetters } from '@/components/BulkCreateLetters'
+import { useConfirmDialog } from '@/components/ConfirmDialog'
+import { useKeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp'
 import { useKeyboard } from '@/hooks/useKeyboard'
+import { useDebouncedCallback } from '@/hooks/useDebounce'
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import type { LetterStatus } from '@prisma/client'
@@ -127,6 +130,13 @@ function LettersPageContent() {
   const [page, setPage] = useState(1)
   const [isMobile, setIsMobile] = useState(false)
   const [showBulkCreate, setShowBulkCreate] = useState(false)
+  const { confirm: confirmDialog, Dialog } = useConfirmDialog()
+  const {
+    isOpen: shortcutsOpen,
+    open: openShortcuts,
+    close: closeShortcuts,
+    KeyboardShortcutsDialog,
+  } = useKeyboardShortcutsHelp()
 
   // Массовый выбор
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -158,7 +168,6 @@ function LettersPageContent() {
   // Горячие клавиши и быстрый просмотр
   const [focusedIndex, setFocusedIndex] = useState(0)
   const [previewId, setPreviewId] = useState<string | null>(null)
-  const [showShortcuts, setShowShortcuts] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const lettersAbortRef = useRef<AbortController | null>(null)
   const lettersRequestIdRef = useRef(0)
@@ -201,7 +210,7 @@ function LettersPageContent() {
     onSelectAll: useCallback(() => {
       toggleSelectAll()
     }, [toggleSelectAll]),
-    enabled: !previewId && !showBulkCreate,
+    enabled: !previewId && !showBulkCreate && !shortcutsOpen,
   })
 
   useEffect(() => {
@@ -301,6 +310,10 @@ function LettersPageContent() {
     }
   }, [])
 
+  const debouncedSearch = useDebouncedCallback(() => {
+    if (session) loadLetters(false)
+  }, 300)
+
   const handleBulkCreateSuccess = useCallback(() => {
     setShowBulkCreate(false)
     loadLetters()
@@ -318,14 +331,12 @@ function LettersPageContent() {
     }
   }, [session, loadUsers])
 
-  // Debounced search с индикатором
+  // Debounced search ? D,DD'D,DDD_D_D
   useEffect(() => {
+    if (!session) return
     if (search) setIsSearching(true)
-    const timer = setTimeout(() => {
-      if (session) loadLetters(false)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [search, session, loadLetters])
+    debouncedSearch()
+  }, [search, session, debouncedSearch])
 
   const handleSort = (field: SortField) => {
     if (sortBy === field) {
@@ -337,14 +348,8 @@ function LettersPageContent() {
     setPage(1)
   }
 
-  const executeBulkAction = async () => {
+  const runBulkAction = useCallback(async () => {
     if (!bulkAction || selectedIds.size === 0) return
-
-    if (bulkAction === 'delete') {
-      if (!confirm(`Удалить ${selectedIds.size} писем? Это действие нельзя отменить.`)) {
-        return
-      }
-    }
 
     setBulkLoading(true)
     try {
@@ -367,15 +372,32 @@ function LettersPageContent() {
         setSelectedIds(new Set())
         loadLetters()
       } else {
-        toast.error(data.error || 'Ошибка')
+        toast.error(data.error || '\u041e\u0448\u0438\u0431\u043a\u0430')
       }
     } catch (error) {
       console.error('Bulk action error:', error)
-      toast.error('Ошибка при выполнении')
+      toast.error('\u041e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u0438 \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u0438 \u043e\u043f\u0435\u0440\u0430\u0446\u0438\u0438')
     } finally {
       setBulkLoading(false)
     }
-  }
+  }, [bulkAction, bulkValue, loadLetters, selectedIds])
+
+  const executeBulkAction = useCallback(() => {
+    if (!bulkAction || selectedIds.size === 0) return
+
+    if (bulkAction === 'delete') {
+      confirmDialog({
+        title: '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043f\u0438\u0441\u044c\u043c\u0430?',
+        message: `\u0423\u0434\u0430\u043b\u0438\u0442\u044c ${selectedIds.size} \u043f\u0438\u0441\u0435\u043c? \u042d\u0442\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043d\u0435\u043b\u044c\u0437\u044f \u043e\u0442\u043c\u0435\u043d\u0438\u0442\u044c.`,
+        confirmText: '\u0423\u0434\u0430\u043b\u0438\u0442\u044c',
+        variant: 'danger',
+        onConfirm: runBulkAction,
+      })
+      return
+    }
+
+    runBulkAction()
+  }, [bulkAction, confirmDialog, runBulkAction, selectedIds])
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortBy !== field) return <ArrowUpDown className="w-4 h-4 text-slate-400/70" />
@@ -451,7 +473,7 @@ function LettersPageContent() {
               className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition btn-secondary w-full sm:w-auto"
             >
               <ListPlus className="w-5 h-5" />
-              ???????? ???????? ?????
+              Массовое создание писем
             </button>
             <Link
               href="/letters/new"
@@ -698,32 +720,17 @@ function LettersPageContent() {
           {/* Keyboard shortcuts help */}
           <div className="relative hidden sm:block">
             <button
-              onClick={() => setShowShortcuts(!showShortcuts)}
-              className={`p-2 rounded-lg transition ${showShortcuts ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:text-white'}`}
+              onClick={() => (shortcutsOpen ? closeShortcuts() : openShortcuts())}
+              className={`p-2 rounded-lg transition ${shortcutsOpen ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:text-white'}`}
               title="Горячие клавиши"
               aria-label="Горячие клавиши"
             >
               <Keyboard className="w-5 h-5" />
             </button>
-            {showShortcuts && (
-              <div className="absolute right-0 top-full mt-2 p-4 panel panel-glass rounded-xl shadow-xl z-30 w-64">
-                <h4 className="text-white font-medium mb-3">Горячие клавиши</h4>
-                <div className="text-xs text-slate-300/70 space-y-2">
-                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-white/10 rounded">J</kbd> / <kbd className="px-1.5 py-0.5 bg-white/10 rounded">↓</kbd></span><span>Вниз</span></div>
-                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-white/10 rounded">K</kbd> / <kbd className="px-1.5 py-0.5 bg-white/10 rounded">↑</kbd></span><span>Вверх</span></div>
-                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-white/10 rounded">Enter</kbd></span><span>Открыть</span></div>
-                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-white/10 rounded">Space</kbd></span><span>Выбрать</span></div>
-                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-white/10 rounded">Esc</kbd></span><span>Отмена</span></div>
-                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-white/10 rounded">/</kbd></span><span>Поиск</span></div>
-                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-white/10 rounded">N</kbd></span><span>Новое письмо</span></div>
-                  <div className="flex justify-between"><span><kbd className="px-1.5 py-0.5 bg-white/10 rounded">Ctrl</kbd>+<kbd className="px-1.5 py-0.5 bg-white/10 rounded">A</kbd></span><span>Выбрать все</span></div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Content */}
+{/* Content */}
         {loading ? (
           viewMode === 'cards' ? (
             <CardsSkeleton count={9} />
@@ -985,6 +992,9 @@ function LettersPageContent() {
           </div>
         </div>
       )}
+
+      {KeyboardShortcutsDialog}
+      {Dialog}
     </div>
   )
 }

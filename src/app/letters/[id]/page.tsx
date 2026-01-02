@@ -6,6 +6,8 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { EditableField } from '@/components/EditableField'
 import { FileUpload } from '@/components/FileUpload'
 import { TemplateSelector } from '@/components/TemplateSelector'
+import { ActivityFeed } from '@/components/ActivityFeed'
+import { useConfirmDialog } from '@/components/ConfirmDialog'
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import type { LetterStatus } from '@prisma/client'
@@ -121,6 +123,7 @@ export default function LetterDetailPage() {
   useAuthRedirect(authStatus)
   const params = useParams()
   const router = useRouter()
+  const { confirm: confirmDialog, Dialog } = useConfirmDialog()
 
   const [letter, setLetter] = useState<Letter | null>(null)
   const [loading, setLoading] = useState(true)
@@ -185,11 +188,8 @@ export default function LetterDetailPage() {
     }
   }
 
-  const handleDelete = async () => {
+  const deleteLetter = async () => {
     if (!letter) return
-    if (!confirm('Вы уверены, что хотите удалить это письмо? Это действие нельзя отменить.')) {
-      return
-    }
 
     setDeleting(true)
     try {
@@ -210,6 +210,17 @@ export default function LetterDetailPage() {
       setDeleting(false)
     }
   }
+
+  const handleDelete = useCallback(() => {
+    if (!letter) return
+    confirmDialog({
+      title: 'Удалить письмо?',
+      message: 'Вы уверены, что хотите удалить это письмо? Это действие нельзя отменить.',
+      confirmText: 'Удалить',
+      variant: 'danger',
+      onConfirm: deleteLetter,
+    })
+  }, [confirmDialog, deleteLetter, letter])
 
   const handleDuplicate = async () => {
     if (!letter) return
@@ -666,42 +677,12 @@ export default function LetterDetailPage() {
             </div>
 
             {/* History */}
-            {letter.history.length > 0 && (
-              <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">История изменений</h3>
-                <div className="space-y-3">
-                  {letter.history.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-start gap-3 text-sm"
-                    >
-                      <Clock className="w-4 h-4 text-gray-500 mt-0.5" />
-                      <div>
-                        <span className="text-gray-400">
-                          {item.user.name || item.user.email}
-                        </span>
-                        <span className="text-gray-500"> изменил </span>
-                        <span className="text-white">{item.field}</span>
-                        {item.oldValue && (
-                          <>
-                            <span className="text-gray-500"> с </span>
-                            <span className="text-red-400 line-through">{item.oldValue}</span>
-                          </>
-                        )}
-                        <span className="text-gray-500"> на </span>
-                        <span className="text-emerald-400">{item.newValue}</span>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {new Date(item.createdAt).toLocaleString('ru-RU')}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+              <ActivityFeed letterId={letter.id} />
+            </div>
           </div>
 
-          {/* Sidebar */}
+{/* Sidebar */}
           <div className="space-y-6">
             {/* Info Card */}
             <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
@@ -886,6 +867,8 @@ export default function LetterDetailPage() {
           </div>
         </div>
       </main>
+
+      {Dialog}
     </div>
   )
 }
