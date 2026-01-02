@@ -19,7 +19,7 @@ function generateLetterHTML(letter: {
   content: string | null
   answer: string | null
   comment: string | null
-  owner?: { name: string | null; email: string } | null
+  owner?: { name: string | null; email: string | null } | null
 }) {
   const statusLabel = STATUS_LABELS[letter.status as keyof typeof STATUS_LABELS] || letter.status
 
@@ -161,7 +161,7 @@ function generateLetterHTML(letter: {
             ? `
         <div class="meta-item">
           <div class="meta-label">Ответственный</div>
-          <div class="meta-value">${escapeHtml(letter.owner.name || letter.owner.email)}</div>
+          <div class="meta-value">${escapeHtml(letter.owner.name || letter.owner.email || 'Не указан')}</div>
         </div>
         `
             : ''
