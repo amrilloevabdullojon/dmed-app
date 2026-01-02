@@ -112,16 +112,8 @@ export function getDaysUntilDeadline(deadline: Date | string): number {
   const parsed = parseDateValue(deadline)
   if (!parsed) return 0
   const now = new Date()
-  const deadlineUtc = Date.UTC(
-    parsed.getFullYear(),
-    parsed.getMonth(),
-    parsed.getDate()
-  )
-  const nowUtc = Date.UTC(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate()
-  )
+  const deadlineUtc = Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+  const nowUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
   return Math.ceil((deadlineUtc - nowUtc) / (1000 * 60 * 60 * 24))
 }
 
@@ -141,4 +133,40 @@ export function sanitizeInput(text: string | null | undefined, maxLength = 10000
     .replace(/"/g, '&quot;')
     .substring(0, maxLength)
     .trim()
+}
+
+// Экспорт письма в PDF (открывает страницу для печати)
+export function exportLetterToPdf(letterId: string): void {
+  const url = `/api/export/pdf?id=${encodeURIComponent(letterId)}`
+  const printWindow = window.open(url, '_blank')
+  if (printWindow) {
+    printWindow.onload = () => {
+      printWindow.print()
+    }
+  }
+}
+
+// Скачивание CSV файла
+export function downloadCsv(data: string[][], filename: string): void {
+  const BOM = '\uFEFF'
+  const escapeCSV = (value: string) => {
+    if (
+      value.includes('"') ||
+      value.includes(',') ||
+      value.includes('\n') ||
+      value.includes('\r')
+    ) {
+      return `"${value.replace(/"/g, '""')}"`
+    }
+    return value
+  }
+
+  const csv = BOM + data.map((row) => row.map(escapeCSV).join(',')).join('\r\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
 }
