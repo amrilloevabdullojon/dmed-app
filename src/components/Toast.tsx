@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react'
+import { X, CheckCircle, AlertCircle, AlertTriangle, Info, Loader2 } from 'lucide-react'
 import { Toast, ToastType, useToast, useToastState, ToastProvider } from '@/hooks/useToast'
 
 /**
@@ -12,6 +12,7 @@ const ToastIcons: Record<ToastType, React.ComponentType<{ className?: string }>>
   error: AlertCircle,
   warning: AlertTriangle,
   info: Info,
+  loading: Loader2,
 }
 
 /**
@@ -22,6 +23,7 @@ const ToastStyles: Record<ToastType, string> = {
   error: 'bg-red-500/20 border-red-500/50 text-red-200',
   warning: 'bg-amber-500/20 border-amber-500/50 text-amber-200',
   info: 'bg-blue-500/20 border-blue-500/50 text-blue-200',
+  loading: 'bg-slate-500/20 border-slate-500/50 text-slate-200',
 }
 
 const IconStyles: Record<ToastType, string> = {
@@ -29,6 +31,7 @@ const IconStyles: Record<ToastType, string> = {
   error: 'text-red-400',
   warning: 'text-amber-400',
   info: 'text-blue-400',
+  loading: 'text-slate-300',
 }
 
 /**
@@ -54,6 +57,10 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: (id: string) => 
     }
   }, [toast.duration])
 
+  const iconClassName = toast.type === 'loading'
+    ? `mt-0.5 h-5 w-5 flex-shrink-0 ${IconStyles[toast.type]} animate-spin`
+    : `mt-0.5 h-5 w-5 flex-shrink-0 ${IconStyles[toast.type]}`
+
   return (
     <div
       className={`
@@ -64,7 +71,7 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: (id: string) => 
       `}
       role="alert"
     >
-      <Icon className={`mt-0.5 h-5 w-5 flex-shrink-0 ${IconStyles[toast.type]}`} />
+      <Icon className={iconClassName} />
 
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">{toast.title}</p>

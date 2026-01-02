@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 type Theme = 'dark' | 'light'
 
@@ -13,24 +14,26 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('dark')
+  const [theme, setThemeState] = useLocalStorage<Theme>('theme', 'dark')
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    // Загрузить тему из localStorage
-    const savedTheme = localStorage.getItem('theme') as Theme
-    if (savedTheme) {
-      setThemeState(savedTheme)
-      applyTheme(savedTheme)
-    } else {
-      // Проверить системные настройки
+  }, [])
+
+  useEffect(() => {
+    if (!mounted || typeof window === 'undefined') return
+
+    const savedTheme = window.localStorage.getItem('theme') as Theme | null
+    if (!savedTheme) {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       const defaultTheme = prefersDark ? 'dark' : 'light'
       setThemeState(defaultTheme)
-      applyTheme(defaultTheme)
+      return
     }
-  }, [])
+
+    applyTheme(theme)
+  }, [theme, mounted, setThemeState])
 
   const applyTheme = (newTheme: Theme) => {
     const root = document.documentElement
@@ -45,8 +48,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme)
-    localStorage.setItem('theme', newTheme)
-    applyTheme(newTheme)
   }
 
   const toggleTheme = () => {

@@ -19,7 +19,7 @@ import {
   FileCode,
   Bot,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { useToast } from '@/components/Toast'
 import {
   parseLetterFilename,
   guessOrganization,
@@ -53,6 +53,7 @@ interface QuickLetterUploadProps {
 
 export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
   const router = useRouter()
+  const toast = useToast()
   const [dragOver, setDragOver] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [creating, setCreating] = useState(false)

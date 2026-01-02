@@ -23,7 +23,7 @@ import {
   Paperclip,
   ArrowUpRight,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { useToast } from '@/components/Toast'
 import { LETTER_TYPES } from '@/lib/constants'
 import { formatDateForInput, calculateDeadline } from '@/lib/parseLetterFilename'
 
@@ -71,6 +71,7 @@ interface BulkCreateLettersProps {
 
 export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLettersProps) {
   const router = useRouter()
+  const toast = useToast()
   const [rows, setRows] = useState<LetterRow[]>([createEmptyRow()])
   const [creating, setCreating] = useState(false)
   const [skipDuplicates, setSkipDuplicates] = useState(false)

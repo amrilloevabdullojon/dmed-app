@@ -33,7 +33,7 @@ import {
   History,
   User as UserIcon,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { useToast } from '@/components/Toast'
 import { hasPermission } from '@/lib/permissions'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 
@@ -210,6 +210,7 @@ const fieldCompact =
 const controlBase = 'rounded border-white/20 bg-white/5'
 
 export default function SettingsPage() {
+  const toast = useToast()
   const { data: session, status: authStatus } = useSession()
   useAuthRedirect(authStatus)
   const router = useRouter()

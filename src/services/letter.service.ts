@@ -9,6 +9,7 @@ import {
 } from '@/lib/constants'
 import { randomUUID } from 'crypto'
 import type { LetterStatus, Prisma } from '@prisma/client'
+import { letterQuery, type SortOrder } from '@/lib/query-builder'
 import type {
   CreateLetterDTO,
   LetterFilters,
@@ -34,12 +35,48 @@ export class LetterService {
     const page = pagination.page || 1
     const limit = pagination.limit || PAGE_SIZE
 
-    const where = this.buildWhereClause(filters, userId)
-    const orderBy = this.buildOrderBy(filters.sortBy, filters.sortOrder)
+    const builder = letterQuery().notDeleted()
+
+    if (filters.status && filters.status !== 'all') {
+      builder.status(filters.status)
+    }
+
+    if (filters.filter === 'overdue') {
+      builder.overdue()
+    } else if (filters.filter === 'urgent') {
+      builder.urgent()
+    } else if (filters.filter === 'done') {
+      builder.status(['READY', 'DONE'])
+    } else if (filters.filter === 'active') {
+      builder.status(['NOT_REVIEWED', 'ACCEPTED', 'IN_PROGRESS', 'CLARIFICATION'])
+    } else if (filters.filter === 'favorites') {
+      builder.favorites(userId)
+    }
+
+    if (filters.owner) {
+      builder.owner(filters.owner)
+    }
+
+    if (filters.type) {
+      builder.type(filters.type)
+    }
+
+    if (filters.search) {
+      builder.search(filters.search)
+    }
+
+    const sortBy = filters.sortBy || 'created'
+    const sortOrder = filters.sortOrder || 'desc'
+    const effectiveOrder =
+      sortBy === 'priority' ? (sortOrder === 'asc' ? 'desc' : 'asc') : sortOrder
+
+    builder.sortBy(sortBy, effectiveOrder as SortOrder).paginate(page, limit)
+
+    const query = builder.build()
 
     const [letters, total] = await Promise.all([
       prisma.letter.findMany({
-        where,
+        where: query.where,
         select: {
           id: true,
           number: true,
@@ -57,11 +94,11 @@ export class LetterService {
             select: { comments: true, watchers: true },
           },
         },
-        orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
+        orderBy: query.orderBy,
+        skip: query.skip,
+        take: query.take,
       }),
-      prisma.letter.count({ where }),
+      prisma.letter.count({ where: builder.buildWhere() }),
     ])
 
     return {
