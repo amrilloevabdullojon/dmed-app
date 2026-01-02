@@ -15,6 +15,9 @@ interface StatsData {
     urgent: number
     done: number
     inProgress: number
+    notReviewed: number
+    todayDeadlines: number
+    weekDeadlines: number
     monthNew: number
     monthDone: number
     avgDays: number
@@ -42,12 +45,18 @@ export async function GET(request: NextRequest) {
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000)
+    const weekEnd = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+
     // Параллельные запросы для ускорения
     const [
       statusCounts,
       total,
       overdueCount,
       urgentCount,
+      todayDeadlinesCount,
+      weekDeadlinesCount,
       monthStats,
       monthDone,
       byOwner,
@@ -79,6 +88,22 @@ export async function GET(request: NextRequest) {
             gte: now,
             lte: new Date(now.getTime() + URGENT_DAYS * 24 * 60 * 60 * 1000),
           },
+          status: { notIn: ['READY', 'DONE'] },
+        },
+      }),
+      // Дедлайн сегодня
+      prisma.letter.count({
+        where: {
+          deletedAt: null,
+          deadlineDate: { gte: today, lt: tomorrow },
+          status: { notIn: ['READY', 'DONE'] },
+        },
+      }),
+      // Дедлайн на этой неделе
+      prisma.letter.count({
+        where: {
+          deletedAt: null,
+          deadlineDate: { gte: today, lt: weekEnd },
           status: { notIn: ['READY', 'DONE'] },
         },
       }),
@@ -138,24 +163,23 @@ export async function GET(request: NextRequest) {
     const inProgressCount = byStatus.IN_PROGRESS + byStatus.ACCEPTED + byStatus.CLARIFICATION
 
     // Статистика по ответственным (используем уже загруженных пользователей)
-    const ownerStats = byOwner.map((o) => {
-      const user = allUsers.find((u) => u.id === o.ownerId)
-      return {
-        id: o.ownerId,
-        name: user?.name || user?.email?.split('@')[0] || 'Неизвестный',
-        count: o._count.id,
-      }
-    }).sort((a, b) => b.count - a.count)
+    const ownerStats = byOwner
+      .map((o) => {
+        const user = allUsers.find((u) => u.id === o.ownerId)
+        return {
+          id: o.ownerId,
+          name: user?.name || user?.email?.split('@')[0] || 'Неизвестный',
+          count: o._count.id,
+        }
+      })
+      .sort((a, b) => b.count - a.count)
 
     // Статистика по месяцам за год (оптимизировано - один запрос)
     const yearAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1)
     const monthlyLetters = await prisma.letter.findMany({
       where: {
         deletedAt: null,
-        OR: [
-          { createdAt: { gte: yearAgo } },
-          { closeDate: { gte: yearAgo } },
-        ],
+        OR: [{ createdAt: { gte: yearAgo } }, { closeDate: { gte: yearAgo } }],
       },
       select: { createdAt: true, closeDate: true, status: true },
     })
@@ -169,14 +193,18 @@ export async function GET(request: NextRequest) {
     }
 
     monthlyLetters.forEach((letter) => {
-      const createdMonth = new Date(letter.createdAt).toLocaleDateString('ru-RU', { month: 'short' })
+      const createdMonth = new Date(letter.createdAt).toLocaleDateString('ru-RU', {
+        month: 'short',
+      })
       if (monthlyMap.has(createdMonth)) {
         const data = monthlyMap.get(createdMonth)!
         data.created++
       }
 
       if (letter.closeDate && ['READY', 'DONE'].includes(letter.status)) {
-        const closedMonth = new Date(letter.closeDate).toLocaleDateString('ru-RU', { month: 'short' })
+        const closedMonth = new Date(letter.closeDate).toLocaleDateString('ru-RU', {
+          month: 'short',
+        })
         if (monthlyMap.has(closedMonth)) {
           const data = monthlyMap.get(closedMonth)!
           data.done++
@@ -204,10 +232,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Статистика по типам
-    const typeStats = byType.map((t) => ({
-      type: t.type || 'Не указан',
-      count: t._count.id,
-    })).sort((a, b) => b.count - a.count)
+    const typeStats = byType
+      .map((t) => ({
+        type: t.type || 'Не указан',
+        count: t._count.id,
+      }))
+      .sort((a, b) => b.count - a.count)
 
     const result: StatsData = {
       summary: {
@@ -216,6 +246,9 @@ export async function GET(request: NextRequest) {
         urgent: urgentCount,
         done: doneCount,
         inProgress: inProgressCount,
+        notReviewed: byStatus.NOT_REVIEWED,
+        todayDeadlines: todayDeadlinesCount,
+        weekDeadlines: weekDeadlinesCount,
         monthNew: monthStats,
         monthDone,
         avgDays,
@@ -232,9 +265,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result)
   } catch (error) {
     console.error('GET /api/stats error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
