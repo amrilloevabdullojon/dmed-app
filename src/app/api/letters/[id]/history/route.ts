@@ -1,0 +1,58 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
+    const offset = parseInt(searchParams.get('offset') || '0')
+
+    // Проверяем существование письма
+    const letter = await prisma.letter.findUnique({
+      where: { id: params.id },
+      select: { id: true },
+    })
+
+    if (!letter) {
+      return NextResponse.json({ error: 'Letter not found' }, { status: 404 })
+    }
+
+    // Получаем историю изменений
+    const history = await prisma.history.findMany({
+      where: { letterId: params.id },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+      },
+    })
+
+    // Общее количество записей
+    const total = await prisma.history.count({
+      where: { letterId: params.id },
+    })
+
+    return NextResponse.json({
+      history,
+      total,
+      hasMore: offset + history.length < total,
+    })
+  } catch (error) {
+    console.error('GET /api/letters/[id]/history error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
