@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     ])
 
     // Получаем информацию о письмах
-    const letterIds = [...new Set(changes.map((c) => c.letterId))]
+    const letterIds = Array.from(new Set(changes.map((c) => c.letterId)))
     const letters = await prisma.letter.findMany({
       where: { id: { in: letterIds } },
       select: { id: true, number: true, org: true },
