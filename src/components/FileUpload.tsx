@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { Upload, X, Loader2, FileText, Trash2, ExternalLink } from 'lucide-react'
-import { toast } from 'sonner'
+import { useToast } from '@/components/Toast'
 import { MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL } from '@/lib/constants'
 
 interface FileInfo {
@@ -22,6 +22,7 @@ interface FileUploadProps {
 }
 
 export function FileUpload({ letterId, files, onFilesChange }: FileUploadProps) {
+  const toast = useToast()
   const [uploading, setUploading] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)

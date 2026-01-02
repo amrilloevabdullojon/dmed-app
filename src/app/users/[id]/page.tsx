@@ -28,7 +28,7 @@ import {
   X,
   Send,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { useToast } from '@/components/Toast'
 import { formatDate } from '@/lib/utils'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 
@@ -124,6 +124,7 @@ const ROLE_BADGE_CLASSES: Record<UserSummary['role'], string> = {
 }
 
 export default function UserProfilePage() {
+  const toast = useToast()
   const { data: session, status: authStatus } = useSession()
   useAuthRedirect(authStatus)
   const params = useParams<{ id: string }>()

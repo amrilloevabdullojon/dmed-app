@@ -19,10 +19,11 @@ import {
 } from 'lucide-react'
 import { Notifications } from './Notifications'
 import { ThemeToggle } from './ThemeToggle'
-import { toast } from 'sonner'
+import { useToast } from '@/components/Toast'
 
 export function Header() {
   const { data: session } = useSession()
+  const toast = useToast()
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [syncing, setSyncing] = useState(false)

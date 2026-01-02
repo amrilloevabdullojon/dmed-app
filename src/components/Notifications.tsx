@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Bell, X, AlertTriangle, Clock, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate, getDaysUntilDeadline, pluralizeDays } from '@/lib/utils'
+import { useFetch, useMutation } from '@/hooks/useFetch'
 
 interface Notification {
   id: string
@@ -32,74 +33,56 @@ interface UserNotification {
   } | null
 }
 
+const buildNotifications = (
+  letters: Notification['letter'][],
+  type: Notification['type']
+): Notification[] => {
+  return letters.map((letter) => ({
+    id: `${type}-${letter.id}`,
+    type,
+    letter: {
+      id: letter.id,
+      number: letter.number,
+      org: letter.org,
+      deadlineDate: letter.deadlineDate,
+    },
+    daysLeft: getDaysUntilDeadline(letter.deadlineDate),
+  }))
+}
+
 export function Notifications() {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [userNotifications, setUserNotifications] = useState<UserNotification[]>([])
   const [isOpen, setIsOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    loadNotifications()
-    // Обновлять каждые 5 минут
-    const interval = setInterval(loadNotifications, 5 * 60 * 1000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const loadNotifications = async () => {
-    setLoading(true)
-    try {
-      const userRes = await fetch('/api/notifications')
-      if (userRes.ok) {
-        const userData = await userRes.json()
-        setUserNotifications(userData.notifications || [])
-      }
-      // Загрузить просроченные
-      const overdueRes = await fetch('/api/letters?filter=overdue&limit=10')
-      const overdueData = await overdueRes.json()
-
-      // Загрузить срочные
-      const urgentRes = await fetch('/api/letters?filter=urgent&limit=10')
-      const urgentData = await urgentRes.json()
-
-      const notifs: Notification[] = []
-
-      // Добавить просроченные
-      overdueData.letters?.forEach((letter: any) => {
-        notifs.push({
-          id: `overdue-${letter.id}`,
-          type: 'overdue',
-          letter: {
-            id: letter.id,
-            number: letter.number,
-            org: letter.org,
-            deadlineDate: letter.deadlineDate,
-          },
-          daysLeft: getDaysUntilDeadline(letter.deadlineDate),
-        })
-      })
-
-      // Добавить срочные
-      urgentData.letters?.forEach((letter: any) => {
-        notifs.push({
-          id: `urgent-${letter.id}`,
-          type: 'urgent',
-          letter: {
-            id: letter.id,
-            number: letter.number,
-            org: letter.org,
-            deadlineDate: letter.deadlineDate,
-          },
-          daysLeft: getDaysUntilDeadline(letter.deadlineDate),
-        })
-      })
-
-      setNotifications(notifs)
-    } catch (error) {
-      console.error('Failed to load notifications:', error)
-    } finally {
-      setLoading(false)
+  const userNotificationsQuery = useFetch<UserNotification[]>('/api/notifications', {
+    initialData: [],
+    transform: (data) => (data as { notifications?: UserNotification[] }).notifications || [],
+    refetchInterval: 5 * 60 * 1000,
+  })
+  const overdueQuery = useFetch<{ letters?: Notification['letter'][] }>(
+    '/api/letters?filter=overdue&limit=10',
+    {
+      initialData: { letters: [] },
+      refetchInterval: 5 * 60 * 1000,
     }
-  }
+  )
+  const urgentQuery = useFetch<{ letters?: Notification['letter'][] }>(
+    '/api/letters?filter=urgent&limit=10',
+    {
+      initialData: { letters: [] },
+      refetchInterval: 5 * 60 * 1000,
+    }
+  )
+  const updateNotifications = useMutation<
+    { success: boolean },
+    { ids?: string[]; all?: boolean }
+  >('/api/notifications', { method: 'PATCH' })
+
+  const userNotifications = userNotificationsQuery.data || []
+  const setUserNotifications = userNotificationsQuery.mutate
+  const notifications = [
+    ...buildNotifications(overdueQuery.data?.letters || [], 'overdue'),
+    ...buildNotifications(urgentQuery.data?.letters || [], 'urgent'),
+  ]
 
   const overdueCount = notifications.filter((n) => n.type === 'overdue').length
   const urgentCount = notifications.filter((n) => n.type === 'urgent').length
@@ -107,33 +90,28 @@ export function Notifications() {
   const totalCount = notifications.length + unreadCount
 
   const markNotificationRead = async (id: string) => {
-    try {
-      await fetch('/api/notifications', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids: [id] }),
-      })
-      setUserNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-      )
-    } catch (error) {
-      console.error('Failed to mark notification read:', error)
+    const previous = userNotifications
+    setUserNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+    )
+
+    const result = await updateNotifications.mutate({ ids: [id] })
+    if (!result) {
+      console.error('Failed to mark notification read')
+      setUserNotifications(previous)
     }
   }
 
   const markAllRead = async () => {
-    try {
-      await fetch('/api/notifications', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ all: true }),
-      })
-      setUserNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
-    } catch (error) {
-      console.error('Failed to mark all notifications read:', error)
+    const previous = userNotifications
+    setUserNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
+
+    const result = await updateNotifications.mutate({ all: true })
+    if (!result) {
+      console.error('Failed to mark all notifications read')
+      setUserNotifications(previous)
     }
   }
-
   return (
     <div className="relative">
       <button

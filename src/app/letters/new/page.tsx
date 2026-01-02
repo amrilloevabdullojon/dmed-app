@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Loader2, Save, Sparkles, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { QuickLetterUpload } from '@/components/QuickLetterUpload'
-import { toast } from 'sonner'
+import { useToast } from '@/components/Toast'
 import { ALLOWED_FILE_EXTENSIONS, LETTER_TYPES, MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL } from '@/lib/constants'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 
@@ -15,6 +15,7 @@ export default function NewLetterPage() {
   const { data: session, status } = useSession()
   useAuthRedirect(status)
   const router = useRouter()
+  const toast = useToast()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 

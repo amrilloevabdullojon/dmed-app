@@ -5,12 +5,11 @@ import { Header } from '@/components/Header'
 import { StatusBadge } from '@/components/StatusBadge'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { StatsSkeleton } from '@/components/Skeleton'
+import { StatsWidgets } from '@/components/StatsWidgets'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 import {
   FileText,
   Clock,
-  CheckCircle,
   AlertTriangle,
   Plus,
   ArrowRight,
@@ -19,7 +18,6 @@ import {
   Star,
   TrendingUp,
   BarChart3,
-  Activity,
 } from 'lucide-react'
 import { formatDate, getDaysUntilDeadline, pluralizeDays, STATUS_LABELS } from '@/lib/utils'
 import type { LetterStatus } from '@prisma/client'
@@ -170,87 +168,10 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* Stats Cards */}
-        {loading ? (
-          <StatsSkeleton />
-        ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8 stagger-animation">
-          <Link
-            href="/letters"
-            className="bg-gray-800 rounded-lg p-5 border border-gray-700 hover:border-gray-600 transition"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Всего</p>
-                <p className="text-2xl font-bold text-white mt-1">
-                  {stats?.total ?? '-'}
-                </p>
-              </div>
-              <FileText className="w-8 h-8 text-gray-600" />
-            </div>
-          </Link>
-
-          <Link
-            href="/letters?filter=active"
-            className="bg-gray-800 rounded-lg p-5 border border-gray-700 hover:border-blue-500/50 transition"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">В работе</p>
-                <p className="text-2xl font-bold text-blue-400 mt-1">
-                  {stats?.active ?? '-'}
-                </p>
-              </div>
-              <Activity className="w-8 h-8 text-blue-600" />
-            </div>
-          </Link>
-
-          <Link
-            href="/letters?filter=urgent"
-            className="bg-gray-800 rounded-lg p-5 border border-gray-700 hover:border-yellow-500/50 transition"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Срочные</p>
-                <p className="text-2xl font-bold text-yellow-400 mt-1">
-                  {stats?.urgent ?? '-'}
-                </p>
-              </div>
-              <Clock className="w-8 h-8 text-yellow-600" />
-            </div>
-          </Link>
-
-          <Link
-            href="/letters?filter=overdue"
-            className="bg-gray-800 rounded-lg p-5 border border-gray-700 hover:border-red-500/50 transition"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Просрочено</p>
-                <p className="text-2xl font-bold text-red-400 mt-1">
-                  {stats?.overdue ?? '-'}
-                </p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-red-600" />
-            </div>
-          </Link>
-
-          <Link
-            href="/letters?filter=done"
-            className="bg-gray-800 rounded-lg p-5 border border-gray-700 hover:border-emerald-500/50 transition"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Выполнено</p>
-                <p className="text-2xl font-bold text-emerald-400 mt-1">
-                  {stats?.completed ?? '-'}
-                </p>
-              </div>
-              <CheckCircle className="w-8 h-8 text-emerald-600" />
-            </div>
-          </Link>
+        {/* Stats Widgets */}
+        <div className="mb-8">
+          <StatsWidgets />
         </div>
-        )}
 
         {/* Progress + Status breakdown */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

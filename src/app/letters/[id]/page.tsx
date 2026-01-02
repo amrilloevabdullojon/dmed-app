@@ -40,7 +40,7 @@ import {
   Link2,
 } from 'lucide-react'
 import Link from 'next/link'
-import { toast } from 'sonner'
+import { useToast } from '@/components/Toast'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 
 interface CommentItem {
@@ -124,6 +124,7 @@ export default function LetterDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { confirm: confirmDialog, Dialog } = useConfirmDialog()
+  const toast = useToast()
 
   const [letter, setLetter] = useState<Letter | null>(null)
   const [loading, setLoading] = useState(true)

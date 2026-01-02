@@ -29,7 +29,7 @@ import {
   RefreshCw,
   ExternalLink,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { useToast } from '@/components/Toast'
 import { formatDate } from '@/lib/utils'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 
@@ -149,6 +149,7 @@ const emptyProfile: ProfileData = {
 }
 
 export default function ProfilePage() {
+  const toast = useToast()
   const { data: session, status: authStatus, update: updateSession } = useSession()
   useAuthRedirect(authStatus)
   const [loading, setLoading] = useState(true)

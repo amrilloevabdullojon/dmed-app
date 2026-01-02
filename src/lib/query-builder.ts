@@ -97,6 +97,10 @@ export class LetterQueryBuilder {
         { number: { contains: searchTerm, mode: 'insensitive' } },
         { org: { contains: searchTerm, mode: 'insensitive' } },
         { content: { contains: searchTerm, mode: 'insensitive' } },
+        { jiraLink: { contains: searchTerm, mode: 'insensitive' } },
+        { answer: { contains: searchTerm, mode: 'insensitive' } },
+        { zordoc: { contains: searchTerm, mode: 'insensitive' } },
+        { comment: { contains: searchTerm, mode: 'insensitive' } },
         { applicantName: { contains: searchTerm, mode: 'insensitive' } },
       ]
     }

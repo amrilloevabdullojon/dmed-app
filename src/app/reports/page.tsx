@@ -26,7 +26,7 @@ import {
   Save,
 } from 'lucide-react'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
-import { toast } from 'sonner'
+import { useToast } from '@/components/Toast'
 
 interface Stats {
   summary: {
@@ -57,6 +57,7 @@ const STATUS_CHART_COLORS: Record<LetterStatus, string> = {
 export default function ReportsPage() {
   const { data: session, status: authStatus } = useSession()
   useAuthRedirect(authStatus)
+  const toast = useToast()
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)

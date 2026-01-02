@@ -11,6 +11,8 @@ import { useConfirmDialog } from '@/components/ConfirmDialog'
 import { useKeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp'
 import { useKeyboard } from '@/hooks/useKeyboard'
 import { useDebouncedCallback } from '@/hooks/useDebounce'
+import { usePagination } from '@/hooks/usePagination'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import type { LetterStatus } from '@prisma/client'
@@ -46,7 +48,7 @@ import {
   ListPlus,
 } from 'lucide-react'
 import Link from 'next/link'
-import { toast } from 'sonner'
+import { useToast } from '@/components/Toast'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 
 interface Letter {
@@ -109,6 +111,7 @@ type SortField = 'created' | 'deadline' | 'date' | 'number' | 'org' | 'status' |
 function LettersPageContent() {
   const { data: session, status: authStatus } = useSession()
   useAuthRedirect(authStatus)
+  const toast = useToast()
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -124,11 +127,25 @@ function LettersPageContent() {
   const [quickFilter, setQuickFilter] = useState(searchParams.get('filter') || '')
   const [ownerFilter, setOwnerFilter] = useState(searchParams.get('owner') || '')
   const [typeFilter, setTypeFilter] = useState(searchParams.get('type') || '')
-  const [viewMode, setViewMode] = useState<ViewMode>('table')
+  const [viewMode, setViewMode] = useLocalStorage<ViewMode>('letters-view-mode', 'table')
   const [sortBy, setSortBy] = useState<SortField>('created')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  const [page, setPage] = useState(1)
+  const {
+    page,
+    limit,
+    totalPages,
+    nextPage,
+    prevPage,
+    goToPage,
+    hasNext,
+    hasPrev,
+  } = usePagination({
+    total: pagination?.total || 0,
+    initialPage: 1,
+    initialLimit: 50,
+  })
   const [isMobile, setIsMobile] = useState(false)
+  const effectiveViewMode = isMobile ? 'cards' : viewMode
   const [showBulkCreate, setShowBulkCreate] = useState(false)
   const { confirm: confirmDialog, Dialog } = useConfirmDialog()
   const {
@@ -243,11 +260,6 @@ function LettersPageContent() {
     }
   }, [showBulkCreate])
 
-  useEffect(() => {
-    if (isMobile && viewMode !== 'cards') {
-      setViewMode('cards')
-    }
-  }, [isMobile, viewMode])
 
   const loadLetters = useCallback(async (showLoading = true) => {
     const requestId = ++lettersRequestIdRef.current
@@ -262,7 +274,7 @@ function LettersPageContent() {
     try {
       const params = new URLSearchParams()
       params.set('page', String(page))
-      params.set('limit', '50')
+      params.set('limit', String(limit))
       params.set('sortBy', sortBy)
       params.set('sortOrder', sortOrder)
       if (statusFilter !== 'all') params.set('status', statusFilter)
@@ -291,6 +303,7 @@ function LettersPageContent() {
     }
   }, [
     page,
+    limit,
     sortBy,
     sortOrder,
     statusFilter,
@@ -345,7 +358,7 @@ function LettersPageContent() {
       setSortBy(field)
       setSortOrder('asc')
     }
-    setPage(1)
+    goToPage(1)
   }
 
   const runBulkAction = useCallback(async () => {
@@ -595,7 +608,7 @@ function LettersPageContent() {
                 onClick={() => {
                   setQuickFilter(filter.value)
                   setStatusFilter('all')
-                  setPage(1)
+                  goToPage(1)
                 }}
                 className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition app-chip ${quickFilter === filter.value ? 'app-chip-active' : ''}`}
               >
@@ -643,7 +656,7 @@ function LettersPageContent() {
               onChange={(e) => {
                 setStatusFilter(e.target.value as LetterStatus | 'all')
                 setQuickFilter('')
-                setPage(1)
+                goToPage(1)
               }}
               className="w-full sm:w-auto px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
               aria-label="Фильтр по статусу"
@@ -663,7 +676,7 @@ function LettersPageContent() {
               value={ownerFilter}
               onChange={(e) => {
                 setOwnerFilter(e.target.value)
-                setPage(1)
+                goToPage(1)
               }}
               className="w-full sm:w-auto px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
               aria-label="Фильтр по исполнителю"
@@ -683,7 +696,7 @@ function LettersPageContent() {
               value={typeFilter}
               onChange={(e) => {
                 setTypeFilter(e.target.value)
-                setPage(1)
+                goToPage(1)
               }}
               className="w-full sm:w-auto px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
               aria-label="Фильтр по типу"
@@ -732,7 +745,7 @@ function LettersPageContent() {
 
 {/* Content */}
         {loading ? (
-          viewMode === 'cards' ? (
+          effectiveViewMode === 'cards' ? (
             <CardsSkeleton count={9} />
           ) : (
             <TableSkeleton rows={10} />
@@ -741,7 +754,7 @@ function LettersPageContent() {
           <div className="text-center py-12">
             <p className="text-slate-300/70">Письма не найдены</p>
           </div>
-        ) : viewMode === 'cards' ? (
+        ) : effectiveViewMode === 'cards' ? (
           <VirtualLetterList
             letters={letters}
             selectedIds={selectedIds}
@@ -936,12 +949,12 @@ function LettersPageContent() {
         {pagination && pagination.totalPages > 1 && (
           <div className="flex items-center justify-between mt-6">
             <div className="text-slate-300/70 text-sm">
-              Показано {((page - 1) * 50) + 1}-{Math.min(page * 50, pagination.total)} из {pagination.total}
+              Показано {((page - 1) * limit) + 1}-{Math.min(page * limit, pagination.total)} из {pagination.total}
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
+                onClick={prevPage}
+                disabled={!hasPrev}
                 className="p-2 bg-white/5 border border-white/10 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 transition"
                 aria-label="Предыдущая страница"
               >
@@ -949,12 +962,12 @@ function LettersPageContent() {
               </button>
 
               <span className="text-slate-300/70 px-2">
-                {page} / {pagination.totalPages}
+                {page} / {totalPages}
               </span>
 
               <button
-                onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-                disabled={page === pagination.totalPages}
+                onClick={nextPage}
+                disabled={!hasNext}
                 className="p-2 bg-white/5 border border-white/10 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 transition"
                 aria-label="Следующая страница"
               >
