@@ -221,6 +221,50 @@ export function useCurrentUser() {
 }
 
 /**
+ * Hook for bulk creating letters
+ */
+export interface BulkCreateLetterInput {
+  number: string
+  org: string
+  date: string
+  deadlineDate?: string
+  type?: string
+  content?: string
+  priority?: number
+}
+
+export interface BulkCreateResult {
+  success: boolean
+  created: number
+  skipped: number
+  skippedNumbers: string[]
+  letters: unknown[]
+}
+
+export function useBulkCreateLetters() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      letters,
+      skipDuplicates = false,
+    }: {
+      letters: BulkCreateLetterInput[]
+      skipDuplicates?: boolean
+    }): Promise<BulkCreateResult> => {
+      return fetchWithRetry('/api/letters/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ letters, skipDuplicates }),
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.letters.all })
+    },
+  })
+}
+
+/**
  * Prefetch helpers
  */
 export function usePrefetch() {
