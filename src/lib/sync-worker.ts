@@ -170,7 +170,8 @@ export async function processPendingChanges(batchSize = 50): Promise<SyncResult>
     const syncedIds: string[] = []
     const letterIdsToUpdate: { letterId: string; sheetRowNum: number }[] = []
 
-    for (const [letterId, changes] of letterChanges) {
+    const letterEntries = Array.from(letterChanges.entries())
+    for (const [letterId, changes] of letterEntries) {
       try {
         // Получаем актуальные данные письма
         const letter = await prisma.letter.findUnique({
