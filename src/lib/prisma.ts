@@ -47,7 +47,7 @@ const letterChangeLogMiddleware: Prisma.Middleware = async (params, next) => {
     return result
   }
 
-  // UPDATE
+  // UPDATE (включая soft delete)
   if (action === 'update') {
     // Получаем старые данные перед обновлением
     const oldData = await prisma.letter.findUnique({
@@ -58,34 +58,29 @@ const letterChangeLogMiddleware: Prisma.Middleware = async (params, next) => {
     const result = await next(params)
 
     if (oldData && result) {
-      // Определяем изменённые поля
-      const changes = detectChanges(oldData, result)
+      // Проверяем soft delete (deletedAt изменился с null на дату)
+      const wasSoftDeleted = oldData.deletedAt === null && result.deletedAt !== null
 
-      for (const change of changes) {
+      if (wasSoftDeleted) {
+        // Логируем как DELETE
         logLetterChange({
           letterId: result.id,
-          action: 'UPDATE',
-          field: change.field,
-          oldValue: change.oldValue,
-          newValue: change.newValue,
-        }).catch(() => {
-          // Игнорируем ошибки логирования
-        })
+          action: 'DELETE',
+        }).catch(() => {})
+      } else {
+        // Определяем изменённые поля
+        const changes = detectChanges(oldData, result)
+
+        for (const change of changes) {
+          logLetterChange({
+            letterId: result.id,
+            action: 'UPDATE',
+            field: change.field,
+            oldValue: change.oldValue,
+            newValue: change.newValue,
+          }).catch(() => {})
+        }
       }
-    }
-
-    return result
-  }
-
-  // DELETE (soft delete через update deletedAt)
-  if (action === 'update' && params.args.data?.deletedAt !== undefined) {
-    const result = await next(params)
-
-    if (params.args.data.deletedAt !== null) {
-      logLetterChange({
-        letterId: result.id,
-        action: 'DELETE',
-      }).catch(() => {})
     }
 
     return result
