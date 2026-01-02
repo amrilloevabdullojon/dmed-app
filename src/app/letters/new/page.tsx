@@ -17,6 +17,9 @@ import {
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 import { useForm } from '@/hooks/useForm'
 import { createLetterSchema } from '@/lib/schemas'
+import { z, type ZodSchema } from 'zod'
+
+type CreateLetterFormValues = z.input<typeof createLetterSchema>
 
 export default function NewLetterPage() {
   const { data: session, status } = useSession()
@@ -29,7 +32,7 @@ export default function NewLetterPage() {
   const [mode, setMode] = useState<'quick' | 'manual'>('quick')
   const [attachment, setAttachment] = useState<File | null>(null)
 
-  const form = useForm({
+  const form = useForm<CreateLetterFormValues>({
     initialValues: {
       number: '',
       org: '',
@@ -45,7 +48,7 @@ export default function NewLetterPage() {
       applicantPhone: '',
       applicantTelegramChatId: '',
     },
-    schema: createLetterSchema,
+    schema: createLetterSchema as unknown as ZodSchema<CreateLetterFormValues>,
     validateOnChange: false,
     validateOnBlur: false,
     onError: () => setError('Проверьте обязательные поля.'),
