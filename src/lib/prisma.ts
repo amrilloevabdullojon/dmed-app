@@ -9,16 +9,13 @@ const globalForPrisma = globalThis as unknown as {
 const getPrisma = () => prisma
 
 const prismaClientSingleton = () => {
-  const log: Prisma.LogDefinition[] = []
   const enableQueryLogging = process.env.PRISMA_LOG_QUERIES === 'true'
 
-  log.push({ emit: 'stdout', level: 'error' })
-  if (process.env.NODE_ENV === 'development') {
-    log.push({ emit: 'stdout', level: 'warn' })
-  }
-  if (enableQueryLogging) {
-    log.push({ emit: 'event', level: 'query' })
-  }
+  const log = [
+    { emit: 'stdout', level: 'error' },
+    ...(process.env.NODE_ENV === 'development' ? [{ emit: 'stdout', level: 'warn' }] : []),
+    ...(enableQueryLogging ? [{ emit: 'event', level: 'query' }] : []),
+  ] satisfies Prisma.LogDefinition[]
 
   const client = new PrismaClient({ log })
 
