@@ -12,7 +12,7 @@ import { useKeyboard } from '@/hooks/useKeyboard'
 import { useDebouncedCallback } from '@/hooks/useDebounce'
 import { usePagination } from '@/hooks/usePagination'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { useEffect, useState, useRef, useCallback, Suspense } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import type { LetterStatus } from '@prisma/client'
 import { STATUS_LABELS } from '@/lib/utils'
@@ -92,12 +92,12 @@ const STATUSES: (LetterStatus | 'all')[] = [
 ]
 
 const FILTERS = [
-  { value: '', label: 'Все письма', icon: List },
-  { value: 'favorites', label: 'Избранное', icon: Star },
-  { value: 'overdue', label: 'Просроченные', icon: AlertTriangle },
-  { value: 'urgent', label: 'Срочные (3 дня)', icon: Clock },
-  { value: 'active', label: 'В работе', icon: XCircle },
-  { value: 'done', label: 'Выполненные', icon: CheckCircle },
+  { value: '', label: '\u0412\u0441\u0435 \u043f\u0438\u0441\u044c\u043c\u0430', icon: List },
+  { value: 'favorites', label: '\u0418\u0437\u0431\u0440\u0430\u043d\u043d\u044b\u0435', icon: Star },
+  { value: 'overdue', label: '\u041f\u0440\u043e\u0441\u0440\u043e\u0447\u0435\u043d\u043d\u044b\u0435', icon: AlertTriangle },
+  { value: 'urgent', label: '\u0421\u0440\u043e\u0447\u043d\u044b\u0435 (3 \u0434\u043d\u044f)', icon: Clock },
+  { value: 'active', label: '\u0412 \u0440\u0430\u0431\u043e\u0442\u0435', icon: XCircle },
+  { value: 'done', label: '\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u043d\u044b\u0435', icon: CheckCircle },
 ]
 
 type ViewMode = 'cards' | 'table'
@@ -117,6 +117,7 @@ function LettersPageContent() {
   const [isSearching, setIsSearching] = useState(false)
   const [search, setSearch] = useState('')
   const searchRef = useRef(search)
+  const querySyncRef = useRef<string | null>(searchParams.toString())
   const [statusFilter, setStatusFilter] = useState<LetterStatus | 'all'>(
     (searchParams.get('status') as LetterStatus) || 'all'
   )
@@ -184,6 +185,16 @@ function LettersPageContent() {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const lettersAbortRef = useRef<AbortController | null>(null)
   const lettersRequestIdRef = useRef(0)
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0
+    if (search) count += 1
+    if (statusFilter !== 'all') count += 1
+    if (quickFilter) count += 1
+    if (ownerFilter) count += 1
+    if (typeFilter) count += 1
+    return count
+  }, [search, statusFilter, quickFilter, ownerFilter, typeFilter])
 
   // Горячие клавиши
   useKeyboard({
@@ -260,6 +271,22 @@ function LettersPageContent() {
     searchRef.current = search
   }, [search])
 
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (statusFilter !== 'all') params.set('status', statusFilter)
+    if (quickFilter) params.set('filter', quickFilter)
+    if (ownerFilter) params.set('owner', ownerFilter)
+    if (typeFilter) params.set('type', typeFilter)
+    if (sortBy !== 'created') params.set('sortBy', sortBy)
+    if (sortOrder !== 'desc') params.set('sortOrder', sortOrder)
+    if (page !== 1) params.set('page', String(page))
+
+    const nextQuery = params.toString()
+    if (querySyncRef.current === nextQuery) return
+    querySyncRef.current = nextQuery
+    router.replace(nextQuery ? `/letters?${nextQuery}` : '/letters')
+  }, [statusFilter, quickFilter, ownerFilter, typeFilter, sortBy, sortOrder, page, router])
+
 
   const loadLetters = useCallback(async (showLoading = true) => {
     const requestId = ++lettersRequestIdRef.current
@@ -328,6 +355,28 @@ function LettersPageContent() {
     if (session) loadLetters(false)
   }, 300)
 
+  const resetFilters = useCallback(() => {
+    setSearch('')
+    setStatusFilter('all')
+    setQuickFilter('')
+    setOwnerFilter('')
+    setTypeFilter('')
+    setSortBy('created')
+    setSortOrder('desc')
+    goToPage(1)
+  }, [goToPage])
+
+  const handleRowClick = useCallback(
+    (id: string) => {
+      router.push(`/letters/${id}`)
+    },
+    [router]
+  )
+
+  const handlePreviewOpen = useCallback((id: string) => {
+    setPreviewId(id)
+  }, [])
+
   const handleBulkCreateSuccess = useCallback(() => {
     setShowBulkCreate(false)
     loadLetters()
@@ -380,7 +429,7 @@ function LettersPageContent() {
       const data = await res.json()
 
       if (data.success) {
-        toast.success(`Обновлено ${data.updated} писем`)
+        toast.success(`\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e ${data.updated} \u043f\u0438\u0441\u0435\u043c`)
         setBulkAction(null)
         setBulkValue('')
         setSelectedIds(new Set())
@@ -410,8 +459,33 @@ function LettersPageContent() {
       return
     }
 
+    if (bulkAction === 'status') {
+      const statusLabel = STATUS_LABELS[bulkValue as LetterStatus] || bulkValue
+      confirmDialog({
+        title: '\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0441\u0442\u0430\u0442\u0443\u0441?',
+        message: `\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c ${selectedIds.size} \u043f\u0438\u0441\u0435\u043c \u043d\u0430 \u0441\u0442\u0430\u0442\u0443\u0441 \"${statusLabel}\"?`,
+        confirmText: '\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c',
+        onConfirm: runBulkAction,
+      })
+      return
+    }
+
+    if (bulkAction === 'owner') {
+      const owner = users.find((user) => user.id === bulkValue)
+      const ownerLabel = bulkValue
+        ? (owner?.name || owner?.email || '\u0418\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044c')
+        : '\u0411\u0435\u0437 \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f'
+      confirmDialog({
+        title: '\u041d\u0430\u0437\u043d\u0430\u0447\u0438\u0442\u044c \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f?',
+        message: `\u041d\u0430\u0437\u043d\u0430\u0447\u0438\u0442\u044c ${selectedIds.size} \u043f\u0438\u0441\u0435\u043c: ${ownerLabel}?`,
+        confirmText: '\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c',
+        onConfirm: runBulkAction,
+      })
+      return
+    }
+
     runBulkAction()
-  }, [bulkAction, confirmDialog, runBulkAction, selectedIds])
+  }, [bulkAction, bulkValue, confirmDialog, runBulkAction, selectedIds, users])
 
   if (authStatus === 'loading') {
     return (
@@ -424,7 +498,9 @@ function LettersPageContent() {
   if (!session) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-transparent">
-        <p className="text-slate-300/70">Пожалуйста, войдите в систему</p>
+        <p className="text-slate-300/70">
+          {'\u041f\u043e\u0436\u0430\u043b\u0443\u0439\u0441\u0442\u0430, \u0432\u043e\u0439\u0434\u0438\u0442\u0435 \u0432 \u0441\u0438\u0441\u0442\u0435\u043c\u0443'}
+        </p>
       </div>
     )
   }
@@ -437,11 +513,9 @@ function LettersPageContent() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl md:text-4xl font-display font-semibold text-white">Письма</h1>
+            <h1 className="text-3xl md:text-4xl font-display font-semibold text-white">{'\u041f\u0438\u0441\u044c\u043c\u0430'}</h1>
             {pagination && (
-              <p className="text-muted text-sm mt-1">
-                Всего: {pagination.total} писем
-              </p>
+              <p className="text-muted text-sm mt-1">{`\u0412\u0441\u0435\u0433\u043e: ${pagination.total} \u043f\u0438\u0441\u0435\u043c`}</p>
             )}
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
@@ -456,7 +530,7 @@ function LettersPageContent() {
               className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition btn-secondary w-full sm:w-auto"
             >
               <Download className="w-5 h-5" />
-              Экспорт
+              {'\u042d\u043a\u0441\u043f\u043e\u0440\u0442'}
             </a>
             <button
               type="button"
@@ -464,14 +538,14 @@ function LettersPageContent() {
               className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition btn-secondary w-full sm:w-auto"
             >
               <ListPlus className="w-5 h-5" />
-              Массовое создание писем
+              {'\u041c\u0430\u0441\u0441\u043e\u0432\u043e\u0435 \u0441\u043e\u0437\u0434\u0430\u043d\u0438\u0435 \u043f\u0438\u0441\u0435\u043c'}
             </button>
             <Link
               href="/letters/new"
               className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition btn-primary w-full sm:w-auto"
             >
               <Plus className="w-5 h-5" />
-              Новое письмо
+              {'\u041d\u043e\u0432\u043e\u0435 \u043f\u0438\u0441\u044c\u043c\u043e'}
             </Link>
           </div>
         </div>
@@ -481,9 +555,7 @@ function LettersPageContent() {
           <div className="panel panel-soft rounded-2xl p-4 mb-4 flex flex-col lg:flex-row lg:items-center gap-4">
             <div className="flex items-center gap-2">
               <CheckSquare className="w-5 h-5 text-teal-300" />
-              <span className="text-white font-medium">
-                Выбрано: {selectedIds.size}
-              </span>
+              <span className="text-white font-medium">{'\u0412\u044b\u0431\u0440\u0430\u043d\u043e'}: {selectedIds.size}</span>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1 w-full">
@@ -495,13 +567,13 @@ function LettersPageContent() {
                   setBulkValue('')
                 }}
                 className="w-full sm:w-auto px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white"
-                aria-label="Массовое действие"
+                aria-label="\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435"
               >
-                <option value="">Выберите действие</option>
-                <option value="status">Изменить статус</option>
-                <option value="owner">Назначить ответственного</option>
+                <option value="">{'\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435'}</option>
+                <option value="status">{'\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0441\u0442\u0430\u0442\u0443\u0441'}</option>
+                <option value="owner">{'\u041d\u0430\u0437\u043d\u0430\u0447\u0438\u0442\u044c \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f'}</option>
                 {(session.user.role === 'ADMIN' || session.user.role === 'SUPERADMIN') && (
-                  <option value="delete">Удалить</option>
+                  <option value="delete">{'\u0423\u0434\u0430\u043b\u0438\u0442\u044c'}</option>
                 )}
               </select>
 
@@ -510,9 +582,9 @@ function LettersPageContent() {
                   value={bulkValue}
                   onChange={(e) => setBulkValue(e.target.value)}
                   className="w-full sm:w-auto px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white"
-                  aria-label="Статус для массового действия"
+                  aria-label="\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0441\u0442\u0430\u0442\u0443\u0441"
                 >
-                  <option value="">Выберите статус</option>
+                  <option value="">{'\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0441\u0442\u0430\u0442\u0443\u0441'}</option>
                   {STATUSES.filter((s) => s !== 'all').map((status) => (
                     <option key={status} value={status}>
                       {STATUS_LABELS[status as LetterStatus]}
@@ -526,10 +598,10 @@ function LettersPageContent() {
                   value={bulkValue}
                   onChange={(e) => setBulkValue(e.target.value)}
                   className="w-full sm:w-auto px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white"
-                  aria-label="Исполнитель для массового действия"
+                  aria-label="\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f"
                 >
-                  <option value="">Выберите ответственного</option>
-                  <option value="">Снять ответственного</option>
+                  <option value="">{'\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f'}</option>
+                  <option value="">{'\u0411\u0435\u0437 \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f'}</option>
                   {users.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.name || user.email}
@@ -557,7 +629,7 @@ function LettersPageContent() {
                   ) : (
                     <CheckCircle className="w-4 h-4" />
                   )}
-                  Применить
+                  {'\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c'}
                 </button>
               )}
             </div>
@@ -569,7 +641,7 @@ function LettersPageContent() {
                 setBulkValue('')
               }}
               className="p-2 text-slate-300 hover:text-white transition hover:bg-white/10 rounded-lg self-start lg:self-auto"
-              aria-label="Скрыть массовые действия"
+              aria-label="\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c \u0432\u044b\u0431\u043e\u0440"
             >
               <X className="w-5 h-5" />
             </button>
@@ -609,17 +681,17 @@ function LettersPageContent() {
             <input
               ref={searchInputRef}
               type="text"
-              placeholder="Поиск по номеру, организации, Jira, ответу... (нажмите /)"
+              placeholder="\u041f\u043e\u0438\u0441\u043a \u043f\u043e \u043d\u043e\u043c\u0435\u0440\u0443, \u043e\u0440\u0433\u0430\u043d\u0438\u0437\u0430\u0446\u0438\u0438, Jira, \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u043d\u0438\u044e... (\u043d\u0430\u0436\u043c\u0438\u0442\u0435 /)"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-10 py-2 rounded-xl border border-white/10 bg-white/5 text-white placeholder-slate-400 focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
-              aria-label="Поиск"
+              aria-label="\u041f\u043e\u0438\u0441\u043a"
             />
             {search && (
               <button
                 onClick={() => setSearch('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition"
-                aria-label="Очистить поиск"
+                aria-label="\u041e\u0447\u0438\u0441\u0442\u0438\u0442\u044c \u043f\u043e\u0438\u0441\u043a"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -637,9 +709,9 @@ function LettersPageContent() {
                 goToPage(1)
               }}
               className="w-full sm:w-auto px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
-              aria-label="Фильтр по статусу"
+              aria-label="\u0424\u0438\u043b\u044c\u0442\u0440 \u043f\u043e \u0441\u0442\u0430\u0442\u0443\u0441\u0443"
             >
-              <option value="all">Все статусы</option>
+              <option value="all">{'\u0412\u0441\u0435 \u0441\u0442\u0430\u0442\u0443\u0441\u044b'}</option>
               {STATUSES.filter((s) => s !== 'all').map((status) => (
                 <option key={status} value={status}>
                   {STATUS_LABELS[status as LetterStatus]}
@@ -657,7 +729,7 @@ function LettersPageContent() {
                 goToPage(1)
               }}
               className="w-full sm:w-auto px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
-              aria-label="Фильтр по исполнителю"
+              aria-label="\u0424\u0438\u043b\u044c\u0442\u0440 \u043f\u043e \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044e"
             >
               <option value="">{'\u0412\u0441\u0435 \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u0438'}</option>
               {users.map((user) => (
@@ -677,7 +749,7 @@ function LettersPageContent() {
                 goToPage(1)
               }}
               className="w-full sm:w-auto px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
-              aria-label="Фильтр по типу"
+              aria-label="\u0424\u0438\u043b\u044c\u0442\u0440 \u043f\u043e \u0442\u0438\u043f\u0443"
             >
               <option value="">{'\u0412\u0441\u0435 \u0442\u0438\u043f\u044b'}</option>
               {LETTER_TYPES.filter((item) => item.value !== 'all').map((item) => (
@@ -688,21 +760,32 @@ function LettersPageContent() {
             </select>
           </div>
 
+          {activeFiltersCount > 0 && (
+            <button
+              onClick={resetFilters}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200 hover:text-white hover:bg-white/10 transition"
+              aria-label="\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c \u0444\u0438\u043b\u044c\u0442\u0440\u044b"
+            >
+              <XCircle className="w-4 h-4" />
+              {`\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c (${activeFiltersCount})`}
+            </button>
+          )}
+
           {/* View toggle */}
           <div className="hidden sm:flex rounded-xl p-1 panel-soft panel-glass">
             <button
               onClick={() => setViewMode('table')}
               className={`p-2 rounded-lg transition ${viewMode === 'table' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
-              title="Таблица"
-              aria-label="Табличный вид"
+              title="\u0422\u0430\u0431\u043b\u0438\u0446\u0430"
+              aria-label="\u0422\u0430\u0431\u043b\u0438\u0447\u043d\u044b\u0439 \u0432\u0438\u0434"
             >
               <List className="w-5 h-5" />
             </button>
             <button
               onClick={() => setViewMode('cards')}
               className={`p-2 rounded-lg transition ${viewMode === 'cards' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
-              title="Карточки"
-              aria-label="Карточки"
+              title="\u041a\u0430\u0440\u0442\u043e\u0447\u043a\u0438"
+              aria-label="\u041a\u0430\u0440\u0442\u043e\u0447\u043d\u044b\u0439 \u0432\u0438\u0434"
             >
               <LayoutGrid className="w-5 h-5" />
             </button>
@@ -713,15 +796,15 @@ function LettersPageContent() {
             <button
               onClick={() => (shortcutsOpen ? closeShortcuts() : openShortcuts())}
               className={`p-2 rounded-lg transition ${shortcutsOpen ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:text-white'}`}
-              title="Горячие клавиши"
-              aria-label="Горячие клавиши"
+              title="\u0413\u043e\u0440\u044f\u0447\u0438\u0435 \u043a\u043b\u0430\u0432\u0438\u0448\u0438"
+              aria-label="\u0413\u043e\u0440\u044f\u0447\u0438\u0435 \u043a\u043b\u0430\u0432\u0438\u0448\u0438"
             >
               <Keyboard className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-{/* Content */}
+        {/* Content */}
         {loading ? (
           effectiveViewMode === 'cards' ? (
             <CardsSkeleton count={9} />
@@ -730,7 +813,7 @@ function LettersPageContent() {
           )
         ) : letters.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-slate-300/70">Письма не найдены</p>
+            <p className="text-slate-300/70">{'\u041f\u0438\u0441\u0435\u043c \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e'}</p>
           </div>
         ) : effectiveViewMode === 'cards' ? (
           <VirtualLetterList
@@ -748,17 +831,15 @@ function LettersPageContent() {
             sortField={sortBy}
             sortDirection={sortOrder}
             focusedIndex={focusedIndex}
-            onRowClick={(id) => router.push(`/letters/${id}`)}
-            onPreview={(id) => setPreviewId(id)}
+            onRowClick={handleRowClick}
+            onPreview={handlePreviewOpen}
           />
         )}
 
         {/* Pagination */}
         {pagination && pagination.totalPages > 1 && (
           <div className="flex items-center justify-between mt-6">
-            <div className="text-slate-300/70 text-sm">
-              Показано {((page - 1) * limit) + 1}-{Math.min(page * limit, pagination.total)} из {pagination.total}
-            </div>
+            <div className="text-slate-300/70 text-sm">{`\u041f\u043e\u043a\u0430\u0437\u0430\u043d\u044b ${((page - 1) * limit) + 1}-${Math.min(page * limit, pagination.total)} \u0438\u0437 ${pagination.total}`}</div>
             <div className="flex items-center gap-2">
               <button
                 onClick={prevPage}

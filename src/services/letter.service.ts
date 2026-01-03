@@ -102,7 +102,10 @@ export class LetterService {
     ])
 
     return {
-      data: letters as LetterSummary[],
+      data: letters.map((letter) => ({
+        ...letter,
+        content: letter.content ? letter.content.slice(0, 240) : null,
+      })) as LetterSummary[],
       pagination: {
         page,
         limit,

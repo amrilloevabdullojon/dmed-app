@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect } from 'react'
 import { StatusBadge } from './StatusBadge'
@@ -48,7 +48,7 @@ export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
   const { data, isLoading } = useLetter(letterId)
   const letter = letterId ? (data as Letter | null) : null
 
-  // Закрытие по Escape
+  // ╨ù╨░╨║╤Ç╤ï╤é╨╕╨╡ ╨┐╨╛ Escape
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -77,7 +77,7 @@ export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
       <div className="fixed right-0 top-0 bottom-0 w-full max-w-lg bg-gray-800 border-l border-gray-700 shadow-2xl z-50 overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
-          <h2 className="text-lg font-semibold text-white">Быстрый просмотр</h2>
+          <h2 className="text-lg font-semibold text-white">{'\u0411\u044b\u0441\u0442\u0440\u044b\u0439 \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440'}</h2>
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
@@ -100,7 +100,7 @@ export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <span className="font-mono text-lg text-emerald-400">
-                    №{letter.number}
+                    #{letter.number}
                   </span>
                   <StatusBadge status={letter.status} size="sm" />
                 </div>
@@ -119,13 +119,11 @@ export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
               }`}>
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
-                  <span>
-                    {isDone
-                      ? 'Выполнено'
+                  <span>{isDone
+                      ? '\u0413\u043e\u0442\u043e\u0432\u043e'
                       : isOverdue
-                        ? `Просрочено на ${Math.abs(daysLeft)} ${pluralizeDays(daysLeft)}`
-                        : `До дедлайна: ${daysLeft} ${pluralizeDays(daysLeft)}`}
-                  </span>
+                        ? `\u041f\u0440\u043e\u0441\u0440\u043e\u0447\u0435\u043d\u043e \u043d\u0430 ${Math.abs(daysLeft)} ${pluralizeDays(daysLeft)}`
+                        : `\u0414\u043e \u0441\u0440\u043e\u043a\u0430: ${daysLeft} ${pluralizeDays(daysLeft)}`}</span>
                 </div>
               </div>
 
@@ -134,14 +132,14 @@ export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
                 <div className="flex items-center gap-2 text-gray-400">
                   <Calendar className="w-4 h-4" />
                   <div>
-                    <div className="text-xs">Дата письма</div>
+                    <div className="text-xs">{'\u0414\u0430\u0442\u0430 \u043f\u0438\u0441\u044c\u043c\u0430'}</div>
                     <div className="text-white">{formatDate(letter.date)}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-gray-400">
                   <Clock className="w-4 h-4" />
                   <div>
-                    <div className="text-xs">Дедлайн</div>
+                    <div className="text-xs">{'\u0421\u0440\u043e\u043a'}</div>
                     <div className={isOverdue ? 'text-red-400' : 'text-white'}>
                       {formatDate(letter.deadlineDate)}
                     </div>
@@ -153,7 +151,7 @@ export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
               {letter.owner && (
                 <div className="flex items-center gap-2 text-gray-400">
                   <User className="w-4 h-4" />
-                  <span>Ответственный:</span>
+                  <span>{'\u0418\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044c:'}</span>
                   <span className="text-white">
                     {letter.owner.name || letter.owner.email}
                   </span>
@@ -172,7 +170,7 @@ export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
               {/* Content */}
               {letter.content && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-400 mb-2">Содержание</h4>
+                  <h4 className="text-sm font-medium text-gray-400 mb-2">{'\u0421\u043e\u0434\u0435\u0440\u0436\u0430\u043d\u0438\u0435'}</h4>
                   <p className="text-white whitespace-pre-wrap text-sm">{letter.content}</p>
                 </div>
               )}
@@ -180,7 +178,7 @@ export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
               {/* Answer */}
               {letter.answer && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-400 mb-2">Ответ</h4>
+                  <h4 className="text-sm font-medium text-gray-400 mb-2">╨₧╤é╨▓╨╡╤é</h4>
                   <p className="text-white whitespace-pre-wrap text-sm">{letter.answer}</p>
                 </div>
               )}
@@ -204,29 +202,25 @@ export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
               {/* Comment */}
               {letter.comment && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-400 mb-2">Комментарий</h4>
+                  <h4 className="text-sm font-medium text-gray-400 mb-2">╨Ü╨╛╨╝╨╝╨╡╨╜╤é╨░╤Ç╨╕╨╣</h4>
                   <p className="text-gray-300 whitespace-pre-wrap text-sm">{letter.comment}</p>
                 </div>
               )}
             </div>
           ) : (
-            <div className="text-center py-12 text-gray-500">
-              Письмо не найдено
-            </div>
+            <div className="text-center py-12 text-gray-500">{'\u041f\u0438\u0441\u044c\u043c\u043e \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e'}</div>
           )}
         </div>
 
         {/* Footer */}
         {letter && (
           <div className="px-6 py-4 border-t border-gray-700 flex items-center justify-between">
-            <div className="text-xs text-gray-500">
-              Нажмите <kbd className="px-1 bg-gray-700 rounded">Esc</kbd> чтобы закрыть
-            </div>
+            <div className="text-xs text-gray-500">{'\u041d\u0430\u0436\u043c\u0438\u0442\u0435 Esc \u0434\u043b\u044f \u0437\u0430\u043a\u0440\u044b\u0442\u0438\u044f'}</div>
             <Link
               href={`/letters/${letter.id}`}
               className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition text-sm"
             >
-              Открыть полностью
+              {'\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043f\u0438\u0441\u044c\u043c\u043e'}
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>

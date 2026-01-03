@@ -102,9 +102,9 @@ export function pluralizeDays(n: number): string {
   const abs = Math.abs(n)
   const last = abs % 10
   const last2 = abs % 100
-  if (last === 1 && last2 !== 11) return 'день'
-  if (last >= 2 && last <= 4 && !(last2 >= 12 && last2 <= 14)) return 'дня'
-  return 'дней'
+  if (last === 1 && last2 !== 11) return '\u0434\u0435\u043d\u044c'
+  if (last >= 2 && last <= 4 && !(last2 >= 12 && last2 <= 14)) return '\u0434\u043d\u044f'
+  return '\u0434\u043d\u0435\u0439'
 }
 
 // Дней до дедлайна
@@ -119,9 +119,9 @@ export function getDaysUntilDeadline(deadline: Date | string): number {
 
 // Приоритет в текст
 export function getPriorityLabel(priority: number): { label: string; color: string } {
-  if (priority >= 70) return { label: 'Высокий', color: 'text-red-600' }
-  if (priority >= 40) return { label: 'Средний', color: 'text-yellow-600' }
-  return { label: 'Низкий', color: 'text-green-600' }
+  if (priority >= 70) return { label: '\u0412\u044b\u0441\u043e\u043a\u0438\u0439', color: 'text-red-600' }
+  if (priority >= 40) return { label: '\u0421\u0440\u0435\u0434\u043d\u0438\u0439', color: 'text-yellow-600' }
+  return { label: '\u041d\u0438\u0437\u043a\u0438\u0439', color: 'text-green-600' }
 }
 
 // Санитизация ввода

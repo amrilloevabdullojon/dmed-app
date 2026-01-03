@@ -6,7 +6,7 @@ import { LetterCard } from './LetterCard'
 import { StatusBadge } from './StatusBadge'
 import type { LetterStatus } from '@prisma/client'
 import { ArrowDown, ArrowUp, ArrowUpDown, CheckSquare, Eye, Square } from 'lucide-react'
-import { formatDate, getDaysUntilDeadline, isDoneStatus } from '@/lib/utils'
+import { formatDate, getDaysUntilDeadline, isDoneStatus, pluralizeDays } from '@/lib/utils'
 
 interface Letter {
   id: string
@@ -166,25 +166,29 @@ export function VirtualLetterTable({
       : <ArrowDown className="w-4 h-4 text-teal-300" />
   }
 
-  const formatDayLabel = (value: number) => (Math.abs(value) === 1 ? 'day' : 'days')
-
   const getDeadlineInfo = (letter: Letter) => {
     const daysLeft = getDaysUntilDeadline(letter.deadlineDate)
     const isDone = isDoneStatus(letter.status)
 
     if (isDone) {
-      return { text: 'Done', className: 'text-teal-300' }
+      return { text: '\u0413\u043e\u0442\u043e\u0432\u043e', className: 'text-teal-300' }
     }
     if (daysLeft < 0) {
       return {
-        text: `Overdue by ${Math.abs(daysLeft)} ${formatDayLabel(daysLeft)}`,
+        text: `\u041f\u0440\u043e\u0441\u0440\u043e\u0447\u0435\u043d\u043e \u043d\u0430 ${Math.abs(daysLeft)} ${pluralizeDays(daysLeft)}`,
         className: 'text-red-400',
       }
     }
     if (daysLeft <= 2) {
-      return { text: `${daysLeft} ${formatDayLabel(daysLeft)}`, className: 'text-yellow-400' }
+      return {
+        text: `\u041e\u0441\u0442\u0430\u043b\u043e\u0441\u044c ${daysLeft} ${pluralizeDays(daysLeft)}`,
+        className: 'text-yellow-400',
+      }
     }
-    return { text: `${daysLeft} ${formatDayLabel(daysLeft)}`, className: 'text-slate-300/70' }
+    return {
+      text: `\u041e\u0441\u0442\u0430\u043b\u043e\u0441\u044c ${daysLeft} ${pluralizeDays(daysLeft)}`,
+      className: 'text-slate-300/70',
+    }
   }
 
   return (
@@ -198,7 +202,7 @@ export function VirtualLetterTable({
                 ? 'text-teal-300'
                 : 'text-slate-400 hover:text-white'
             }`}
-            aria-label="Select all letters"
+            aria-label="\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0432\u0441\u0435 \u043f\u0438\u0441\u044c\u043c\u0430"
           >
             {selectedIds.size === letters.length && letters.length > 0 ? (
               <CheckSquare className="w-5 h-5" />
@@ -211,37 +215,37 @@ export function VirtualLetterTable({
           onClick={() => onSort('number')}
           className="text-left hover:text-white flex items-center"
         >
-          Number <SortIcon field="number" />
+          {'\u041d\u043e\u043c\u0435\u0440'} <SortIcon field="number" />
         </button>
         <button
           onClick={() => onSort('org')}
           className="text-left hover:text-white flex items-center"
         >
-          Organization <SortIcon field="org" />
+          {'\u041e\u0440\u0433\u0430\u043d\u0438\u0437\u0430\u0446\u0438\u044f'} <SortIcon field="org" />
         </button>
         <button
           onClick={() => onSort('date')}
           className="text-left hover:text-white flex items-center"
         >
-          Date <SortIcon field="date" />
+          {'\u0414\u0430\u0442\u0430'} <SortIcon field="date" />
         </button>
         <button
           onClick={() => onSort('deadline')}
           className="text-left hover:text-white flex items-center"
         >
-          Deadline <SortIcon field="deadline" />
+          {'\u0421\u0440\u043e\u043a'} <SortIcon field="deadline" />
         </button>
         <button
           onClick={() => onSort('status')}
           className="text-left hover:text-white flex items-center"
         >
-          Status <SortIcon field="status" />
+          {'\u0421\u0442\u0430\u0442\u0443\u0441'} <SortIcon field="status" />
         </button>
         <div className="text-left text-sm font-medium text-slate-300/70">
-          Type
+          {'\u0422\u0438\u043f'}
         </div>
         <div className="text-left text-sm font-medium text-slate-300/70">
-          Assignee
+          {'\u0418\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044c'}
         </div>
         <div />
       </div>
@@ -275,7 +279,7 @@ export function VirtualLetterTable({
                     className={`p-1 rounded ${
                       isSelected ? 'text-teal-300' : 'text-slate-400 hover:text-white'
                     }`}
-                    aria-label={`Select letter ${letter.number}`}
+                    aria-label={`\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u043f\u0438\u0441\u044c\u043c\u043e ${letter.number}`}
                   >
                     {isSelected ? (
                       <CheckSquare className="w-5 h-5" />
@@ -321,8 +325,8 @@ export function VirtualLetterTable({
                       onPreview(letter.id)
                     }}
                     className="p-1 text-slate-400 hover:text-white transition"
-                    title="Quick preview"
-                    aria-label="Quick preview"
+                    title="\u0411\u044b\u0441\u0442\u0440\u044b\u0439 \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440"
+                    aria-label="\u0411\u044b\u0441\u0442\u0440\u044b\u0439 \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440"
                   >
                     <Eye className="w-4 h-4" />
                   </button>
