@@ -7,6 +7,7 @@ import { sanitizeInput } from '@/lib/utils'
 import {
   MAX_FILE_SIZE,
   MAX_FILE_SIZE_LABEL,
+  PAGE_SIZE,
   REQUEST_ALLOWED_FILE_EXTENSIONS,
   REQUEST_ALLOWED_FILE_TYPES,
   REQUEST_MAX_FILES,
@@ -52,6 +53,8 @@ const buildRequestIpHash = (identifier: string) =>
 export const GET = withValidation(
   async (_request, _session, { query }) => {
     const { page, limit, status, search } = query
+    const pageValue = page ?? 1
+    const limitValue = limit ?? PAGE_SIZE
     const where: Prisma.RequestWhereInput = {}
 
     if (status) {
@@ -76,8 +79,8 @@ export const GET = withValidation(
       prisma.request.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
+        skip: (pageValue - 1) * limitValue,
+        take: limitValue,
         include: {
           assignedTo: { select: { id: true, name: true, email: true } },
           _count: { select: { files: true } },
@@ -92,10 +95,10 @@ export const GET = withValidation(
         description: request.description ? request.description.slice(0, 240) : '',
       })),
       pagination: {
-        page,
-        limit,
+        page: pageValue,
+        limit: limitValue,
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / limitValue),
       },
     })
   },

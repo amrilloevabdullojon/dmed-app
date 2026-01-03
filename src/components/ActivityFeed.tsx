@@ -170,6 +170,7 @@ export function ActivityFeed({ letterId, maxItems = 10 }: ActivityFeedProps) {
                 <div className="flex items-center gap-2">
                   {/* User avatar */}
                   {item.user.image ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
                     <img src={item.user.image} alt="" className="h-5 w-5 rounded-full" />
                   ) : (
                     <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-600 text-xs text-white">

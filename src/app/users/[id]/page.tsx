@@ -171,7 +171,7 @@ export default function UserProfilePage() {
       }
     }
     loadProfile()
-  }, [authStatus, params.id])
+  }, [authStatus, params.id, toast])
 
   useEffect(() => {
     if (!actionOpen) return
