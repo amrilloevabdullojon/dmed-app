@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useParams } from 'next/navigation'
 import { Header } from '@/components/Header'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
@@ -412,10 +413,13 @@ export default function RequestDetailPage() {
                     >
                       <div className="flex items-start gap-3">
                         {comment.author.image ? (
-                          <img
+                          <Image
                             src={comment.author.image}
                             alt=""
+                            width={32}
+                            height={32}
                             className="w-8 h-8 rounded-full"
+                            unoptimized
                           />
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-300 text-sm font-medium">
