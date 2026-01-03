@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { Header } from '@/components/Header'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -171,32 +171,34 @@ export default function ProfilePage() {
     [skillsInput]
   )
 
-  const loadProfile = useCallback(async () => {
-    try {
-      setLoading(true)
-      const res = await fetch('/api/profile')
-      if (!res.ok) {
-        throw new Error('Failed to load profile')
-      }
-      const data = await res.json()
-      setUser(data.user)
-      const nextProfile: ProfileData = data.profile || emptyProfile
-      setProfile(nextProfile)
-      setSkillsInput((nextProfile.skills || []).join(', '))
-      setActivity(data.activity || null)
-    } catch (error) {
-      console.error('Failed to load profile:', error)
-      toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u043f\u0440\u043e\u0444\u0438\u043b\u044c')
-    } finally {
-      setLoading(false)
-    }
-  }, [toast])
+  const fetchedRef = useRef(false)
 
   useEffect(() => {
-    if (authStatus === 'authenticated') {
-      loadProfile()
+    if (authStatus === 'authenticated' && !fetchedRef.current) {
+      fetchedRef.current = true
+      setLoading(true)
+      fetch('/api/profile')
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to load profile')
+          return res.json()
+        })
+        .then((data) => {
+          setUser(data.user)
+          const nextProfile: ProfileData = data.profile || emptyProfile
+          setProfile(nextProfile)
+          setSkillsInput((nextProfile.skills || []).join(', '))
+          setActivity(data.activity || null)
+        })
+        .catch((error) => {
+          console.error('Failed to load profile:', error)
+          toast.error('Не удалось загрузить профиль')
+        })
+        .finally(() => {
+          setLoading(false)
+        })
     }
-  }, [authStatus, loadProfile])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authStatus])
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
