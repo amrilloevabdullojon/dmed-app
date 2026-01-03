@@ -1273,7 +1273,7 @@ export default function SettingsPage() {
                         {log.direction === 'TO_SHEETS' ? (
                           <>
                             <ArrowUpFromLine className="w-4 h-4 text-blue-400" />
-                            <span className="text-blue-400">D' Sheets</span>
+                            <span className="text-blue-400">{'D\' Sheets'}</span>
                           </>
                         ) : (
                           <>
