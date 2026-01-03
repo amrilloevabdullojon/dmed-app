@@ -200,3 +200,45 @@ export function formatNewRequestMessage(data: {
     `Открыть: <a href="${link}">${link}</a>`
 }
 
+// Уведомление об изменении статуса заявки
+export function formatRequestStatusChangeMessage(data: {
+  id: string
+  organization: string
+  oldStatus: string
+  newStatus: string
+  changedBy: string
+  assignedTo?: string | null
+}): string {
+  const safeOrg = escapeTelegramHtml(data.organization)
+  const baseUrl = APP_URL ? APP_URL.replace(/\/$/, '') : ''
+  const link = baseUrl ? `${baseUrl}/requests/${data.id}` : `/requests/${data.id}`
+
+  const statusLabels: Record<string, string> = {
+    'NEW': 'Новая',
+    'IN_REVIEW': 'На рассмотрении',
+    'DONE': 'Завершена',
+    'SPAM': 'Спам',
+  }
+
+  const oldLabel = statusLabels[data.oldStatus] || data.oldStatus
+  const newLabel = statusLabels[data.newStatus] || data.newStatus
+
+  let message = `🔔 <b>Изменение статуса заявки</b>
+
+🏢 ${safeOrg}
+
+📝 Статус:
+Было: ${oldLabel}
+Стало: ${newLabel}
+
+👤 Изменил: ${escapeTelegramHtml(data.changedBy)}`
+
+  if (data.assignedTo) {
+    message += `\n📋 Назначено: ${escapeTelegramHtml(data.assignedTo)}`
+  }
+
+  message += `\n\n🔗 <a href="${link}">Открыть заявку</a>`
+
+  return message
+}
+

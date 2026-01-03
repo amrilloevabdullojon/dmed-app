@@ -4,7 +4,11 @@
       "Bash(cat:*)",
       "Bash(npx tsc:*)",
       "Bash(npx prisma:*)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(git -C \"C:\\Users\\1234\\Documents\\Projects\\dmed-app\" log --oneline --all -- \"*/requests/*\")",
+      "Bash(git -C \"C:\\Users\\1234\\Documents\\Projects\\dmed-app\" log --oneline -20)"
     ]
   }
 }
