@@ -488,8 +488,84 @@ export default function SettingsPage() {
     setEditSnapshot(null)
   }
 
+  const getEditPayload = useCallback(() => {
+    if (!editSnapshot) return null
+
+    const payload: Partial<{
+      name: string
+      role: User['role']
+      telegramChatId: string | null
+      canLogin: boolean
+      notifyEmail: boolean
+      notifyTelegram: boolean
+      notifySms: boolean
+      notifyInApp: boolean
+      quietHoursStart: string | null
+      quietHoursEnd: string | null
+      digestFrequency: User['digestFrequency']
+    }> = {}
+
+    const normalizedName = editData.name.trim()
+    if (editData.name !== editSnapshot.name && normalizedName) {
+      payload.name = normalizedName
+    }
+
+    if (editData.role !== editSnapshot.role) {
+      payload.role = editData.role
+    }
+
+    if (editData.telegramChatId !== editSnapshot.telegramChatId) {
+      const normalizedTelegram = editData.telegramChatId.trim()
+      payload.telegramChatId = normalizedTelegram ? normalizedTelegram : null
+    }
+
+    if (editData.canLogin !== editSnapshot.canLogin) {
+      payload.canLogin = editData.canLogin
+    }
+
+    if (editData.notifyEmail !== editSnapshot.notifyEmail) {
+      payload.notifyEmail = editData.notifyEmail
+    }
+
+    if (editData.notifyTelegram !== editSnapshot.notifyTelegram) {
+      payload.notifyTelegram = editData.notifyTelegram
+    }
+
+    if (editData.notifySms !== editSnapshot.notifySms) {
+      payload.notifySms = editData.notifySms
+    }
+
+    if (editData.notifyInApp !== editSnapshot.notifyInApp) {
+      payload.notifyInApp = editData.notifyInApp
+    }
+
+    if (editData.quietHoursStart !== editSnapshot.quietHoursStart) {
+      const normalizedStart = editData.quietHoursStart.trim()
+      payload.quietHoursStart = normalizedStart ? normalizedStart : null
+    }
+
+    if (editData.quietHoursEnd !== editSnapshot.quietHoursEnd) {
+      const normalizedEnd = editData.quietHoursEnd.trim()
+      payload.quietHoursEnd = normalizedEnd ? normalizedEnd : null
+    }
+
+    if (editData.digestFrequency !== editSnapshot.digestFrequency) {
+      payload.digestFrequency = editData.digestFrequency
+    }
+
+    return payload
+  }, [editData, editSnapshot])
+
   const saveUser = useCallback(async (mode: 'auto' | 'manual' = 'manual') => {
-    if (!editingId) return
+    if (!editingId || !editSnapshot) return
+
+    const payload = getEditPayload()
+    if (!payload || Object.keys(payload).length === 0) {
+      if (mode === 'manual') {
+        toastRef.current.error('Проверьте поля перед сохранением')
+      }
+      return
+    }
 
     const toastId = `user-save-${editingId}`
     if (mode === 'auto') {
@@ -501,7 +577,7 @@ export default function SettingsPage() {
       const res = await fetch(`/api/users/${editingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editData),
+        body: JSON.stringify(payload),
       })
 
       if (res.ok) {
@@ -549,7 +625,7 @@ export default function SettingsPage() {
     } finally {
       setSavingId(null)
     }
-  }, [editData, editingId, loadApprovals])
+  }, [editData, editSnapshot, editingId, getEditPayload, loadApprovals])
 
   const hasEditChanges =
     !!editingId &&
@@ -570,11 +646,13 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!editingId || !editSnapshot || !hasEditChanges) return
     if (savingId === editingId) return
+    const payload = getEditPayload()
+    if (!payload || Object.keys(payload).length === 0) return
     const timer = setTimeout(() => {
       saveUser('auto')
     }, 700)
     return () => clearTimeout(timer)
-  }, [editingId, editSnapshot, hasEditChanges, saveUser, savingId])
+  }, [editingId, editSnapshot, hasEditChanges, getEditPayload, saveUser, savingId])
 
   const createUser = async () => {
     if (!createData.email.trim()) {

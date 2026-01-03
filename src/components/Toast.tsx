@@ -120,7 +120,7 @@ export function ToastContainer() {
 
   return (
     <div
-      className="fixed top-4 right-4 z-50 flex w-full max-w-sm flex-col gap-2"
+      className="fixed top-4 left-1/2 z-50 flex w-full max-w-sm -translate-x-1/2 flex-col gap-2"
       aria-live="polite"
       aria-label="Уведомления"
     >
