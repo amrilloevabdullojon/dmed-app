@@ -76,9 +76,13 @@ export const bulkLetterSchema = z.object({
 
 // ==================== REQUEST ====================
 
-const requestStatuses = ['NEW', 'IN_REVIEW', 'DONE', 'SPAM'] as const
+const requestStatuses = ['NEW', 'IN_REVIEW', 'DONE', 'SPAM', 'CANCELLED'] as const
+const requestPriorities = ['LOW', 'NORMAL', 'HIGH', 'URGENT'] as const
+const requestCategories = ['CONSULTATION', 'TECHNICAL', 'DOCUMENTATION', 'COMPLAINT', 'SUGGESTION', 'OTHER'] as const
 
 export const requestStatusSchema = z.enum(requestStatuses)
+export const requestPrioritySchema = z.enum(requestPriorities)
+export const requestCategorySchema = z.enum(requestCategories)
 
 export const createRequestSchema = z.object({
   organization: z.string().min(1, 'Организация обязательна').max(500),
@@ -87,10 +91,13 @@ export const createRequestSchema = z.object({
   contactPhone: z.string().min(3, 'Укажите телефон').max(50),
   contactTelegram: z.string().min(2, 'Укажите Telegram').max(100),
   description: z.string().min(1, 'Опишите проблему').max(10000),
+  category: requestCategorySchema.optional(),
 })
 
 export const requestFiltersSchema = z.object({
   status: requestStatusSchema.optional(),
+  priority: requestPrioritySchema.optional(),
+  category: requestCategorySchema.optional(),
   search: z.string().max(200).optional(),
 })
 
@@ -98,6 +105,8 @@ export const requestQuerySchema = paginationSchema.merge(requestFiltersSchema)
 
 export const updateRequestSchema = z.object({
   status: requestStatusSchema.optional(),
+  priority: requestPrioritySchema.optional(),
+  category: requestCategorySchema.optional(),
   assignedToId: z.string().cuid().nullable().optional(),
 })
 

@@ -83,7 +83,9 @@ model User {
   approvalsTarget AdminApproval[] @relation("AdminApprovalTarget")
   approvalsRequested AdminApproval[] @relation("AdminApprovalRequestedBy")
   approvalsApproved AdminApproval[] @relation("AdminApprovalApprovedBy")
-  requestsAssigned Request[]     @relation("RequestAssignee")
+  requestsAssigned   Request[]        @relation("RequestAssignee")
+  requestComments    RequestComment[] @relation("RequestCommentAuthor")
+  requestHistory     RequestHistory[] @relation("RequestHistoryActor")
 
   @@index([role])              // Индекс для фильтрации по роли
   @@index([canLogin])          // Индекс для фильтрации по доступу
@@ -277,29 +279,56 @@ enum RequestStatus {
   IN_REVIEW
   DONE
   SPAM
+  CANCELLED
+}
+
+enum RequestPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum RequestCategory {
+  CONSULTATION    // Консультация
+  TECHNICAL       // Техническая поддержка
+  DOCUMENTATION   // Документация
+  COMPLAINT       // Жалоба
+  SUGGESTION      // Предложение
+  OTHER           // Другое
 }
 
 model Request {
-  id              String        @id @default(cuid())
+  id              String          @id @default(cuid())
   organization    String
   contactName     String
   contactEmail    String
   contactPhone    String
   contactTelegram String
-  description     String        @db.Text
-  status          RequestStatus @default(NEW)
+  description     String          @db.Text
+  status          RequestStatus   @default(NEW)
+  priority        RequestPriority @default(NORMAL)
+  category        RequestCategory @default(OTHER)
   assignedToId    String?
-  assignedTo      User?         @relation("RequestAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedTo      User?           @relation("RequestAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   source          String?
   ipHash          String?
 
-  files           RequestFile[]
+  // Soft delete
+  deletedAt       DateTime?
 
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  files           RequestFile[]
+  comments        RequestComment[]
+  history         RequestHistory[]
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   @@index([status, createdAt])
   @@index([assignedToId])
+  @@index([priority])
+  @@index([category])
+  @@index([deletedAt])
 }
 
 model RequestFile {
@@ -316,6 +345,37 @@ model RequestFile {
   updatedAt       DateTime            @updatedAt
 
   @@index([requestId])
+}
+
+// Комментарии к заявкам
+model RequestComment {
+  id        String   @id @default(cuid())
+  text      String   @db.Text
+  requestId String
+  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation("RequestCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([requestId, createdAt])
+  @@index([authorId])
+}
+
+// История изменений заявок
+model RequestHistory {
+  id        String   @id @default(cuid())
+  requestId String
+  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("RequestHistoryActor", fields: [userId], references: [id], onDelete: Cascade)
+  field     String   // status, priority, category, assignedTo, etc.
+  oldValue  String?  @db.Text
+  newValue  String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([requestId, createdAt])
+  @@index([userId])
 }
 
 // ===== ФАЙЛЫ =====

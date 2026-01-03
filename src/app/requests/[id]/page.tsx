@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -15,9 +15,17 @@ import {
   UserPlus,
   UserX,
   ExternalLink,
+  MessageSquare,
+  History,
+  Send,
+  AlertTriangle,
+  Flag,
+  Tag,
 } from 'lucide-react'
 
-type RequestStatus = 'NEW' | 'IN_REVIEW' | 'DONE' | 'SPAM'
+type RequestStatus = 'NEW' | 'IN_REVIEW' | 'DONE' | 'SPAM' | 'CANCELLED'
+type RequestPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'
+type RequestCategory = 'CONSULTATION' | 'TECHNICAL' | 'DOCUMENTATION' | 'COMPLAINT' | 'SUGGESTION' | 'OTHER'
 
 interface RequestFile {
   id: string
@@ -25,6 +33,18 @@ interface RequestFile {
   url: string
   size: number | null
   mimeType: string | null
+}
+
+interface RequestComment {
+  id: string
+  text: string
+  createdAt: string
+  author: {
+    id: string
+    name: string | null
+    email: string | null
+    image: string | null
+  }
 }
 
 interface RequestDetail {
@@ -36,14 +56,32 @@ interface RequestDetail {
   contactTelegram: string
   description: string
   status: RequestStatus
+  priority: RequestPriority
+  category: RequestCategory
   createdAt: string
   source?: string | null
   assignedTo: {
     id: string
     name: string | null
     email: string | null
+    image: string | null
   } | null
   files: RequestFile[]
+  comments: RequestComment[]
+  _count: { history: number }
+}
+
+interface HistoryEntry {
+  id: string
+  field: string
+  oldValue: string | null
+  newValue: string | null
+  createdAt: string
+  user: {
+    id: string
+    name: string | null
+    email: string | null
+  }
 }
 
 const STATUS_LABELS: Record<RequestStatus, string> = {
@@ -51,6 +89,7 @@ const STATUS_LABELS: Record<RequestStatus, string> = {
   IN_REVIEW: 'В работе',
   DONE: 'Завершена',
   SPAM: 'Спам',
+  CANCELLED: 'Отменена',
 }
 
 const STATUS_STYLES: Record<RequestStatus, string> = {
@@ -58,6 +97,38 @@ const STATUS_STYLES: Record<RequestStatus, string> = {
   IN_REVIEW: 'bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/40',
   DONE: 'bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40',
   SPAM: 'bg-rose-500/20 text-rose-200 ring-1 ring-rose-400/40',
+  CANCELLED: 'bg-gray-500/20 text-gray-300 ring-1 ring-gray-400/40',
+}
+
+const PRIORITY_LABELS: Record<RequestPriority, string> = {
+  LOW: 'Низкий',
+  NORMAL: 'Обычный',
+  HIGH: 'Высокий',
+  URGENT: 'Срочный',
+}
+
+const PRIORITY_STYLES: Record<RequestPriority, string> = {
+  LOW: 'bg-gray-500/20 text-gray-300',
+  NORMAL: 'bg-blue-500/20 text-blue-300',
+  HIGH: 'bg-orange-500/20 text-orange-300',
+  URGENT: 'bg-red-500/20 text-red-300',
+}
+
+const CATEGORY_LABELS: Record<RequestCategory, string> = {
+  CONSULTATION: 'Консультация',
+  TECHNICAL: 'Техническая поддержка',
+  DOCUMENTATION: 'Документация',
+  COMPLAINT: 'Жалоба',
+  SUGGESTION: 'Предложение',
+  OTHER: 'Другое',
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  status: 'Статус',
+  priority: 'Приоритет',
+  category: 'Категория',
+  assignedTo: 'Ответственный',
+  deletedAt: 'Удалено',
 }
 
 const formatFileSize = (bytes?: number | null) => {
@@ -83,10 +154,16 @@ export default function RequestDetailPage() {
   const [request, setRequest] = useState<RequestDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
+  const [commentText, setCommentText] = useState('')
+  const [submittingComment, setSubmittingComment] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [history, setHistory] = useState<HistoryEntry[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const fetchedRef = useRef(false)
 
   useEffect(() => {
-    if (!session || !requestId) return
-    let active = true
+    if (!session || !requestId || fetchedRef.current) return
+    fetchedRef.current = true
 
     const loadRequest = async () => {
       setLoading(true)
@@ -98,30 +175,29 @@ export default function RequestDetailPage() {
           throw new Error(data.error || 'Failed to load request')
         }
 
-        if (active) {
-          setRequest(data.request)
-        }
+        setRequest(data.request)
       } catch (error) {
         console.error('Failed to load request:', error)
-        if (active) {
-          toastError('Не удалось загрузить заявку.')
-        }
+        toastError('Не удалось загрузить заявку.')
       } finally {
-        if (active) setLoading(false)
+        setLoading(false)
       }
     }
 
     loadRequest()
-    return () => {
-      active = false
-    }
-  }, [session, requestId, toastError])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, requestId])
 
-  const updateRequest = async (payload: { status?: RequestStatus; assignedToId?: string | null }) => {
+  const updateRequest = async (payload: {
+    status?: RequestStatus
+    priority?: RequestPriority
+    category?: RequestCategory
+    assignedToId?: string | null
+  }) => {
     if (!requestId) return
     setUpdating(true)
     try {
-      const response = await fetch(`/api/requests/${requestId}` , {
+      const response = await fetch(`/api/requests/${requestId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -140,6 +216,63 @@ export default function RequestDetailPage() {
     } finally {
       setUpdating(false)
     }
+  }
+
+  const submitComment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!commentText.trim() || !requestId) return
+
+    setSubmittingComment(true)
+    try {
+      const response = await fetch(`/api/requests/${requestId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: commentText.trim() }),
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add comment')
+      }
+
+      setRequest((prev) =>
+        prev ? { ...prev, comments: [...prev.comments, data.comment] } : prev
+      )
+      setCommentText('')
+      toastSuccess('Комментарий добавлен')
+    } catch (error) {
+      console.error('Failed to add comment:', error)
+      toastError('Не удалось добавить комментарий.')
+    } finally {
+      setSubmittingComment(false)
+    }
+  }
+
+  const loadHistory = useCallback(async () => {
+    if (!requestId) return
+    setHistoryLoading(true)
+    try {
+      const response = await fetch(`/api/requests/${requestId}/history`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load history')
+      }
+
+      setHistory(data.history)
+    } catch (error) {
+      console.error('Failed to load history:', error)
+      toastError('Не удалось загрузить историю.')
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [requestId, toastError])
+
+  const toggleHistory = () => {
+    if (!historyOpen && history.length === 0) {
+      loadHistory()
+    }
+    setHistoryOpen(!historyOpen)
   }
 
   if (status === 'loading' || loading) {
@@ -189,6 +322,16 @@ export default function RequestDetailPage() {
             <p className="text-sm text-slate-300 mt-2">
               {`Создано ${formatDateTime(request.createdAt)}`}
             </p>
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${PRIORITY_STYLES[request.priority]}`}>
+                <Flag className="w-3 h-3" />
+                {PRIORITY_LABELS[request.priority]}
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-purple-500/20 text-purple-300">
+                <Tag className="w-3 h-3" />
+                {CATEGORY_LABELS[request.category]}
+              </span>
+            </div>
           </div>
           <span
             className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${STATUS_STYLES[request.status]}`}
@@ -243,6 +386,147 @@ export default function RequestDetailPage() {
                 </div>
               )}
             </div>
+
+            {/* Комментарии */}
+            <div className="panel panel-glass rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  {'Комментарии'}
+                  {request.comments.length > 0 && (
+                    <span className="text-sm text-slate-400">({request.comments.length})</span>
+                  )}
+                </h2>
+              </div>
+
+              {request.comments.length === 0 ? (
+                <p className="text-sm text-slate-400 mb-4">
+                  {'Комментариев пока нет.'}
+                </p>
+              ) : (
+                <div className="space-y-4 mb-4 max-h-96 overflow-y-auto">
+                  {request.comments.map((comment) => (
+                    <div
+                      key={comment.id}
+                      className="bg-gray-800/60 border border-gray-700 rounded-lg p-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        {comment.author.image ? (
+                          <img
+                            src={comment.author.image}
+                            alt=""
+                            className="w-8 h-8 rounded-full"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-300 text-sm font-medium">
+                            {(comment.author.name || comment.author.email || '?')[0].toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium text-white">
+                              {comment.author.name || comment.author.email}
+                            </span>
+                            <span className="text-xs text-slate-400">
+                              {formatDateTime(comment.createdAt)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-300 whitespace-pre-wrap">
+                            {comment.text}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <form onSubmit={submitComment} className="flex gap-2">
+                <input
+                  type="text"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Написать комментарий..."
+                  disabled={submittingComment}
+                  className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+                />
+                <button
+                  type="submit"
+                  disabled={submittingComment || !commentText.trim()}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submittingComment ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </button>
+              </form>
+            </div>
+
+            {/* История изменений */}
+            {request._count.history > 0 && (
+              <div className="panel panel-glass rounded-2xl p-6">
+                <button
+                  type="button"
+                  onClick={toggleHistory}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                    <History className="w-5 h-5" />
+                    {'История изменений'}
+                    <span className="text-sm text-slate-400">({request._count.history})</span>
+                  </h2>
+                  <span className="text-slate-400 text-sm">
+                    {historyOpen ? 'Свернуть' : 'Развернуть'}
+                  </span>
+                </button>
+
+                {historyOpen && (
+                  <div className="mt-4">
+                    {historyLoading ? (
+                      <div className="flex justify-center py-4">
+                        <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+                      </div>
+                    ) : history.length === 0 ? (
+                      <p className="text-sm text-slate-400">{'История пуста.'}</p>
+                    ) : (
+                      <div className="space-y-3 max-h-64 overflow-y-auto">
+                        {history.map((entry) => (
+                          <div
+                            key={entry.id}
+                            className="flex items-start gap-3 text-sm border-l-2 border-gray-700 pl-3"
+                          >
+                            <div className="flex-1">
+                              <p className="text-slate-300">
+                                <span className="text-white font-medium">
+                                  {entry.user.name || entry.user.email}
+                                </span>
+                                {' изменил(а) '}
+                                <span className="text-emerald-300">
+                                  {FIELD_LABELS[entry.field] || entry.field}
+                                </span>
+                                {entry.oldValue && (
+                                  <>
+                                    {' с '}
+                                    <span className="text-red-300 line-through">{entry.oldValue}</span>
+                                  </>
+                                )}
+                                {' на '}
+                                <span className="text-green-300">{entry.newValue || '—'}</span>
+                              </p>
+                              <p className="text-xs text-slate-500 mt-1">
+                                {formatDateTime(entry.createdAt)}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-6">
@@ -263,6 +547,44 @@ export default function RequestDetailPage() {
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
                 >
                   {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-300 mb-2">
+                  {'Приоритет'}
+                </label>
+                <select
+                  value={request.priority}
+                  onChange={(event) =>
+                    updateRequest({ priority: event.target.value as RequestPriority })
+                  }
+                  disabled={updating}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                >
+                  {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-300 mb-2">
+                  {'Категория'}
+                </label>
+                <select
+                  value={request.category}
+                  onChange={(event) =>
+                    updateRequest({ category: event.target.value as RequestCategory })
+                  }
+                  disabled={updating}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                >
+                  {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>
                       {label}
                     </option>

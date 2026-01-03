@@ -90,13 +90,23 @@ export const GET = withValidation<RequestsListResult, unknown, RequestQueryInput
     const requestId = getRequestContext()?.requestId ?? randomUUID()
     const startTime = Date.now()
     try {
-      const { page, limit, status, search } = query
+      const { page, limit, status, priority, category, search } = query
       const pageValue = page ?? 1
       const limitValue = limit ?? PAGE_SIZE
-      const where: Prisma.RequestWhereInput = {}
+      const where: Prisma.RequestWhereInput = {
+        deletedAt: null, // Исключаем удалённые заявки
+      }
 
       if (status) {
         where.status = status
+      }
+
+      if (priority) {
+        where.priority = priority
+      }
+
+      if (category) {
+        where.category = category
       }
 
       if (search) {
@@ -118,12 +128,15 @@ export const GET = withValidation<RequestsListResult, unknown, RequestQueryInput
       let countMs = 0
       const requestsPromise = prisma.request.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [
+          { priority: 'desc' }, // URGENT > HIGH > NORMAL > LOW
+          { createdAt: 'desc' },
+        ],
         skip: (pageValue - 1) * limitValue,
         take: limitValue,
         include: {
-          assignedTo: { select: { id: true, name: true, email: true } },
-          _count: { select: { files: true } },
+          assignedTo: { select: { id: true, name: true, email: true, image: true } },
+          _count: { select: { files: true, comments: true } },
         },
       }).then((result) => {
         findMs = Date.now() - findStart
@@ -146,6 +159,8 @@ export const GET = withValidation<RequestsListResult, unknown, RequestQueryInput
         page: pageValue,
         limit: limitValue,
         status,
+        priority,
+        category,
         search: search?.trim() || undefined,
       }
 
