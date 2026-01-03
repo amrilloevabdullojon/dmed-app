@@ -238,7 +238,6 @@ export function Notifications() {
                 <div className="text-yellow-400 font-bold">{urgentCount}</div>
                 <div className="text-xs text-gray-500">Срочных</div>
               </div>
-              </div>
             </div>
 
             <div ref={notificationsRef} className="overflow-y-auto flex-1">
