@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import Script from 'next/script'
 import { Header } from '@/components/Header'
 import { useToast } from '@/components/Toast'
 import {
@@ -18,6 +19,17 @@ interface RequestFormState {
   contactPhone: string
   contactTelegram: string
   description: string
+}
+
+declare global {
+  interface Window {
+    onTurnstileSuccess?: (token: string) => void
+    onTurnstileExpired?: () => void
+    onTurnstileError?: () => void
+    turnstile?: {
+      reset: () => void
+    }
+  }
 }
 
 const initialForm: RequestFormState = {
@@ -42,6 +54,22 @@ export default function RequestPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [honeypot, setHoneypot] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+
+  useEffect(() => {
+    if (!turnstileSiteKey) return
+
+    window.onTurnstileSuccess = (token: string) => setTurnstileToken(token)
+    window.onTurnstileExpired = () => setTurnstileToken('')
+    window.onTurnstileError = () => setTurnstileToken('')
+
+    return () => {
+      delete window.onTurnstileSuccess
+      delete window.onTurnstileExpired
+      delete window.onTurnstileError
+    }
+  }, [turnstileSiteKey])
 
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -84,11 +112,29 @@ export default function RequestPage() {
     setForm(initialForm)
     setFiles([])
     setSubmitted(false)
+    setTurnstileToken('')
+    if (typeof window !== 'undefined' && window.turnstile?.reset) {
+      try {
+        window.turnstile.reset()
+      } catch {
+        // Ignore Turnstile reset errors in the UI.
+      }
+    }
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (submitting) return
+
+    if (!turnstileSiteKey) {
+      toast.error('Captcha is not configured.')
+      return
+    }
+
+    if (!turnstileToken) {
+      toast.error('Please complete the captcha.')
+      return
+    }
 
     setSubmitting(true)
     const toastId = toast.loading('Отправка заявки...')
@@ -102,6 +148,7 @@ export default function RequestPage() {
       formData.append('contactTelegram', form.contactTelegram)
       formData.append('description', form.description)
       formData.append('website', honeypot)
+      formData.append('cf-turnstile-response', turnstileToken)
 
       files.forEach((file) => {
         formData.append('files', file)
@@ -137,11 +184,27 @@ export default function RequestPage() {
       )
     } finally {
       setSubmitting(false)
+      setTurnstileToken('')
+      if (typeof window !== 'undefined' && window.turnstile?.reset) {
+        try {
+          window.turnstile.reset()
+        } catch {
+          // Ignore Turnstile reset errors in the UI.
+        }
+      }
     }
   }
 
   return (
     <div className="min-h-screen app-shell bg-gray-900">
+      {turnstileSiteKey && (
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+          async
+          defer
+          strategy="afterInteractive"
+        />
+      )}
       <Header />
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -316,6 +379,29 @@ export default function RequestPage() {
                 className="hidden"
                 tabIndex={-1}
                 autoComplete="off"
+              />
+
+              {turnstileSiteKey ? (
+                <div className="flex justify-start">
+                  <div
+                    className="cf-turnstile"
+                    data-sitekey={turnstileSiteKey}
+                    data-callback="onTurnstileSuccess"
+                    data-expired-callback="onTurnstileExpired"
+                    data-error-callback="onTurnstileError"
+                    data-response-field="false"
+                    data-theme="auto"
+                  />
+                </div>
+              ) : (
+                <p className="text-xs text-amber-300">
+                  Turnstile is not configured.
+                </p>
+              )}
+              <input
+                type="hidden"
+                name="cf-turnstile-response"
+                value={turnstileToken}
               />
 
               <button

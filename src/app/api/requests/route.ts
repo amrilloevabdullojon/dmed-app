@@ -52,6 +52,47 @@ const isFileTypeAllowed = (file: File) => {
 const buildRequestIpHash = (identifier: string) =>
   createHash('sha256').update(identifier).digest('hex')
 
+const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+
+type TurnstileVerifyResponse = {
+  success: boolean
+  'error-codes'?: string[]
+  challenge_ts?: string
+  hostname?: string
+  action?: string
+  cdata?: string
+}
+
+const verifyTurnstileToken = async (token: string, clientId: string) => {
+  const secret = process.env.TURNSTILE_SECRET_KEY
+  if (!secret) {
+    return { success: false, data: null }
+  }
+
+  const body = new URLSearchParams({
+    secret,
+    response: token,
+  })
+
+  if (clientId && clientId !== 'anonymous') {
+    body.set('remoteip', clientId)
+  }
+
+  const response = await fetch(TURNSTILE_VERIFY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+    cache: 'no-store',
+  })
+
+  const data = (await response.json().catch(() => null)) as TurnstileVerifyResponse | null
+
+  return {
+    success: Boolean(response.ok && data?.success),
+    data,
+  }
+}
+
 type RequestsListResponse = {
   requests: Array<{
     id: string
@@ -214,6 +255,37 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData()
+    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY
+    const turnstileToken = (formData.get('cf-turnstile-response') || '').toString().trim()
+
+    if (!turnstileSecret && process.env.NODE_ENV === 'production') {
+      logger.error('POST /api/requests', 'Turnstile secret key is missing')
+      return NextResponse.json(
+        { error: 'Captcha is not configured.' },
+        { status: 500 }
+      )
+    }
+
+    if (turnstileSecret) {
+      if (!turnstileToken) {
+        return NextResponse.json(
+          { error: 'Captcha is required.' },
+          { status: 400 }
+        )
+      }
+
+      const verification = await verifyTurnstileToken(turnstileToken, clientId)
+      if (!verification.success) {
+        logger.warn('POST /api/requests', 'Turnstile verification failed', {
+          errorCodes: verification.data?.['error-codes'],
+          clientId,
+        })
+        return NextResponse.json(
+          { error: 'Captcha verification failed.' },
+          { status: 400 }
+        )
+      }
+    }
     const rawData = {
       organization: (formData.get('organization') || '').toString().trim(),
       contactName: (formData.get('contactName') || '').toString().trim(),
