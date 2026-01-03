@@ -217,6 +217,12 @@ export function Header() {
 
           {/* User Menu */}
           <div className="hidden md:flex items-center gap-3">
+            <Link
+              href="/request"
+              className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium btn-primary"
+            >
+              {'Подать заявку'}
+            </Link>
             <ThemeToggle />
             {session?.user && (
               <>
@@ -291,6 +297,16 @@ export function Header() {
         }`}
       >
         <nav className="flex flex-col p-4 gap-1">
+          <Link
+            href="/request"
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+              isActive('/request')
+                ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20'
+                : 'text-slate-200/80 hover:bg-white/5'
+            }`}
+          >
+            {'Подать заявку'}
+          </Link>
           {/* User info */}
           {session?.user && (
             <div className="flex items-center gap-3 p-3 mb-4 bg-white/10 rounded-lg">

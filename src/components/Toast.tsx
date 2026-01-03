@@ -35,17 +35,47 @@ const IconStyles: Record<ToastType, string> = {
   loading: 'text-slate-300',
 }
 
+const ProgressBarColors: Record<ToastType, string> = {
+  success: 'bg-emerald-400',
+  error: 'bg-red-400',
+  warning: 'bg-amber-400',
+  info: 'bg-blue-400',
+  loading: 'bg-slate-400',
+}
+
 /**
  * Single toast item component
  */
 function ToastItem({ toast, onClose }: { toast: Toast; onClose: (id: string) => void }) {
   const [isExiting, setIsExiting] = useState(false)
+  const [progress, setProgress] = useState(100)
   const Icon = ToastIcons[toast.type]
 
   const handleClose = () => {
     setIsExiting(true)
     setTimeout(() => onClose(toast.id), 200)
   }
+
+  // Progress bar animation
+  useEffect(() => {
+    if (toast.duration && toast.duration > 0 && toast.type !== 'loading') {
+      const startTime = Date.now()
+      const duration = toast.duration
+
+      const updateProgress = () => {
+        const elapsed = Date.now() - startTime
+        const remaining = Math.max(0, 100 - (elapsed / duration) * 100)
+        setProgress(remaining)
+
+        if (remaining > 0) {
+          requestAnimationFrame(updateProgress)
+        }
+      }
+
+      const animationFrame = requestAnimationFrame(updateProgress)
+      return () => cancelAnimationFrame(animationFrame)
+    }
+  }, [toast.duration, toast.type])
 
   // Auto close before duration ends to allow animation
   useEffect(() => {
@@ -65,10 +95,10 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: (id: string) => 
   return (
     <div
       className={`
-        relative flex items-start gap-3 rounded-lg border p-4 shadow-lg backdrop-blur-md
+        relative flex items-start gap-3 rounded-lg border p-4 shadow-lg backdrop-blur-md overflow-hidden
         transition-all duration-200 ease-out
         ${ToastStyles[toast.type]}
-        ${isExiting ? 'translate-x-full opacity-0' : 'translate-x-0 opacity-100'}
+        ${isExiting ? 'translate-y-[-10px] opacity-0 scale-95' : 'translate-y-0 opacity-100 scale-100'}
       `}
       role="alert"
     >
@@ -94,6 +124,16 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: (id: string) => 
       >
         <X className="h-4 w-4" />
       </button>
+
+      {/* Progress bar */}
+      {toast.duration && toast.duration > 0 && toast.type !== 'loading' && (
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20">
+          <div
+            className={`h-full transition-none ${ProgressBarColors[toast.type]}`}
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      )}
     </div>
   )
 }

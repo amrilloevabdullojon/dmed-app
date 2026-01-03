@@ -8,7 +8,9 @@ import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 import { useToast } from '@/components/Toast'
 import { formatDate } from '@/lib/utils'
 import { PAGE_SIZE } from '@/lib/constants'
-import { Loader2, RefreshCw, Search, Flag, Tag, MessageSquare } from 'lucide-react'
+import { Loader2, RefreshCw, Search, Flag, Tag, MessageSquare, AlertTriangle } from 'lucide-react'
+import { RequestListSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 type RequestStatus = 'NEW' | 'IN_REVIEW' | 'DONE' | 'SPAM' | 'CANCELLED'
 type RequestPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'
@@ -72,7 +74,7 @@ const PRIORITY_STYLES: Record<RequestPriority, string> = {
   LOW: 'bg-gray-500/20 text-gray-300',
   NORMAL: 'bg-blue-500/20 text-blue-300',
   HIGH: 'bg-orange-500/20 text-orange-300',
-  URGENT: 'bg-red-500/20 text-red-300',
+  URGENT: 'bg-red-500/20 text-red-300 animate-urgent-pulse',
 }
 
 const CATEGORY_LABELS: Record<RequestCategory, string> = {
@@ -288,29 +290,49 @@ export default function RequestsPage() {
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
-          </div>
+          <RequestListSkeleton count={5} />
         ) : requests.length === 0 ? (
-          <div className="panel panel-glass rounded-2xl p-8 text-center text-slate-300">
-            {'Заявок пока нет.'}
-          </div>
+          <EmptyState
+            variant={(statusFilter || priorityFilter || categoryFilter || search) ? 'search' : 'requests'}
+            title={(statusFilter || priorityFilter || categoryFilter || search) ? 'Ничего не найдено' : undefined}
+            description={(statusFilter || priorityFilter || categoryFilter || search)
+              ? 'Попробуйте изменить параметры поиска или сбросить фильтры'
+              : undefined}
+            action={(statusFilter || priorityFilter || categoryFilter || search) ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setStatusFilter('')
+                  setPriorityFilter('')
+                  setCategoryFilter('')
+                  setSearch('')
+                  setPage(1)
+                }}
+                className="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition text-sm"
+              >
+                Сбросить фильтры
+              </button>
+            ) : undefined}
+          />
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 stagger-animation">
             {requests.map((request) => (
-              <div
+              <Link
                 key={request.id}
-                className="panel panel-soft panel-glass rounded-2xl p-5"
+                href={`/requests/${request.id}`}
+                className={`block panel panel-soft panel-glass rounded-2xl p-5 card-hover ${
+                  request.priority === 'URGENT' ? 'urgent-card' : ''
+                }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div className="space-y-2">
                     <div className="flex items-start gap-3">
-                      <Link
-                        href={`/requests/${request.id}`}
-                        className="text-lg text-white font-semibold hover:text-emerald-300 transition"
-                      >
+                      {request.priority === 'URGENT' && (
+                        <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      )}
+                      <span className="text-lg text-white font-semibold group-hover:text-emerald-300 transition">
                         {request.organization}
-                      </Link>
+                      </span>
                     </div>
                     <p className="text-sm text-slate-300">
                       {request.contactName}
@@ -328,6 +350,9 @@ export default function RequestsPage() {
                         <Tag className="w-3 h-3" />
                         {CATEGORY_LABELS[request.category]}
                       </span>
+                      {request.status === 'NEW' && (
+                        <span className="w-2 h-2 rounded-full bg-sky-400 status-dot-new" />
+                      )}
                     </div>
                   </div>
                   <span
@@ -338,7 +363,7 @@ export default function RequestsPage() {
                 </div>
 
                 {request.description && (
-                  <p className="text-sm text-slate-300/90 mt-3">
+                  <p className="text-sm text-slate-300/90 mt-3 line-clamp-2">
                     {request.description}
                   </p>
                 )}
@@ -358,7 +383,7 @@ export default function RequestsPage() {
                     }`}
                   </span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
