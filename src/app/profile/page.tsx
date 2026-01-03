@@ -100,12 +100,12 @@ interface ActivityData {
 }
 
 const ROLE_LABELS: Record<UserSummary['role'], string> = {
-  SUPERADMIN: '\u0421\u0443\u043f\u0435\u0440\u0430\u0434\u043c\u0438\u043d',
-  ADMIN: '\u0410\u0434\u043c\u0438\u043d',
-  MANAGER: '\u041c\u0435\u043d\u0435\u0434\u0436\u0435\u0440',
-  AUDITOR: '\u0410\u0443\u0434\u0438\u0442\u043e\u0440',
-  EMPLOYEE: '\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a',
-  VIEWER: '\u041d\u0430\u0431\u043b\u044e\u0434\u0430\u0442\u0435\u043b\u044c',
+  SUPERADMIN: '\С\у\п\е\р\а\д\м\и\н',
+  ADMIN: '\А\д\м\и\н',
+  MANAGER: '\М\е\н\е\д\ж\е\р',
+  AUDITOR: '\А\у\д\и\т\о\р',
+  EMPLOYEE: '\С\о\т\р\у\д\н\и\к',
+  VIEWER: '\Н\а\б\л\ю\д\а\т\е\л\ь',
 }
 
 const ROLE_BADGE_CLASSES: Record<UserSummary['role'], string> = {
@@ -226,10 +226,10 @@ export default function ProfilePage() {
       const data = await res.json()
       setProfile(data.profile || payload)
       setSkillsInput((data.profile?.skills || payload.skills).join(', '))
-      toast.success('\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d')
+      toast.success('\П\р\о\ф\и\л\ь \о\б\н\о\в\л\е\н')
     } catch (error) {
       console.error('Failed to save profile:', error)
-      toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u043f\u0440\u043e\u0444\u0438\u043b\u044c')
+      toast.error('\Н\е \у\д\а\л\о\с\ь \с\о\х\р\а\н\и\т\ь \п\р\о\ф\и\л\ь')
     } finally {
       setSaving(false)
     }
@@ -257,12 +257,12 @@ export default function ProfilePage() {
       }
       toast.success(
         type === 'avatar'
-          ? '\u0410\u0432\u0430\u0442\u0430\u0440 \u043e\u0431\u043d\u043e\u0432\u043b\u0451\u043d'
-          : '\u041e\u0431\u043b\u043e\u0436\u043a\u0430 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0430'
+          ? '\А\в\а\т\а\р \о\б\н\о\в\л\ё\н'
+          : '\О\б\л\о\ж\к\а \о\б\н\о\в\л\е\н\а'
       )
     } catch (error) {
       console.error('Failed to upload asset:', error)
-      toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0444\u0430\u0439\u043b')
+      toast.error('\Н\е \у\д\а\л\о\с\ь \з\а\г\р\у\з\и\т\ь \ф\а\й\л')
     } finally {
       setUploading(false)
     }
@@ -281,10 +281,10 @@ export default function ProfilePage() {
       }
       const data = await res.json()
       setProfile((prev) => ({ ...prev, ...data.profile }))
-      toast.success('\u0421\u0441\u044b\u043b\u043a\u0430 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0430')
+      toast.success('\С\с\ы\л\к\а \о\б\н\о\в\л\е\н\а')
     } catch (error) {
       console.error('Failed to rotate token:', error)
-      toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443')
+      toast.error('\Н\е \у\д\а\л\о\с\ь \о\б\н\о\в\и\т\ь \с\с\ы\л\к\у')
     }
   }
 
@@ -292,10 +292,10 @@ export default function ProfilePage() {
     if (!publicProfileUrl) return
     try {
       await navigator.clipboard.writeText(publicProfileUrl)
-      toast.success('\u0421\u0441\u044b\u043b\u043a\u0430 \u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0430')
+      toast.success('\С\с\ы\л\к\а \с\к\о\п\и\р\о\в\а\н\а')
     } catch (error) {
       console.error('Failed to copy link:', error)
-      toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c')
+      toast.error('\Н\е \у\д\а\л\о\с\ь \с\к\о\п\и\р\о\в\а\т\ь')
     }
   }
 
@@ -326,10 +326,10 @@ export default function ProfilePage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl md:text-4xl font-display font-semibold text-white">
-              {'\u041f\u0440\u043e\u0444\u0438\u043b\u044c'}
+              {'\П\р\о\ф\и\л\ь'}
             </h1>
             <p className="text-muted text-sm mt-2">
-              {'\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u0435 \u0434\u0430\u043d\u043d\u044b\u0435 \u0438 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u0442\u0435 \u0432\u0438\u0434\u0438\u043c\u043e\u0441\u0442\u044c \u0434\u043b\u044f \u043a\u043e\u043b\u043b\u0435\u0433.'}
+              {'\О\б\н\о\в\и\т\е \д\а\н\н\ы\е \и \н\а\с\т\р\о\й\т\е \в\и\д\и\м\о\с\т\ь \д\л\я \к\о\л\л\е\г.'}
             </p>
           </div>
           <button
@@ -342,7 +342,7 @@ export default function ProfilePage() {
             ) : (
               <Save className="w-4 h-4" />
             )}
-            {'\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c'}
+            {'\С\о\х\р\а\н\и\т\ь'}
           </button>
         </div>
 
@@ -365,7 +365,7 @@ export default function ProfilePage() {
               )}
               <div>
                 <div className="text-lg font-semibold text-white">
-                  {user.name || '\u0411\u0435\u0437 \u0438\u043c\u0435\u043d\u0438'}
+                  {user.name || '\Б\е\з \и\м\е\н\и'}
                 </div>
                 <div className="text-xs text-gray-400 flex items-center gap-2">
                   <Mail className="w-3.5 h-3.5" />
@@ -389,24 +389,24 @@ export default function ProfilePage() {
               <div className="panel-soft panel-glass rounded-xl p-2 text-center">
                 <FileText className="w-4 h-4 text-emerald-300 mx-auto mb-1" />
                 <div className="text-white">{user._count.letters}</div>
-                <div className="text-gray-500">{'\u041f\u0438\u0441\u044c\u043c\u0430'}</div>
+                <div className="text-gray-500">{'\П\и\с\ь\м\а'}</div>
               </div>
               <div className="panel-soft panel-glass rounded-xl p-2 text-center">
                 <MessageSquare className="w-4 h-4 text-blue-300 mx-auto mb-1" />
                 <div className="text-white">{user._count.comments}</div>
-                <div className="text-gray-500">{'\u041a\u043e\u043c\u043c\u0435\u043d\u0442\u044b'}</div>
+                <div className="text-gray-500">{'\К\о\м\м\е\н\т\ы'}</div>
               </div>
               <div className="panel-soft panel-glass rounded-xl p-2 text-center">
                 <Clock className="w-4 h-4 text-amber-300 mx-auto mb-1" />
                 <div className="text-white">{user._count.sessions}</div>
-                <div className="text-gray-500">{'\u0421\u0435\u0441\u0441\u0438\u0438'}</div>
+                <div className="text-gray-500">{'\С\е\с\с\и\и'}</div>
               </div>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-xs text-gray-400">
                 <Upload className="w-3.5 h-3.5 text-emerald-400" />
-                {'\u041e\u0444\u043e\u0440\u043c\u043b\u0435\u043d\u0438\u0435'}
+                {'\О\ф\о\р\м\л\е\н\и\е'}
               </div>
               <div className="rounded-xl overflow-hidden h-20 bg-white/10 border border-white/10">
                 {coverUrl ? (
@@ -420,7 +420,7 @@ export default function ProfilePage() {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-xs text-gray-500">
-                    {'\u041d\u0435\u0442 \u043e\u0431\u043b\u043e\u0436\u043a\u0438'}
+                    {'\Н\е\т \о\б\л\о\ж\к\и'}
                   </div>
                 )}
               </div>
@@ -431,7 +431,7 @@ export default function ProfilePage() {
                   ) : (
                     <Upload className="w-3.5 h-3.5" />
                   )}
-                  {'\u0410\u0432\u0430\u0442\u0430\u0440'}
+                  {'\А\в\а\т\а\р'}
                   <input
                     type="file"
                     accept="image/*"
@@ -449,7 +449,7 @@ export default function ProfilePage() {
                   ) : (
                     <Upload className="w-3.5 h-3.5" />
                   )}
-                  {'\u041e\u0431\u043b\u043e\u0436\u043a\u0430'}
+                  {'\О\б\л\о\ж\к\а'}
                   <input
                     type="file"
                     accept="image/*"
@@ -466,20 +466,20 @@ export default function ProfilePage() {
 
             <div className="text-xs text-gray-400 flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              {'\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0439 \u0432\u0445\u043e\u0434:'} {formatDate(user.lastLoginAt)}
+              {'\П\о\с\л\е\д\н\и\й \в\х\о\д:'} {formatDate(user.lastLoginAt)}
             </div>
           </div>
 
           <div className="lg:col-span-2 panel panel-glass rounded-2xl p-6 space-y-6">
             <div className="flex items-center gap-2 text-sm text-gray-300">
               <UserCircle className="w-4 h-4 text-emerald-400" />
-              {'\u041e\u0441\u043d\u043e\u0432\u043d\u043e\u0435'}
+              {'\О\с\н\о\в\н\о\е'}
             </div>
             <textarea
               value={profile.bio || ''}
               onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
               className={`${fieldBase} w-full px-3 py-2 min-h-[120px]`}
-              placeholder={'\u041a\u043e\u0440\u043e\u0442\u043a\u043e \u043e \u0441\u0435\u0431\u0435'}
+              placeholder={'\К\о\р\о\т\к\о \о \с\е\б\е'}
               aria-label="Bio"
             />
 
@@ -487,46 +487,46 @@ export default function ProfilePage() {
               <div>
                 <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
                   <Briefcase className="w-4 h-4 text-emerald-400" />
-                  {'\u0414\u043e\u043b\u0436\u043d\u043e\u0441\u0442\u044c'}
+                  {'\Д\о\л\ж\н\о\с\т\ь'}
                 </div>
                 <input
                   value={profile.position || ''}
                   onChange={(e) => setProfile({ ...profile, position: e.target.value })}
                   className={`${fieldBase} w-full px-3 py-2`}
-                  placeholder={'\u0414\u043e\u043b\u0436\u043d\u043e\u0441\u0442\u044c'}
+                  placeholder={'\Д\о\л\ж\н\о\с\т\ь'}
                   aria-label="Position"
                 />
               </div>
               <div>
                 <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-emerald-400" />
-                  {'\u041e\u0442\u0434\u0435\u043b'}
+                  {'\О\т\д\е\л'}
                 </div>
                 <input
                   value={profile.department || ''}
                   onChange={(e) => setProfile({ ...profile, department: e.target.value })}
                   className={`${fieldBase} w-full px-3 py-2`}
-                  placeholder={'\u041e\u0442\u0434\u0435\u043b'}
+                  placeholder={'\О\т\д\е\л'}
                   aria-label="Department"
                 />
               </div>
               <div>
                 <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-emerald-400" />
-                  {'\u041b\u043e\u043a\u0430\u0446\u0438\u044f'}
+                  {'\Л\о\к\а\ц\и\я'}
                 </div>
                 <input
                   value={profile.location || ''}
                   onChange={(e) => setProfile({ ...profile, location: e.target.value })}
                   className={`${fieldBase} w-full px-3 py-2`}
-                  placeholder={'\u0413\u043e\u0440\u043e\u0434, \u0441\u0442\u0440\u0430\u043d\u0430'}
+                  placeholder={'\Г\о\р\о\д, \с\т\р\а\н\а'}
                   aria-label="Location"
                 />
               </div>
               <div>
                 <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
                   <Globe2 className="w-4 h-4 text-emerald-400" />
-                  {'\u0427\u0430\u0441\u043e\u0432\u043e\u0439 \u043f\u043e\u044f\u0441'}
+                  {'\Ч\а\с\о\в\о\й \п\о\я\с'}
                 </div>
                 <input
                   value={profile.timezone || ''}
@@ -539,7 +539,7 @@ export default function ProfilePage() {
               <div>
                 <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
                   <Phone className="w-4 h-4 text-emerald-400" />
-                  {'\u0422\u0435\u043b\u0435\u0444\u043e\u043d'}
+                  {'\Т\е\л\е\ф\о\н'}
                 </div>
                 <input
                   value={profile.phone || ''}
@@ -552,7 +552,7 @@ export default function ProfilePage() {
               <div>
                 <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
                   <Mail className="w-4 h-4 text-emerald-400" />
-                  {'\u041e\u0442\u043a\u0440\u044b\u0442\u044b\u0439 email'}
+                  {'\О\т\к\р\ы\т\ы\й email'}
                 </div>
                 <input
                   value={user.email || ''}
@@ -566,13 +566,13 @@ export default function ProfilePage() {
             <div>
               <div className="text-xs text-gray-400 mb-2 flex items-center gap-2">
                 <ListChecks className="w-4 h-4 text-emerald-400" />
-                {'\u041d\u0430\u0432\u044b\u043a\u0438'}
+                {'\Н\а\в\ы\к\и'}
               </div>
               <input
                 value={skillsInput}
                 onChange={(e) => setSkillsInput(e.target.value)}
                 className={`${fieldBase} w-full px-3 py-2`}
-                placeholder={'\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u0437\u0430\u043f\u044f\u0442\u044b\u0435 \u0434\u043b\u044f \u0440\u0430\u0437\u0434\u0435\u043b\u0435\u043d\u0438\u044f'}
+                placeholder={'\И\с\п\о\л\ь\з\у\й\т\е \з\а\п\я\т\ы\е \д\л\я \р\а\з\д\е\л\е\н\и\я'}
                 aria-label="Skills"
               />
               {parsedSkills.length > 0 && (
@@ -592,12 +592,12 @@ export default function ProfilePage() {
             <div className="panel-soft panel-glass rounded-2xl p-4">
               <div className="flex items-center gap-2 text-sm text-gray-300 mb-4">
                 <Eye className="w-4 h-4 text-emerald-400" />
-                {'\u0412\u0438\u0434\u0438\u043c\u043e\u0441\u0442\u044c \u043f\u0440\u043e\u0444\u0438\u043b\u044f'}
+                {'\В\и\д\и\м\о\с\т\ь \п\р\о\ф\и\л\я'}
               </div>
               <div className="grid gap-4 lg:grid-cols-3">
                 <div className="space-y-3">
                   <label className="text-xs text-gray-400 block">
-                    {'\u0423\u0440\u043e\u0432\u0435\u043d\u044c'}
+                    {'\У\р\о\в\е\н\ь'}
                   </label>
                   <select
                     value={profile.visibility}
@@ -610,8 +610,8 @@ export default function ProfilePage() {
                     className={`${fieldCompact} w-full px-3 py-2`}
                     aria-label="Profile visibility"
                   >
-                    <option value="INTERNAL">{'\u0412\u0438\u0434\u043d\u043e \u0432\u043d\u0443\u0442\u0440\u0438 \u0441\u0438\u0441\u0442\u0435\u043c\u044b'}</option>
-                    <option value="PRIVATE">{'\u0422\u043e\u043b\u044c\u043a\u043e \u044f'}</option>
+                    <option value="INTERNAL">{'\В\и\д\н\о \в\н\у\т\р\и \с\и\с\т\е\м\ы'}</option>
+                    <option value="PRIVATE">{'\Т\о\л\ь\к\о \я'}</option>
                   </select>
                   <label className="inline-flex items-center gap-2 text-xs text-gray-300">
                     <input
@@ -624,10 +624,10 @@ export default function ProfilePage() {
                       aria-label="Public profile link"
                     />
                     <Link2 className="w-3.5 h-3.5" />
-                    {'\u041f\u0443\u0431\u043b\u0438\u0447\u043d\u0430\u044f \u0441\u0441\u044b\u043b\u043a\u0430'}
+                    {'\П\у\б\л\и\ч\н\а\я \с\с\ы\л\к\а'}
                   </label>
                   <p className="text-[11px] text-gray-500">
-                    {'\u0421\u0441\u044b\u043b\u043a\u0443 \u043c\u043e\u0436\u043d\u043e \u0440\u0430\u0441\u043f\u0440\u043e\u0441\u0442\u0440\u0430\u043d\u044f\u0442\u044c \u0432\u043d\u0435 \u0441\u0438\u0441\u0442\u0435\u043c\u044b.'}
+                    {'\С\с\ы\л\к\у \м\о\ж\н\о \р\а\с\п\р\о\с\т\р\а\н\я\т\ь \в\н\е \с\и\с\т\е\м\ы.'}
                   </p>
                 </div>
                 <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-300">
@@ -641,7 +641,7 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public bio"
                     />
-                    {'\u041e \u0441\u0435\u0431\u0435'}
+                    {'\О \с\е\б\е'}
                   </label>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -653,7 +653,7 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public position"
                     />
-                    {'\u0414\u043e\u043b\u0436\u043d\u043e\u0441\u0442\u044c'}
+                    {'\Д\о\л\ж\н\о\с\т\ь'}
                   </label>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -665,7 +665,7 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public department"
                     />
-                    {'\u041e\u0442\u0434\u0435\u043b'}
+                    {'\О\т\д\е\л'}
                   </label>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -677,7 +677,7 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public location"
                     />
-                    {'\u041b\u043e\u043a\u0430\u0446\u0438\u044f'}
+                    {'\Л\о\к\а\ц\и\я'}
                   </label>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -689,7 +689,7 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public timezone"
                     />
-                    {'\u0427\u0430\u0441\u043e\u0432\u043e\u0439 \u043f\u043e\u044f\u0441'}
+                    {'\Ч\а\с\о\в\о\й \п\о\я\с'}
                   </label>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -701,7 +701,7 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public skills"
                     />
-                    {'\u041d\u0430\u0432\u044b\u043a\u0438'}
+                    {'\Н\а\в\ы\к\и'}
                   </label>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -713,7 +713,7 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public last login"
                     />
-                    {'\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0439 \u0432\u0445\u043e\u0434'}
+                    {'\П\о\с\л\е\д\н\и\й \в\х\о\д'}
                   </label>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -726,7 +726,7 @@ export default function ProfilePage() {
                       disabled={!user.email}
                       aria-label="Public email"
                     />
-                    {'\u041f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0442\u044c email'}
+                    {'\П\о\к\а\з\ы\в\а\т\ь email'}
                   </label>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -738,7 +738,7 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public phone"
                     />
-                    {'\u041f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0442\u044c \u0442\u0435\u043b\u0435\u0444\u043e\u043d'}
+                    {'\П\о\к\а\з\ы\в\а\т\ь \т\е\л\е\ф\о\н'}
                   </label>
                 </div>
               </div>
@@ -746,7 +746,7 @@ export default function ProfilePage() {
                 <div className="mt-4 panel-soft panel-glass rounded-xl p-3">
                   <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
                     <Link2 className="w-3.5 h-3.5 text-emerald-400" />
-                    {'\u0421\u0441\u044b\u043b\u043a\u0430 \u0434\u043b\u044f \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u0430'}
+                    {'\С\с\ы\л\к\а \д\л\я \п\р\о\с\м\о\т\р\а'}
                   </div>
                   {publicProfileUrl ? (
                     <div className="flex flex-wrap items-center gap-2">
@@ -763,14 +763,14 @@ export default function ProfilePage() {
                         className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition"
                       >
                         <Copy className="w-3 h-3" />
-                        {'\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c'}
+                        {'\К\о\п\и\р\о\в\а\т\ь'}
                       </button>
                       <button
                         onClick={handleRotateToken}
                         className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition"
                       >
                         <RefreshCw className="w-3 h-3" />
-                        {'\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c'}
+                        {'\О\б\н\о\в\и\т\ь'}
                       </button>
                       <a
                         href={publicProfileUrl}
@@ -779,12 +779,12 @@ export default function ProfilePage() {
                         className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition"
                       >
                         <ExternalLink className="w-3 h-3" />
-                        {'\u041e\u0442\u043a\u0440\u044b\u0442\u044c'}
+                        {'\О\т\к\р\ы\т\ь'}
                       </a>
                     </div>
                   ) : (
                     <div className="text-xs text-gray-500">
-                      {'\u0414\u043e\u0441\u0442\u0443\u043f\u043d\u043e \u043f\u043e\u0441\u043b\u0435 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u044f.'}
+                      {'\Д\о\с\т\у\п\н\о \п\о\с\л\е \с\о\х\р\а\н\е\н\и\я.'}
                     </div>
                   )}
                 </div>
@@ -792,7 +792,7 @@ export default function ProfilePage() {
               {profile.visibility === 'PRIVATE' && (
                 <div className="mt-3 text-xs text-amber-400 flex items-center gap-2">
                   <EyeOff className="w-4 h-4" />
-                  {'\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0432\u0438\u0434\u0435\u043d \u0442\u043e\u043b\u044c\u043a\u043e \u0432\u0430\u043c \u0438 \u0430\u0434\u043c\u0438\u043d\u0430\u043c.'}
+                  {'\П\р\о\ф\и\л\ь \в\и\д\е\н \т\о\л\ь\к\о \в\а\м \и \а\д\м\и\н\а\м.'}
                 </div>
               )}
             </div>
@@ -800,12 +800,12 @@ export default function ProfilePage() {
             <div className="panel-soft panel-glass rounded-2xl p-4">
               <div className="flex items-center gap-2 text-sm text-gray-300 mb-4">
                 <Clock className="w-4 h-4 text-emerald-400" />
-                {'\u0410\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u044c'}
+                {'\А\к\т\и\в\н\о\с\т\ь'}
               </div>
               {activity ? (
                 <div className="grid gap-4 md:grid-cols-3 text-xs">
                   <div className="space-y-2">
-                    <div className="text-gray-400">{'\u041f\u0438\u0441\u044c\u043c\u0430'}</div>
+                    <div className="text-gray-400">{'\П\и\с\ь\м\а'}</div>
                     {activity.letters.length > 0 ? (
                       activity.letters.map((item) => (
                         <Link
@@ -818,11 +818,11 @@ export default function ProfilePage() {
                         </Link>
                       ))
                     ) : (
-                      <div className="text-gray-500">{'\u041d\u0435\u0442 \u043f\u0438\u0441\u0435\u043c'}</div>
+                      <div className="text-gray-500">{'\Н\е\т \п\и\с\е\м'}</div>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <div className="text-gray-400">{'\u041a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0438'}</div>
+                    <div className="text-gray-400">{'\К\о\м\м\е\н\т\а\р\и\и'}</div>
                     {activity.comments.length > 0 ? (
                       activity.comments.map((item) => (
                         <Link
@@ -835,11 +835,11 @@ export default function ProfilePage() {
                         </Link>
                       ))
                     ) : (
-                      <div className="text-gray-500">{'\u041d\u0435\u0442 \u043a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0435\u0432'}</div>
+                      <div className="text-gray-500">{'\Н\е\т \к\о\м\м\е\н\т\а\р\и\е\в'}</div>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <div className="text-gray-400">{'\u041d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f'}</div>
+                    <div className="text-gray-400">{'\Н\а\з\н\а\ч\е\н\и\я'}</div>
                     {activity.assignments.length > 0 ? (
                       activity.assignments.map((item) => (
                         <Link
@@ -852,12 +852,12 @@ export default function ProfilePage() {
                         </Link>
                       ))
                     ) : (
-                      <div className="text-gray-500">{'\u041d\u0435\u0442 \u043d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0439'}</div>
+                      <div className="text-gray-500">{'\Н\е\т \н\а\з\н\а\ч\е\н\и\й'}</div>
                     )}
                   </div>
                 </div>
               ) : (
-                <div className="text-xs text-gray-500">{'\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430...'}</div>
+                <div className="text-xs text-gray-500">{'\З\а\г\р\у\з\к\а...'}</div>
               )}
             </div>
           </div>

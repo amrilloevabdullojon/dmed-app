@@ -8,7 +8,8 @@
       "Bash(find:*)",
       "Bash(grep:*)",
       "Bash(git -C \"C:\\Users\\1234\\Documents\\Projects\\dmed-app\" log --oneline --all -- \"*/requests/*\")",
-      "Bash(git -C \"C:\\Users\\1234\\Documents\\Projects\\dmed-app\" log --oneline -20)"
+      "Bash(git -C \"C:\\Users\\1234\\Documents\\Projects\\dmed-app\" log --oneline -20)",
+      "Bash(node:*)"
     ]
   }
 }

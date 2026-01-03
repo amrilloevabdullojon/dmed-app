@@ -126,12 +126,12 @@ interface LoginAuditDaySummary {
 }
 
 const ROLE_LABELS: Record<User['role'], string> = {
-  SUPERADMIN: '\u0421\u0443\u043f\u0435\u0440\u0430\u0434\u043c\u0438\u043d',
-  ADMIN: '\u0410\u0434\u043c\u0438\u043d',
-  MANAGER: '\u041c\u0435\u043d\u0435\u0434\u0436\u0435\u0440',
-  AUDITOR: '\u0410\u0443\u0434\u0438\u0442\u043e\u0440',
-  EMPLOYEE: '\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a',
-  VIEWER: '\u041d\u0430\u0431\u043b\u044e\u0434\u0430\u0442\u0435\u043b\u044c',
+  SUPERADMIN: '\С\у\п\е\р\а\д\м\и\н',
+  ADMIN: '\А\д\м\и\н',
+  MANAGER: '\М\е\н\е\д\ж\е\р',
+  AUDITOR: '\А\у\д\и\т\о\р',
+  EMPLOYEE: '\С\о\т\р\у\д\н\и\к',
+  VIEWER: '\Н\а\б\л\ю\д\а\т\е\л\ь',
 }
 
 const ROLE_BADGE_CLASSES: Record<User['role'], string> = {
@@ -152,9 +152,9 @@ const ROLE_OPTIONS: Array<{ value: User['role']; label: string }> = ROLE_ORDER.m
 }))
 
 const DIGEST_LABELS: Record<User['digestFrequency'], string> = {
-  NONE: '\u041d\u0435\u0442',
-  DAILY: '\u0415\u0436\u0435\u0434\u043d\u0435\u0432\u043d\u043e',
-  WEEKLY: '\u0415\u0436\u0435\u043d\u0435\u0434\u0435\u043b\u044c\u043d\u043e',
+  NONE: '\Н\е\т',
+  DAILY: '\Е\ж\е\д\н\е\в\н\о',
+  WEEKLY: '\Е\ж\е\н\е\д\е\л\ь\н\о',
 }
 
 const DIGEST_OPTIONS: Array<{ value: User['digestFrequency']; label: string }> = [
@@ -164,42 +164,42 @@ const DIGEST_OPTIONS: Array<{ value: User['digestFrequency']; label: string }> =
 ]
 
 const AUDIT_ACTION_OPTIONS = [
-  { value: 'all', label: '\u0412\u0441\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f' },
-  { value: 'CREATE', label: '\u0421\u043e\u0437\u0434\u0430\u043d\u0438\u0435' },
-  { value: 'UPDATE', label: '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f' },
-  { value: 'ROLE', label: '\u0420\u043e\u043b\u0438' },
-  { value: 'ACCESS', label: '\u0414\u043e\u0441\u0442\u0443\u043f' },
-  { value: 'DELETE', label: '\u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435' },
+  { value: 'all', label: '\В\с\е \д\е\й\с\т\в\и\я' },
+  { value: 'CREATE', label: '\С\о\з\д\а\н\и\е' },
+  { value: 'UPDATE', label: '\О\б\н\о\в\л\е\н\и\я' },
+  { value: 'ROLE', label: '\Р\о\л\и' },
+  { value: 'ACCESS', label: '\Д\о\с\т\у\п' },
+  { value: 'DELETE', label: '\У\д\а\л\е\н\и\е' },
 ]
 
 const AUDIT_FIELD_OPTIONS = [
-  { value: 'all', label: '\u0412\u0441\u0435 \u043f\u043e\u043b\u044f' },
-  { value: 'name', label: '\u0418\u043c\u044f' },
+  { value: 'all', label: '\В\с\е \п\о\л\я' },
+  { value: 'name', label: '\И\м\я' },
   { value: 'email', label: 'Email' },
-  { value: 'role', label: '\u0420\u043e\u043b\u044c' },
-  { value: 'canLogin', label: '\u0414\u043e\u0441\u0442\u0443\u043f' },
+  { value: 'role', label: '\Р\о\л\ь' },
+  { value: 'canLogin', label: '\Д\о\с\т\у\п' },
   { value: 'telegramChatId', label: 'Telegram' },
-  { value: 'notifyEmail', label: 'Email \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f' },
-  { value: 'notifyTelegram', label: 'Telegram \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f' },
-  { value: 'notifySms', label: 'SMS \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f' },
-  { value: 'notifyInApp', label: '\u0412\u043d\u0443\u0442\u0440\u0438 \u0441\u0438\u0441\u0442\u0435\u043c\u044b' },
-  { value: 'quietHoursStart', label: '\u0422\u0438\u0445\u0438\u0435 \u0447\u0430\u0441\u044b (\u0441)' },
-  { value: 'quietHoursEnd', label: '\u0422\u0438\u0445\u0438\u0435 \u0447\u0430\u0441\u044b (\u0434\u043e)' },
-  { value: 'digestFrequency', label: '\u0414\u0430\u0439\u0434\u0436\u0435\u0441\u0442' },
+  { value: 'notifyEmail', label: 'Email \у\в\е\д\о\м\л\е\н\и\я' },
+  { value: 'notifyTelegram', label: 'Telegram \у\в\е\д\о\м\л\е\н\и\я' },
+  { value: 'notifySms', label: 'SMS \у\в\е\д\о\м\л\е\н\и\я' },
+  { value: 'notifyInApp', label: '\В\н\у\т\р\и \с\и\с\т\е\м\ы' },
+  { value: 'quietHoursStart', label: '\Т\и\х\и\е \ч\а\с\ы (\с)' },
+  { value: 'quietHoursEnd', label: '\Т\и\х\и\е \ч\а\с\ы (\д\о)' },
+  { value: 'digestFrequency', label: '\Д\а\й\д\ж\е\с\т' },
 ]
 
 const AUDIT_ACTION_BADGES: Record<string, { label: string; className: string }> = {
-  CREATE: { label: '\u0421\u043e\u0437\u0434\u0430\u043d\u043e', className: 'bg-emerald-500/20 text-emerald-300' },
-  UPDATE: { label: '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e', className: 'bg-blue-500/20 text-blue-300' },
-  ROLE: { label: '\u0420\u043e\u043b\u044c', className: 'bg-amber-500/20 text-amber-300' },
-  ACCESS: { label: '\u0414\u043e\u0441\u0442\u0443\u043f', className: 'bg-purple-500/20 text-purple-300' },
-  DELETE: { label: '\u0423\u0434\u0430\u043b\u0435\u043d\u043e', className: 'bg-red-500/20 text-red-300' },
+  CREATE: { label: '\С\о\з\д\а\н\о', className: 'bg-emerald-500/20 text-emerald-300' },
+  UPDATE: { label: '\О\б\н\о\в\л\е\н\о', className: 'bg-blue-500/20 text-blue-300' },
+  ROLE: { label: '\Р\о\л\ь', className: 'bg-amber-500/20 text-amber-300' },
+  ACCESS: { label: '\Д\о\с\т\у\п', className: 'bg-purple-500/20 text-purple-300' },
+  DELETE: { label: '\У\д\а\л\е\н\о', className: 'bg-red-500/20 text-red-300' },
 }
 
 const LOGIN_STATUS_OPTIONS = [
-  { value: 'all', label: '\u0412\u0441\u0435 \u043f\u043e\u043f\u044b\u0442\u043a\u0438' },
-  { value: 'success', label: '\u0423\u0441\u043f\u0435\u0448\u043d\u044b\u0435' },
-  { value: 'failure', label: '\u041e\u0448\u0438\u0431\u043a\u0438' },
+  { value: 'all', label: '\В\с\е \п\о\п\ы\т\к\и' },
+  { value: 'success', label: '\У\с\п\е\ш\н\ы\е' },
+  { value: 'failure', label: '\О\ш\и\б\к\и' },
 ]
 
 const INACTIVE_WARNING_DAYS = 7
@@ -363,20 +363,20 @@ export default function SettingsPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        toast.error(data.error || '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u0430\u0442\u044c \u0437\u0430\u043f\u0440\u043e\u0441')
+        toast.error(data.error || '\Н\е \у\д\а\л\о\с\ь \о\б\р\а\б\о\т\а\т\ь \з\а\п\р\о\с')
         return
       }
 
       toast.success(
         action === 'approve'
-          ? '\u0417\u0430\u043f\u0440\u043e\u0441 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d'
-          : '\u0417\u0430\u043f\u0440\u043e\u0441 \u043e\u0442\u043a\u043b\u043e\u043d\u0435\u043d'
+          ? '\З\а\п\р\о\с \п\о\д\т\в\е\р\ж\д\е\н'
+          : '\З\а\п\р\о\с \о\т\к\л\о\н\е\н'
       )
       await loadApprovals()
       await loadUsers()
     } catch (error) {
       console.error('Failed to update approval:', error)
-      toast.error('\u041e\u0448\u0438\u0431\u043a\u0430 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0438 \u0437\u0430\u043f\u0440\u043e\u0441\u0430')
+      toast.error('\О\ш\и\б\к\а \о\б\р\а\б\о\т\к\и \з\а\п\р\о\с\а')
     } finally {
       setApprovalActionId(null)
     }
@@ -491,7 +491,7 @@ export default function SettingsPage() {
 
     const toastId = `user-save-${editingId}`
     if (mode === 'auto') {
-      toast.loading('\u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435...', { id: toastId })
+      toast.loading('\С\о\х\р\а\н\е\н\и\е...', { id: toastId })
     }
 
     setSavingId(editingId)
@@ -529,23 +529,23 @@ export default function SettingsPage() {
         }
         setEditSnapshot(nextSnapshot)
         if (data.requiresApproval) {
-          toast.message('\u041d\u0443\u0436\u043d\u043e \u0432\u0442\u043e\u0440\u043e\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435 \u0430\u0434\u043c\u0438\u043d\u0430', { id: toastId })
+          toast.message('\Н\у\ж\н\о \в\т\о\р\о\е \п\о\д\т\в\е\р\ж\д\е\н\и\е \а\д\м\и\н\а', { id: toastId })
           loadApprovals()
         } else {
           toast.success(
             mode === 'auto'
-              ? '\u0410\u0432\u0442\u043e\u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u043e'
-              : '\u0418\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u044b',
+              ? '\А\в\т\о\с\о\х\р\а\н\е\н\о'
+              : '\И\з\м\е\н\е\н\и\я \с\о\х\р\а\н\е\н\ы',
             { id: toastId }
           )
         }
       } else {
         const data = await res.json().catch(() => ({}))
-        toast.error(data.error || '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c', { id: toastId })
+        toast.error(data.error || '\Н\е \у\д\а\л\о\с\ь \с\о\х\р\а\н\и\т\ь', { id: toastId })
       }
     } catch (error) {
       console.error('Failed to save user:', error)
-      toast.error('\u041e\u0448\u0438\u0431\u043a\u0430 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u044f', { id: toastId })
+      toast.error('\О\ш\и\б\к\а \с\о\х\р\а\н\е\н\и\я', { id: toastId })
     } finally {
       setSavingId(null)
     }
@@ -578,7 +578,7 @@ export default function SettingsPage() {
 
   const createUser = async () => {
     if (!createData.email.trim()) {
-      toast.error('\u0423\u043a\u0430\u0436\u0438\u0442\u0435 email \u0434\u043b\u044f \u0432\u0445\u043e\u0434\u0430 \u0447\u0435\u0440\u0435\u0437 Google')
+      toast.error('\У\к\а\ж\и\т\е email \д\л\я \в\х\о\д\а \ч\е\р\е\з Google')
       return
     }
 
@@ -591,23 +591,23 @@ export default function SettingsPage() {
       })
 
       if (res.ok) {
-        toast.success('\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d')
+        toast.success('\П\о\л\ь\з\о\в\а\т\е\л\ь \д\о\б\а\в\л\е\н')
         setCreateData({ name: '', email: '', role: 'EMPLOYEE', telegramChatId: '' })
         await loadUsers()
       } else {
         const data = await res.json()
-        toast.error(data.error || '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f')
+        toast.error(data.error || '\Н\е \у\д\а\л\о\с\ь \д\о\б\а\в\и\т\ь \п\о\л\ь\з\о\в\а\т\е\л\я')
       }
     } catch (error) {
       console.error('Failed to create user:', error)
-      toast.error('\u041e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u0438 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0438\u0438 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f')
+      toast.error('\О\ш\и\б\к\а \п\р\и \д\о\б\а\в\л\е\н\и\и \п\о\л\ь\з\о\в\а\т\е\л\я')
     } finally {
       setCreating(false)
     }
   }
 
   const deleteUser = async (userId: string) => {
-    if (!confirm('\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f? \u042d\u0442\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043d\u0435\u043b\u044c\u0437\u044f \u043e\u0442\u043c\u0435\u043d\u0438\u0442\u044c.')) {
+    if (!confirm('\У\д\а\л\и\т\ь \п\о\л\ь\з\о\в\а\т\е\л\я? \Э\т\о \д\е\й\с\т\в\и\е \н\е\л\ь\з\я \о\т\м\е\н\и\т\ь.')) {
       return
     }
 
@@ -619,25 +619,25 @@ export default function SettingsPage() {
       if (res.ok) {
         const data = await res.json().catch(() => ({}))
         if (data.requiresApproval) {
-          toast.message('\u041d\u0443\u0436\u043d\u043e \u0432\u0442\u043e\u0440\u043e\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435 \u0430\u0434\u043c\u0438\u043d\u0430')
+          toast.message('\Н\у\ж\н\о \в\т\о\р\о\е \п\о\д\т\в\е\р\ж\д\е\н\и\е \а\д\м\и\н\а')
           await loadApprovals()
           return
         }
-        toast.success('\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0443\u0434\u0430\u043b\u0435\u043d')
+        toast.success('\П\о\л\ь\з\о\в\а\т\е\л\ь \у\д\а\л\е\н')
         await loadUsers()
       } else {
         const data = await res.json()
-        toast.error(data.error || '\u041e\u0448\u0438\u0431\u043a\u0430 \u0443\u0434\u0430\u043b\u0435\u043d\u0438\u044f')
+        toast.error(data.error || '\О\ш\и\б\к\а \у\д\а\л\е\н\и\я')
       }
     } catch (error) {
       console.error('Failed to delete user:', error)
-      toast.error('\u041e\u0448\u0438\u0431\u043a\u0430 \u0443\u0434\u0430\u043b\u0435\u043d\u0438\u044f')
+      toast.error('\О\ш\и\б\к\а \у\д\а\л\е\н\и\я')
     }
   }
 
   const toggleUserAccess = async (user: User) => {
     if (user.role === 'ADMIN' || user.role === 'SUPERADMIN') {
-      toast.error('\u041d\u0435\u043b\u044c\u0437\u044f \u043e\u0442\u043a\u043b\u044e\u0447\u0438\u0442\u044c \u0430\u0434\u043c\u0438\u043d\u0430')
+      toast.error('\Н\е\л\ь\з\я \о\т\к\л\ю\ч\и\т\ь \а\д\м\и\н\а')
       return
     }
 
@@ -650,7 +650,7 @@ export default function SettingsPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        toast.error(data.error || '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f')
+        toast.error(data.error || '\Н\е \у\д\а\л\о\с\ь \и\з\м\е\н\и\т\ь \д\о\с\т\у\п')
         return
       }
 
@@ -661,19 +661,19 @@ export default function SettingsPage() {
       }
 
       if (data.requiresApproval) {
-        toast.message('\u041d\u0443\u0436\u043d\u043e \u0432\u0442\u043e\u0440\u043e\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435 \u0430\u0434\u043c\u0438\u043d\u0430')
+        toast.message('\Н\у\ж\н\о \в\т\о\р\о\е \п\о\д\т\в\е\р\ж\д\е\н\и\е \а\д\м\и\н\а')
         await loadApprovals()
         return
       }
 
       toast.success(
         nextAccess
-          ? '\u0414\u043e\u0441\u0442\u0443\u043f \u043e\u0442\u043a\u0440\u044b\u0442'
-          : '\u0414\u043e\u0441\u0442\u0443\u043f \u0437\u0430\u043a\u0440\u044b\u0442'
+          ? '\Д\о\с\т\у\п \о\т\к\р\ы\т'
+          : '\Д\о\с\т\у\п \з\а\к\р\ы\т'
       )
     } catch (error) {
       console.error('Failed to toggle access:', error)
-      toast.error('\u041e\u0448\u0438\u0431\u043a\u0430 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u0434\u043e\u0441\u0442\u0443\u043f\u0430')
+      toast.error('\О\ш\и\б\к\а \о\б\н\о\в\л\е\н\и\я \д\о\с\т\у\п\а')
     }
   }
 
@@ -696,8 +696,8 @@ export default function SettingsPage() {
   const formatBooleanLabel = (value: string | null) => {
     if (value === null) return '-'
     return value === 'true'
-      ? '\u0412\u043a\u043b\u044e\u0447\u0435\u043d\u043e'
-      : '\u0412\u044b\u043a\u043b\u044e\u0447\u0435\u043d\u043e'
+      ? '\В\к\л\ю\ч\е\н\о'
+      : '\В\ы\к\л\ю\ч\е\н\о'
   }
 
   const formatAuditValue = (field: string | null, value: string | null) => {
@@ -705,8 +705,8 @@ export default function SettingsPage() {
     if (field === 'role') return formatRoleLabel(value)
     if (field === 'canLogin') {
       return value === 'true'
-        ? '\u041e\u0442\u043a\u0440\u044b\u0442'
-        : '\u0417\u0430\u043a\u0440\u044b\u0442'
+        ? '\О\т\к\р\ы\т'
+        : '\З\а\к\р\ы\т'
     }
     if (field === 'digestFrequency') {
       return DIGEST_LABELS[value as User['digestFrequency']] || value
@@ -724,42 +724,42 @@ export default function SettingsPage() {
 
   const getAuditSummary = (entry: UserAuditEntry) => {
     if (entry.action === 'CREATE') {
-      return '\u0421\u043e\u0437\u0434\u0430\u043d \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c'
+      return '\С\о\з\д\а\н \п\о\л\ь\з\о\в\а\т\е\л\ь'
     }
     if (entry.action === 'DELETE') {
-      return '\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0443\u0434\u0430\u043b\u0435\u043d'
+      return '\П\о\л\ь\з\о\в\а\т\е\л\ь \у\д\а\л\е\н'
     }
     if (entry.action === 'ROLE') {
-      return '\u0421\u043c\u0435\u043d\u0430 \u0440\u043e\u043b\u0438'
+      return '\С\м\е\н\а \р\о\л\и'
     }
     if (entry.action === 'ACCESS') {
-      return '\u0414\u043e\u0441\u0442\u0443\u043f \u043a \u0441\u0438\u0441\u0442\u0435\u043c\u0435'
+      return '\Д\о\с\т\у\п \к \с\и\с\т\е\м\е'
     }
 
     const fieldLabels: Record<string, string> = {
-      name: '\u0418\u043c\u044f',
+      name: '\И\м\я',
       email: 'Email',
-      role: '\u0420\u043e\u043b\u044c',
-      canLogin: '\u0414\u043e\u0441\u0442\u0443\u043f',
+      role: '\Р\о\л\ь',
+      canLogin: '\Д\о\с\т\у\п',
       telegramChatId: 'Telegram',
-      notifyEmail: 'Email \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f',
-      notifyTelegram: 'Telegram \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f',
-      notifySms: 'SMS \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f',
-      notifyInApp: '\u0412\u043d\u0443\u0442\u0440\u0438 \u0441\u0438\u0441\u0442\u0435\u043c\u044b',
-      quietHoursStart: '\u0422\u0438\u0445\u0438\u0435 \u0447\u0430\u0441\u044b (\u0441)',
-      quietHoursEnd: '\u0422\u0438\u0445\u0438\u0435 \u0447\u0430\u0441\u044b (\u0434\u043e)',
-      digestFrequency: '\u0414\u0430\u0439\u0434\u0436\u0435\u0441\u0442',
+      notifyEmail: 'Email \у\в\е\д\о\м\л\е\н\и\я',
+      notifyTelegram: 'Telegram \у\в\е\д\о\м\л\е\н\и\я',
+      notifySms: 'SMS \у\в\е\д\о\м\л\е\н\и\я',
+      notifyInApp: '\В\н\у\т\р\и \с\и\с\т\е\м\ы',
+      quietHoursStart: '\Т\и\х\и\е \ч\а\с\ы (\с)',
+      quietHoursEnd: '\Т\и\х\и\е \ч\а\с\ы (\д\о)',
+      digestFrequency: '\Д\а\й\д\ж\е\с\т',
     }
-    const label = entry.field ? fieldLabels[entry.field] || entry.field : '\u041f\u043e\u043b\u0435'
-    return `\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e \u043f\u043e\u043b\u0435: ${label}`
+    const label = entry.field ? fieldLabels[entry.field] || entry.field : '\П\о\л\е'
+    return `\О\б\н\о\в\л\е\н\о \п\о\л\е: ${label}`
   }
 
   const formatLoginReason = (reason: string | null) => {
     if (!reason) return '-'
     const labels: Record<string, string> = {
-      RATE_LIMIT: '\u0421\u043b\u0438\u0448\u043a\u043e\u043c \u043c\u043d\u043e\u0433\u043e \u043f\u043e\u043f\u044b\u0442\u043e\u043a',
-      USER_NOT_FOUND: '\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d',
-      ACCESS_BLOCKED: '\u0414\u043e\u0441\u0442\u0443\u043f \u0437\u0430\u043a\u0440\u044b\u0442',
+      RATE_LIMIT: '\С\л\и\ш\к\о\м \м\н\о\г\о \п\о\п\ы\т\о\к',
+      USER_NOT_FOUND: '\П\о\л\ь\з\о\в\а\т\е\л\ь \н\е \н\а\й\д\е\н',
+      ACCESS_BLOCKED: '\Д\о\с\т\у\п \з\а\к\р\ы\т',
     }
     return labels[reason] || reason
   }
@@ -768,12 +768,12 @@ export default function SettingsPage() {
     return success ? (
       <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-emerald-500/20 text-emerald-400">
         <CheckCircle className="w-3 h-3" />
-        {'\u0423\u0441\u043f\u0435\u0448\u043d\u043e'}
+        {'\У\с\п\е\ш\н\о'}
       </span>
     ) : (
       <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-red-500/20 text-red-400">
         <XCircle className="w-3 h-3" />
-        {'\u041e\u0448\u0438\u0431\u043a\u0430'}
+        {'\О\ш\и\б\к\а'}
       </span>
     )
   }
@@ -792,7 +792,7 @@ export default function SettingsPage() {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-amber-500/20 text-amber-300">
         <Clock className="w-3 h-3" />
-        {days} {'\u0434\u043d\u0435\u0439 \u0431\u0435\u0437 \u0432\u0445\u043e\u0434\u0430'}
+        {days} {'\д\н\е\й \б\е\з \в\х\о\д\а'}
       </span>
     )
   }
@@ -880,7 +880,7 @@ export default function SettingsPage() {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-emerald-500/20 text-emerald-400">
           <CheckCircle className="w-3 h-3" />
-          {'\u0410\u043a\u0442\u0438\u0432\u0435\u043d'}
+          {'\А\к\т\и\в\е\н'}
         </span>
       )
     }
@@ -888,14 +888,14 @@ export default function SettingsPage() {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-400">
           <Clock className="w-3 h-3" />
-          {'\u041f\u0440\u0438\u0433\u043b\u0430\u0448\u0435\u043d'}
+          {'\П\р\и\г\л\а\ш\е\н'}
         </span>
       )
     }
     return (
       <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-red-500/20 text-red-400">
         <XCircle className="w-3 h-3" />
-        {'\u0411\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u0430\u043d'}
+        {'\Б\л\о\к\и\р\о\в\а\н'}
       </span>
     )
   }
@@ -1008,7 +1008,7 @@ export default function SettingsPage() {
     if (bulkAction === 'delete') {
       if (
         !confirm(
-          `\u0423\u0434\u0430\u043b\u0438\u0442\u044c ${selectedIds.size} \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0435\u0439? \u042d\u0442\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043d\u0435\u043b\u044c\u0437\u044f \u043e\u0442\u043c\u0435\u043d\u0438\u0442\u044c.`
+          `\У\д\а\л\и\т\ь ${selectedIds.size} \п\о\л\ь\з\о\в\а\т\е\л\е\й? \Э\т\о \д\е\й\с\т\в\и\е \н\е\л\ь\з\я \о\т\м\е\н\и\т\ь.`
         )
       ) {
         return
@@ -1016,17 +1016,17 @@ export default function SettingsPage() {
     }
 
     if (bulkAction === 'role' && !bulkValue) {
-      toast.error('\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0440\u043e\u043b\u044c')
+      toast.error('\В\ы\б\е\р\и\т\е \р\о\л\ь')
       return
     }
 
     if (bulkAction === 'role' && !isSuperAdmin) {
-      toast.error('\u0422\u043e\u043b\u044c\u043a\u043e \u0441\u0443\u043f\u0435\u0440\u0430\u0434\u043c\u0438\u043d \u043c\u043e\u0436\u0435\u0442 \u043c\u0435\u043d\u044f\u0442\u044c \u0440\u043e\u043b\u0438')
+      toast.error('\Т\о\л\ь\к\о \с\у\п\е\р\а\д\м\и\н \м\о\ж\е\т \м\е\н\я\т\ь \р\о\л\и')
       return
     }
 
     if (bulkAction === 'canLogin' && !bulkValue) {
-      toast.error('\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u043e\u0441\u0442\u0443\u043f')
+      toast.error('\В\ы\б\е\р\и\т\е \д\о\с\т\у\п')
       return
     }
     if (bulkAction === 'role') {
@@ -1073,18 +1073,18 @@ export default function SettingsPage() {
 
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        toast.error(data.error || '\u041e\u0448\u0438\u0431\u043a\u0430 \u043c\u0430\u0441\u0441\u043e\u0432\u043e\u0433\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f')
+        toast.error(data.error || '\О\ш\и\б\к\а \м\а\с\с\о\в\о\г\о \д\е\й\с\т\в\и\я')
         return
       }
 
       toast.success(
         bulkAction === 'delete'
-          ? `\u0423\u0434\u0430\u043b\u0435\u043d\u043e: ${data.deleted ?? 0}`
-          : `\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e: ${data.updated ?? 0}`
+          ? `\У\д\а\л\е\н\о: ${data.deleted ?? 0}`
+          : `\О\б\н\о\в\л\е\н\о: ${data.updated ?? 0}`
       )
       if (data.requiresApproval) {
         toast.message(
-          `\u041d\u0443\u0436\u043d\u043e \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044c: ${data.pendingApprovals ?? 0}`
+          `\Н\у\ж\н\о \п\о\д\т\в\е\р\д\и\т\ь: ${data.pendingApprovals ?? 0}`
         )
         await loadApprovals()
       }
@@ -1094,7 +1094,7 @@ export default function SettingsPage() {
       setBulkValue('')
     } catch (error) {
       console.error('Bulk user action failed:', error)
-      toast.error('\u041e\u0448\u0438\u0431\u043a\u0430 \u043c\u0430\u0441\u0441\u043e\u0432\u043e\u0433\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f')
+      toast.error('\О\ш\и\б\к\а \м\а\с\с\о\в\о\г\о \д\е\й\с\т\в\и\я')
     } finally {
       setBulkLoading(false)
     }
@@ -1151,7 +1151,7 @@ export default function SettingsPage() {
 
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 animate-pageIn relative">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-semibold text-white">Настройки</h1>
-        <p className="text-muted text-sm mt-2 mb-6 sm:mb-8">{'\u0420\u043e\u043b\u0438, \u0434\u043e\u0441\u0442\u0443\u043f, \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f \u0438 \u0436\u0443\u0440\u043d\u0430\u043b \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u0438.'}</p>
+        <p className="text-muted text-sm mt-2 mb-6 sm:mb-8">{'\Р\о\л\и, \д\о\с\т\у\п, \у\в\е\д\о\м\л\е\н\и\я \и \ж\у\р\н\а\л \б\е\з\о\п\а\с\н\о\с\т\и.'}</p>
 
         {/* Sync Logs */}
         <div className="panel panel-glass rounded-2xl p-6 mb-8">
@@ -1159,7 +1159,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-3">
               <RefreshCw className="w-6 h-6 text-emerald-400" />
               <h2 className="text-xl font-semibold text-white">Логи синхронизации</h2>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide bg-emerald-500/15 text-emerald-300 border border-emerald-400/20">{'\u0418\u043d\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438'}</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide bg-emerald-500/15 text-emerald-300 border border-emerald-400/20">{'\И\н\т\е\г\р\а\ц\и\и'}</span>
             </div>
             <button
               onClick={loadSyncLogs}
@@ -1248,7 +1248,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-3 mb-6">
             <Users className="w-6 h-6 text-emerald-400" />
             <h2 className="text-xl font-semibold text-white">Управление пользователями</h2>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide bg-sky-500/15 text-sky-300 border border-sky-400/20">{'\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0438'}</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide bg-sky-500/15 text-sky-300 border border-sky-400/20">{'\П\о\л\ь\з\о\в\а\т\е\л\и'}</span>
           </div>
 
           {isSuperAdmin && (
@@ -1256,32 +1256,32 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-sm text-gray-400">
                 <ShieldAlert className="w-4 h-4 text-amber-400" />
-                {'\u0417\u0430\u043f\u0440\u043e\u0441\u044b \u043d\u0430 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435'}
+                {'\З\а\п\р\о\с\ы \н\а \п\о\д\т\в\е\р\ж\д\е\н\и\е'}
               </div>
               <button
                 onClick={loadApprovals}
                 aria-label="Refresh approvals"
                 className="p-2 text-gray-400 hover:text-white transition"
-                title={'\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c'}
+                title={'\О\б\н\о\в\и\т\ь'}
               >
                 <RefreshCw className="w-4 h-4" />
               </button>
             </div>
             {approvalsLoading ? (
-              <div className="text-xs text-gray-500">{'\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430...'}</div>
+              <div className="text-xs text-gray-500">{'\З\а\г\р\у\з\к\а...'}</div>
             ) : approvals.length > 0 ? (
               <div className="space-y-3">
                 {approvals.map((approval) => {
                   const approvalTitle =
                     approval.action === 'DEMOTE_ADMIN'
-                      ? '\u041f\u043e\u043d\u0438\u0436\u0435\u043d\u0438\u0435 \u0440\u043e\u043b\u0438 \u0430\u0434\u043c\u0438\u043d\u0430'
-                      : '\u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435 \u0430\u0434\u043c\u0438\u043d\u0430'
+                      ? '\П\о\н\и\ж\е\н\и\е \р\о\л\и \а\д\м\и\н\а'
+                      : '\У\д\а\л\е\н\и\е \а\д\м\и\н\а'
                   const requester =
                     approval.requestedBy.name ||
                     approval.requestedBy.email ||
-                    '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0439'
+                    '\Н\е\и\з\в\е\с\т\н\ы\й'
                   const targetLabel =
-                    approval.targetUser.name || approval.targetUser.email || '\u0411\u0435\u0437 \u0438\u043c\u0435\u043d\u0438'
+                    approval.targetUser.name || approval.targetUser.email || '\Б\е\з \и\м\е\н\и'
                   const needsSecondAdmin = approval.requestedBy.id === session.user.id
                   return (
                     <div
@@ -1296,14 +1296,14 @@ export default function SettingsPage() {
                           </div>
                           {approval.action === 'DEMOTE_ADMIN' && approval.payload?.newRole && (
                             <div className="text-xs text-emerald-400">
-                              {'\u041d\u043e\u0432\u0430\u044f \u0440\u043e\u043b\u044c:'} {formatRoleLabel(approval.payload.newRole)}
+                              {'\Н\о\в\а\я \р\о\л\ь:'} {formatRoleLabel(approval.payload.newRole)}
                             </div>
                           )}
                           <div className="text-xs text-gray-500">
                             {requester} · {formatDate(approval.createdAt)}
                           {needsSecondAdmin && (
                             <div className="text-xs text-amber-400">
-                              {'\u041d\u0443\u0436\u0435\u043d \u0432\u0442\u043e\u0440\u043e\u0439 \u0430\u0434\u043c\u0438\u043d'}
+                              {'\Н\у\ж\е\н \в\т\о\р\о\й \а\д\м\и\н'}
                             </div>
                           )}
                           </div>
@@ -1312,7 +1312,7 @@ export default function SettingsPage() {
                           <button
                             onClick={() => handleApproval(approval.id, 'approve')}
                             disabled={approvalActionId === approval.id || needsSecondAdmin}
-                            title={needsSecondAdmin ? '\u041d\u0443\u0436\u0435\u043d \u0432\u0442\u043e\u0440\u043e\u0439 \u0430\u0434\u043c\u0438\u043d' : undefined}
+                            title={needsSecondAdmin ? '\Н\у\ж\е\н \в\т\о\р\о\й \а\д\м\и\н' : undefined}
                             className="inline-flex items-center gap-2 px-3 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white rounded transition disabled:opacity-50"
                           >
                             {approvalActionId === approval.id ? (
@@ -1320,16 +1320,16 @@ export default function SettingsPage() {
                             ) : (
                               <CheckCircle className="w-3 h-3" />
                             )}
-                            {'\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044c'}
+                            {'\П\о\д\т\в\е\р\д\и\т\ь'}
                           </button>
                           <button
                             onClick={() => handleApproval(approval.id, 'reject')}
                             disabled={approvalActionId === approval.id || needsSecondAdmin}
-                            title={needsSecondAdmin ? '\u041d\u0443\u0436\u0435\u043d \u0432\u0442\u043e\u0440\u043e\u0439 \u0430\u0434\u043c\u0438\u043d' : undefined}
+                            title={needsSecondAdmin ? '\Н\у\ж\е\н \в\т\о\р\о\й \а\д\м\и\н' : undefined}
                             className="inline-flex items-center gap-2 px-3 py-1.5 text-xs btn-secondary rounded transition disabled:opacity-50"
                           >
                             <XCircle className="w-3 h-3" />
-                            {'\u041e\u0442\u043a\u043b\u043e\u043d\u0438\u0442\u044c'}
+                            {'\О\т\к\л\о\н\и\т\ь'}
                           </button>
                         </div>
                       </div>
@@ -1338,7 +1338,7 @@ export default function SettingsPage() {
                 })}
               </div>
             ) : (
-              <div className="text-xs text-gray-500">{'\u041d\u0435\u0442 \u0437\u0430\u043f\u0440\u043e\u0441\u043e\u0432 \u043d\u0430 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435'}</div>
+              <div className="text-xs text-gray-500">{'\Н\е\т \з\а\п\р\о\с\о\в \н\а \п\о\д\т\в\е\р\ж\д\е\н\и\е'}</div>
             )}
             </div>
           )}
@@ -1346,7 +1346,7 @@ export default function SettingsPage() {
           <div className="panel-soft panel-glass rounded-2xl p-4 mb-6">
             <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
               <UserPlus className="w-4 h-4 text-emerald-400" />
-              {'\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f'}
+              {'\Д\о\б\а\в\и\т\ь \п\о\л\ь\з\о\в\а\т\е\л\я'}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <input
@@ -1357,7 +1357,7 @@ export default function SettingsPage() {
                 }
                 className={`${fieldBase} w-full px-3 py-2`}
                 aria-label="Name"
-                placeholder={'\u0418\u043c\u044f'}
+                placeholder={'\И\м\я'}
               />
               <input
                 type="email"
@@ -1401,11 +1401,11 @@ export default function SettingsPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
               <div className="space-y-1 text-xs text-gray-500">
                 <p>
-                  {'\u0414\u043b\u044f \u0432\u0445\u043e\u0434\u0430 \u0447\u0435\u0440\u0435\u0437 Google \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044f email.'}
+                  {'\Д\л\я \в\х\о\д\а \ч\е\р\е\з Google \т\р\е\б\у\е\т\с\я email.'}
                 </p>
                 {!isSuperAdmin && (
                   <p className="text-amber-400">
-                    {'\u0420\u043e\u043b\u0438 \u043d\u0430\u0437\u043d\u0430\u0447\u0430\u0435\u0442 \u0442\u043e\u043b\u044c\u043a\u043e \u0441\u0443\u043f\u0435\u0440\u0430\u0434\u043c\u0438\u043d.'}
+                    {'\Р\о\л\и \н\а\з\н\а\ч\а\е\т \т\о\л\ь\к\о \с\у\п\е\р\а\д\м\и\н.'}
                   </p>
                 )}
               </div>
@@ -1419,7 +1419,7 @@ export default function SettingsPage() {
                 ) : (
                   <UserPlus className="w-4 h-4" />
                 )}
-                {'\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c'}
+                {'\Д\о\б\а\в\и\т\ь'}
               </button>
             </div>
           </div>
@@ -1433,7 +1433,7 @@ export default function SettingsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className={`${fieldBase} w-full pl-9 pr-3 py-2`}
-                  placeholder={'\u041f\u043e\u0438\u0441\u043a \u043f\u043e \u0438\u043c\u0435\u043d\u0438, email, Telegram'}
+                  placeholder={'\П\о\и\с\к \п\о \и\м\е\н\и, email, Telegram'}
                   aria-label="Search users"
                 />
               </div>
@@ -1443,7 +1443,7 @@ export default function SettingsPage() {
                 className={`${fieldBase} w-full px-3 py-2`}
                 aria-label="Filter by role"
               >
-                <option value="all">{'\u0412\u0441\u0435 \u0440\u043e\u043b\u0438'}</option>
+                <option value="all">{'\В\с\е \р\о\л\и'}</option>
                 {ROLE_OPTIONS.map((role) => (
                   <option key={role.value} value={role.value}>
                     {role.label}
@@ -1456,10 +1456,10 @@ export default function SettingsPage() {
                 className={`${fieldBase} w-full px-3 py-2`}
                 aria-label="Filter by status"
               >
-                <option value="all">{'\u0412\u0441\u0435 \u0441\u0442\u0430\u0442\u0443\u0441\u044b'}</option>
-                <option value="active">{'\u0410\u043a\u0442\u0438\u0432\u043d\u044b\u0435'}</option>
-                <option value="invited">{'\u041f\u0440\u0438\u0433\u043b\u0430\u0448\u0435\u043d\u044b'}</option>
-                <option value="blocked">{'\u0411\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u0430\u043d\u044b'}</option>
+                <option value="all">{'\В\с\е \с\т\а\т\у\с\ы'}</option>
+                <option value="active">{'\А\к\т\и\в\н\ы\е'}</option>
+                <option value="invited">{'\П\р\и\г\л\а\ш\е\н\ы'}</option>
+                <option value="blocked">{'\Б\л\о\к\и\р\о\в\а\н\ы'}</option>
               </select>
               <select
                 value={emailFilter}
@@ -1467,9 +1467,9 @@ export default function SettingsPage() {
                 className={`${fieldBase} w-full px-3 py-2`}
                 aria-label="Filter by email"
               >
-                <option value="all">{'\u0412\u0441\u0435 email'}</option>
-                <option value="has">{'\u0421 email'}</option>
-                <option value="none">{'\u0411\u0435\u0437 email'}</option>
+                <option value="all">{'\В\с\е email'}</option>
+                <option value="has">{'\С email'}</option>
+                <option value="none">{'\Б\е\з email'}</option>
               </select>
               <select
                 value={telegramFilter}
@@ -1477,14 +1477,14 @@ export default function SettingsPage() {
                 className={`${fieldBase} w-full px-3 py-2`}
                 aria-label="Filter by Telegram"
               >
-                <option value="all">{'\u0412\u0441\u0435 Telegram'}</option>
-                <option value="has">{'\u0421 Telegram'}</option>
-                <option value="none">{'\u0411\u0435\u0437 Telegram'}</option>
+                <option value="all">{'\В\с\е Telegram'}</option>
+                <option value="has">{'\С Telegram'}</option>
+                <option value="none">{'\Б\е\з Telegram'}</option>
               </select>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-2 mt-4 text-xs text-gray-400">
               <span>
-                {'\u041f\u043e\u043a\u0430\u0437\u0430\u043d\u043e'} {filteredUsers.length} {'\u0438\u0437'} {users.length}
+                {'\П\о\к\а\з\а\н\о'} {filteredUsers.length} {'\и\з'} {users.length}
               </span>
               {(searchQuery ||
                 roleFilter !== 'all' ||
@@ -1495,7 +1495,7 @@ export default function SettingsPage() {
                   onClick={resetFilters}
                   className="text-emerald-400 hover:text-emerald-300 transition"
                 >
-                  {'\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c \u0444\u0438\u043b\u044c\u0442\u0440\u044b'}
+                  {'\С\б\р\о\с\и\т\ь \ф\и\л\ь\т\р\ы'}
                 </button>
               )}
             </div>
@@ -1504,7 +1504,7 @@ export default function SettingsPage() {
           {selectedIds.size > 0 && (
             <div className="panel-soft panel-glass rounded-2xl p-4 mb-6 flex flex-wrap items-center gap-3">
               <span className="text-sm text-white">
-                {'\u0412\u044b\u0431\u0440\u0430\u043d\u043e'}: {selectedIds.size}
+                {'\В\ы\б\р\а\н\о'}: {selectedIds.size}
               </span>
               <select
                 value={bulkAction}
@@ -1515,12 +1515,12 @@ export default function SettingsPage() {
                 className={`${fieldBase} px-3 py-2`}
                 aria-label="Bulk action"
               >
-                <option value="">{'\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u0435'}</option>
+                <option value="">{'\Д\е\й\с\т\в\и\е'}</option>
                 {isSuperAdmin && (
-                  <option value="role">{'\u0421\u043c\u0435\u043d\u0438\u0442\u044c \u0440\u043e\u043b\u044c'}</option>
+                  <option value="role">{'\С\м\е\н\и\т\ь \р\о\л\ь'}</option>
                 )}
-                <option value="canLogin">{'\u0414\u043e\u0441\u0442\u0443\u043f'}</option>
-                <option value="delete">{'\u0423\u0434\u0430\u043b\u0438\u0442\u044c'}</option>
+                <option value="canLogin">{'\Д\о\с\т\у\п'}</option>
+                <option value="delete">{'\У\д\а\л\и\т\ь'}</option>
               </select>
               {bulkAction === 'role' && (
                 <select
@@ -1529,7 +1529,7 @@ export default function SettingsPage() {
                   className={`${fieldBase} px-3 py-2`}
                   aria-label="Bulk role"
                 >
-                  <option value="">{'\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0440\u043e\u043b\u044c'}</option>
+                  <option value="">{'\В\ы\б\е\р\и\т\е \р\о\л\ь'}</option>
                   {ROLE_OPTIONS.map((role) => (
                     <option key={role.value} value={role.value}>
                       {role.label}
@@ -1544,9 +1544,9 @@ export default function SettingsPage() {
                   className={`${fieldBase} px-3 py-2`}
                   aria-label="Bulk access"
                 >
-                  <option value="">{'\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u043e\u0441\u0442\u0443\u043f'}</option>
-                  <option value="enable">{'\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f'}</option>
-                  <option value="disable">{'\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f'}</option>
+                  <option value="">{'\В\ы\б\е\р\и\т\е \д\о\с\т\у\п'}</option>
+                  <option value="enable">{'\О\т\к\р\ы\т\ь \д\о\с\т\у\п'}</option>
+                  <option value="disable">{'\З\а\к\р\ы\т\ь \д\о\с\т\у\п'}</option>
                 </select>
               )}
               <button
@@ -1559,17 +1559,17 @@ export default function SettingsPage() {
                 ) : (
                   <CheckCircle className="w-4 h-4" />
                 )}
-                {'\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c'}
+                {'\П\р\и\м\е\н\и\т\ь'}
               </button>
               <button
                 onClick={clearSelection}
                 className="px-3 py-2 text-gray-400 hover:text-white transition"
               >
-                {'\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c'}
+                {'\С\б\р\о\с\и\т\ь'}
               </button>
               {bulkDemoteBlocked && (
                 <span className="text-xs text-amber-400">
-                  {'\u041d\u0435\u043b\u044c\u0437\u044f \u043f\u043e\u043d\u0438\u0437\u0438\u0442\u044c \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0435\u0433\u043e \u0430\u0434\u043c\u0438\u043d\u0430 \u0438\u043b\u0438 \u0441\u0443\u043f\u0435\u0440\u0430\u0434\u043c\u0438\u043d\u0430'}
+                  {'\Н\е\л\ь\з\я \п\о\н\и\з\и\т\ь \п\о\с\л\е\д\н\е\г\о \а\д\м\и\н\а \и\л\и \с\у\п\е\р\а\д\м\и\н\а'}
                 </span>
               )}
             </div>
@@ -1584,10 +1584,10 @@ export default function SettingsPage() {
                 className={controlBase}
                 aria-label="Select all users"
               />
-              {'\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0432\u0441\u0435\u0445'}
+              {'\В\ы\б\р\а\т\ь \в\с\е\х'}
             </label>
             <span className="text-xs text-gray-500">
-              {'\u0412\u044b\u0431\u0440\u0430\u043d\u043e:'} {selectedIds.size}
+              {'\В\ы\б\р\а\н\о:'} {selectedIds.size}
             </span>
           </div>
 
@@ -1648,7 +1648,7 @@ export default function SettingsPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="text-white font-semibold">
-                            {user.name || '\u0411\u0435\u0437 \u0438\u043c\u0435\u043d\u0438'}
+                            {user.name || '\Б\е\з \и\м\е\н\и'}
                           </h3>
                           <span
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${ROLE_BADGE_CLASSES[user.role]}`}
@@ -1681,7 +1681,7 @@ export default function SettingsPage() {
                     {getInactiveBadge(user)}
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-white/5 text-gray-300">
                       <FileText className="w-3 h-3" />
-                      {user._count.letters} {'\u043f\u0438\u0441\u0435\u043c'}
+                      {user._count.letters} {'\п\и\с\е\м'}
                     </span>
                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-white/5 text-gray-400">
                       <MessageSquare className="w-3 h-3" />
@@ -1703,7 +1703,7 @@ export default function SettingsPage() {
                   ) : (
                     <div className="mt-4 grid gap-3 text-sm">
                       <div className="grid gap-1">
-                        <span className="text-xs text-gray-400">{'\u0418\u043c\u044f'}</span>
+                        <span className="text-xs text-gray-400">{'\И\м\я'}</span>
                         <input
                           type="text"
                           value={editData.name}
@@ -1712,7 +1712,7 @@ export default function SettingsPage() {
                           }
                           className={`${fieldCompact} w-full px-3 py-1.5`}
                           aria-label="Name"
-                          placeholder={'\u0418\u043c\u044f'}
+                          placeholder={'\И\м\я'}
                         />
                       </div>
                       <div className="grid gap-1">
@@ -1729,7 +1729,7 @@ export default function SettingsPage() {
                         />
                       </div>
                       <div className="grid gap-1">
-                        <span className="text-xs text-gray-400">{'\u0420\u043e\u043b\u044c'}</span>
+                        <span className="text-xs text-gray-400">{'\Р\о\л\ь'}</span>
                         <select
                           value={editData.role}
                           onChange={(e) =>
@@ -1750,22 +1750,22 @@ export default function SettingsPage() {
                         </select>
                         {!isSuperAdmin && (
                           <span className="text-xs text-amber-400">
-                            {'\u0420\u043e\u043b\u0438 \u043c\u0435\u043d\u044f\u0435\u0442 \u0442\u043e\u043b\u044c\u043a\u043e \u0441\u0443\u043f\u0435\u0440\u0430\u0434\u043c\u0438\u043d'}
+                            {'\Р\о\л\и \м\е\н\я\е\т \т\о\л\ь\к\о \с\у\п\е\р\а\д\м\и\н'}
                           </span>
                         )}
                         {isSuperAdmin && isLastAdmin && (
                           <span className="text-xs text-amber-400">
-                            {'\u0415\u0434\u0438\u043d\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439 \u0430\u0434\u043c\u0438\u043d \u043d\u0435 \u043c\u043e\u0436\u0435\u0442 \u0431\u044b\u0442\u044c \u043f\u043e\u043d\u0438\u0436\u0435\u043d'}
+                            {'\Е\д\и\н\с\т\в\е\н\н\ы\й \а\д\м\и\н \н\е \м\о\ж\е\т \б\ы\т\ь \п\о\н\и\ж\е\н'}
                           </span>
                         )}
                         {isSuperAdmin && isLastSuperAdmin && (
                           <span className="text-xs text-amber-400">
-                            {'\u0415\u0434\u0438\u043d\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439 \u0441\u0443\u043f\u0435\u0440\u0430\u0434\u043c\u0438\u043d \u043d\u0435 \u043c\u043e\u0436\u0435\u0442 \u0431\u044b\u0442\u044c \u043f\u043e\u043d\u0438\u0436\u0435\u043d'}
+                            {'\Е\д\и\н\с\т\в\е\н\н\ы\й \с\у\п\е\р\а\д\м\и\н \н\е \м\о\ж\е\т \б\ы\т\ь \п\о\н\и\ж\е\н'}
                           </span>
                         )}
                       </div>
                       <div className="grid gap-1">
-                        <span className="text-xs text-gray-400">{'\u0414\u043e\u0441\u0442\u0443\u043f'}</span>
+                        <span className="text-xs text-gray-400">{'\Д\о\с\т\у\п'}</span>
                         <select
                           value={editData.canLogin ? 'open' : 'closed'}
                           onChange={(e) =>
@@ -1778,8 +1778,8 @@ export default function SettingsPage() {
                           className={`${fieldCompact} px-3 py-1.5 disabled:opacity-60`}
                           aria-label="Access"
                         >
-                          <option value="open">{'\u041e\u0442\u043a\u0440\u044b\u0442'}</option>
-                          <option value="closed">{'\u0417\u0430\u043a\u0440\u044b\u0442'}</option>
+                          <option value="open">{'\О\т\к\р\ы\т'}</option>
+                          <option value="closed">{'\З\а\к\р\ы\т'}</option>
                         </select>
                       </div>
                       <div className="grid gap-1">
@@ -1798,7 +1798,7 @@ export default function SettingsPage() {
                       <div className="border-t border-white/10 pt-3 grid gap-3 text-xs">
                         <div className="flex items-center gap-2 text-gray-400">
                           <Bell className="w-3.5 h-3.5" />
-                          {'\u041a\u0430\u043d\u0430\u043b\u044b \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439'}
+                          {'\К\а\н\а\л\ы \у\в\е\д\о\м\л\е\н\и\й'}
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-gray-300">
                           <label className="inline-flex items-center gap-2">
@@ -1850,13 +1850,13 @@ export default function SettingsPage() {
                               className={controlBase}
                               aria-label="Notify in app"
                             />
-                            {'\u0412\u043d\u0443\u0442\u0440\u0438 \u0441\u0438\u0441\u0442\u0435\u043c\u044b'}
+                            {'\В\н\у\т\р\и \с\и\с\т\е\м\ы'}
                           </label>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div className="grid gap-1">
                             <span className="text-gray-400">
-                              {'\u0422\u0438\u0445\u0438\u0435 \u0447\u0430\u0441\u044b (\u0441)'}
+                              {'\Т\и\х\и\е \ч\а\с\ы (\с)'}
                             </span>
                             <input
                               type="time"
@@ -1873,7 +1873,7 @@ export default function SettingsPage() {
                           </div>
                           <div className="grid gap-1">
                             <span className="text-gray-400">
-                              {'\u0422\u0438\u0445\u0438\u0435 \u0447\u0430\u0441\u044b (\u0434\u043e)'}
+                              {'\Т\и\х\и\е \ч\а\с\ы (\д\о)'}
                             </span>
                             <input
                               type="time"
@@ -1890,7 +1890,7 @@ export default function SettingsPage() {
                           </div>
                         </div>
                         <div className="grid gap-1">
-                          <span className="text-gray-400">{'\u0414\u0430\u0439\u0434\u0436\u0435\u0441\u0442'}</span>
+                          <span className="text-gray-400">{'\Д\а\й\д\ж\е\с\т'}</span>
                           <select
                             value={editData.digestFrequency}
                             onChange={(e) =>
@@ -1917,14 +1917,14 @@ export default function SettingsPage() {
                     {isEditing ? (
                       <span className="text-xs text-gray-500">
                         {isSaving
-                          ? '\u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435...'
+                          ? '\С\о\х\р\а\н\е\н\и\е...'
                           : isDirty
-                            ? '\u0410\u0432\u0442\u043e\u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0438\u0435'
-                            : '\u0421\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u043e'}
+                            ? '\А\в\т\о\с\о\х\р\а\н\е\н\и\е'
+                            : '\С\о\х\р\а\н\е\н\о'}
                       </span>
                     ) : (
                       <span className="text-xs text-gray-500">
-                        {'\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0439 \u0432\u0445\u043e\u0434:'} {formatDate(user.lastLoginAt)}
+                        {'\П\о\с\л\е\д\н\и\й \в\х\о\д:'} {formatDate(user.lastLoginAt)}
                       </span>
                     )}
                     <div className="flex items-center gap-2">
@@ -1957,7 +1957,7 @@ export default function SettingsPage() {
                             href={`/users/${user.id}`}
                             aria-label="View profile"
                             className="p-2 text-gray-400 hover:text-white transition"
-                            title={'\u041f\u0440\u043e\u0444\u0438\u043b\u044c'}
+                            title={'\П\р\о\ф\и\л\ь'}
                           >
                             <UserIcon className="w-4 h-4" />
                           </Link>
@@ -1968,12 +1968,12 @@ export default function SettingsPage() {
                               disabled={user.role === 'ADMIN' || user.role === 'SUPERADMIN'}
                               title={
                                 user.role === 'SUPERADMIN'
-                                  ? '\u041d\u0435\u043b\u044c\u0437\u044f \u043e\u0442\u043a\u043b\u044e\u0447\u0438\u0442\u044c \u0441\u0443\u043f\u0435\u0440\u0430\u0434\u043c\u0438\u043d\u0430'
+                                  ? '\Н\е\л\ь\з\я \о\т\к\л\ю\ч\и\т\ь \с\у\п\е\р\а\д\м\и\н\а'
                                   : user.role === 'ADMIN'
-                                    ? '\u041d\u0435\u043b\u044c\u0437\u044f \u043e\u0442\u043a\u043b\u044e\u0447\u0438\u0442\u044c \u0430\u0434\u043c\u0438\u043d\u0430'
+                                    ? '\Н\е\л\ь\з\я \о\т\к\л\ю\ч\и\т\ь \а\д\м\и\н\а'
                                     : user.canLogin
-                                      ? '\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f'
-                                      : '\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f'
+                                      ? '\З\а\к\р\ы\т\ь \д\о\с\т\у\п'
+                                      : '\О\т\к\р\ы\т\ь \д\о\с\т\у\п'
                               }
                               className="p-2 text-gray-400 hover:text-emerald-300 transition disabled:opacity-60"
                             >
@@ -1998,11 +1998,11 @@ export default function SettingsPage() {
                               disabled={deleteLocked}
                               title={
                                 !isSuperAdmin && (user.role === 'ADMIN' || user.role === 'SUPERADMIN')
-                                  ? '\u0423\u0434\u0430\u043b\u044f\u0442\u044c \u0430\u0434\u043c\u0438\u043d\u043e\u0432 \u043c\u043e\u0436\u0435\u0442 \u0442\u043e\u043b\u044c\u043a\u043e \u0441\u0443\u043f\u0435\u0440\u0430\u0434\u043c\u0438\u043d'
+                                  ? '\У\д\а\л\я\т\ь \а\д\м\и\н\о\в \м\о\ж\е\т \т\о\л\ь\к\о \с\у\п\е\р\а\д\м\и\н'
                                   : isLastSuperAdmin
-                                    ? '\u041d\u0435\u043b\u044c\u0437\u044f \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u0435\u0434\u0438\u043d\u0441\u0442\u0432\u0435\u043d\u043d\u043e\u0433\u043e \u0441\u0443\u043f\u0435\u0440\u0430\u0434\u043c\u0438\u043d\u0430'
+                                    ? '\Н\е\л\ь\з\я \у\д\а\л\и\т\ь \е\д\и\н\с\т\в\е\н\н\о\г\о \с\у\п\е\р\а\д\м\и\н\а'
                                     : isLastAdmin
-                                      ? '\u041d\u0435\u043b\u044c\u0437\u044f \u0443\u0434\u0430\u043b\u0438\u0442\u044c \u0435\u0434\u0438\u043d\u0441\u0442\u0432\u0435\u043d\u043d\u043e\u0433\u043e \u0430\u0434\u043c\u0438\u043d\u0430'
+                                      ? '\Н\е\л\ь\з\я \у\д\а\л\и\т\ь \е\д\и\н\с\т\в\е\н\н\о\г\о \а\д\м\и\н\а'
                                       : undefined
                               }
                               className="p-2 text-gray-400 hover:text-red-400 transition disabled:opacity-60"
@@ -2018,8 +2018,8 @@ export default function SettingsPage() {
                         className="px-2 py-1 text-xs text-gray-400 hover:text-white transition border border-white/10 rounded"
                       >
                         {auditOpenId === user.id
-                          ? '\u0421\u043a\u0440\u044b\u0442\u044c \u0438\u0441\u0442\u043e\u0440\u0438\u044e'
-                          : '\u0418\u0441\u0442\u043e\u0440\u0438\u044f'}
+                          ? '\С\к\р\ы\т\ь \и\с\т\о\р\и\ю'
+                          : '\И\с\т\о\р\и\я'}
                       </button>
                     </div>
                   </div>
@@ -2029,7 +2029,7 @@ export default function SettingsPage() {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2 text-sm text-gray-200">
                           <History className="w-4 h-4 text-emerald-400" />
-                          {'\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439'}
+                          {'\И\с\т\о\р\и\я \и\з\м\е\н\е\н\и\й'}
                           <span className="text-xs text-gray-500">{auditEntries.length}</span>
                         </div>
                         <button
@@ -2038,7 +2038,7 @@ export default function SettingsPage() {
                           aria-label="Refresh audit history"
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
-                          {'\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c'}
+                          {'\О\б\н\о\в\и\т\ь'}
                         </button>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2 mb-3 text-xs panel-soft panel-glass rounded-xl p-3">
@@ -2077,7 +2077,7 @@ export default function SettingsPage() {
                             setAuditFilters((prev) => ({ ...prev, actor: e.target.value }))
                           }
                           className={`${fieldCompact} px-3 py-1.5`}
-                          placeholder={'\u0410\u0432\u0442\u043e\u0440'}
+                          placeholder={'\А\в\т\о\р'}
                           aria-label="Audit actor search"
                         />
                         <input
@@ -2087,7 +2087,7 @@ export default function SettingsPage() {
                             setAuditFilters((prev) => ({ ...prev, query: e.target.value }))
                           }
                           className={`${fieldCompact} px-3 py-1.5`}
-                          placeholder={'\u041f\u043e\u0438\u0441\u043a \u043f\u043e \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f\u043c'}
+                          placeholder={'\П\о\и\с\к \п\о \и\з\м\е\н\е\н\и\я\м'}
                           aria-label="Audit search"
                         />
                       </div>
@@ -2109,7 +2109,7 @@ export default function SettingsPage() {
                               const actorName =
                                 entry.actor?.name ||
                                 entry.actor?.email ||
-                                '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0439 \u0430\u0432\u0442\u043e\u0440'
+                                '\Н\е\и\з\в\е\с\т\н\ы\й \а\в\т\о\р'
                               const actorInitial = (actorName || '?').trim().charAt(0).toUpperCase()
                               const showValues = entry.action !== 'CREATE' && entry.action !== 'DELETE'
                               const badge = AUDIT_ACTION_BADGES[entry.action] || {
@@ -2133,7 +2133,7 @@ export default function SettingsPage() {
                                         <span className="px-2 py-1 rounded bg-white/10 border border-white/10">
                                           {formatAuditValue(entry.field, entry.oldValue)}
                                         </span>
-                                        <span className="text-gray-500">{'\u2192'}</span>
+                                        <span className="text-gray-500">{'\→'}</span>
                                         <span className="px-2 py-1 rounded bg-white/10 border border-white/10">
                                           {formatAuditValue(entry.field, entry.newValue)}
                                         </span>
@@ -2155,7 +2155,7 @@ export default function SettingsPage() {
                                         </div>
                                       )}
                                       <span className="truncate">{actorName}</span>
-                                      <span className="text-gray-600">\u00b7</span>
+                                      <span className="text-gray-600">\·</span>
                                       <span>{formatDate(entry.createdAt)}</span>
                                     </div>
                                   </div>
@@ -2168,16 +2168,16 @@ export default function SettingsPage() {
                                 className="inline-flex items-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 transition"
                               >
                                 <ArrowDownToLine className="w-3.5 h-3.5" />
-                                {'\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0435\u0449\u0435'}
+                                {'\П\о\к\а\з\а\т\ь \е\щ\е'}
                               </button>
                             )}
                             {auditLoading[user.id] && (
-                              <div className="text-xs text-gray-500">{'\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435...'}</div>
+                              <div className="text-xs text-gray-500">{'\О\б\н\о\в\л\е\н\и\е...'}</div>
                             )}
                           </div>
                         ) : (
                           <div className="text-xs text-gray-500 border border-dashed border-white/10 rounded-lg p-3">
-                            {'\u041d\u0435\u0442 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439 \u0437\u0430 \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u044b\u0439 \u043f\u0435\u0440\u0438\u043e\u0434'}
+                            {'\Н\е\т \и\з\м\е\н\е\н\и\й \з\а \в\ы\б\р\а\н\н\ы\й \п\е\р\и\о\д'}
                           </div>
                         )}
                       </div>
@@ -2192,8 +2192,8 @@ export default function SettingsPage() {
           {filteredUsers.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               {users.length === 0
-                ? '\u041d\u0435\u0442 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0435\u0439'
-                : '\u041d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e'}
+                ? '\Н\е\т \п\о\л\ь\з\о\в\а\т\е\л\е\й'
+                : '\Н\и\ч\е\г\о \н\е \н\а\й\д\е\н\о'}
             </div>
           )}
         </div>
@@ -2201,14 +2201,14 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <History className="w-6 h-6 text-emerald-400" />
-              <h2 className="text-xl font-semibold text-white">{'\u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u044c: \u0432\u0445\u043e\u0434\u044b'}</h2>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide bg-amber-500/15 text-amber-300 border border-amber-400/20">{'\u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u044c'}</span>
+              <h2 className="text-xl font-semibold text-white">{'\Б\е\з\о\п\а\с\н\о\с\т\ь: \в\х\о\д\ы'}</h2>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide bg-amber-500/15 text-amber-300 border border-amber-400/20">{'\Б\е\з\о\п\а\с\н\о\с\т\ь'}</span>
             </div>
             <button
               onClick={() => loadLoginAudits('replace')}
               aria-label="Refresh login audits"
               className="p-2 text-gray-400 hover:text-white transition"
-              title={'\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c'}
+              title={'\О\б\н\о\в\и\т\ь'}
             >
               <RefreshCw className="w-5 h-5" />
             </button>
@@ -2234,7 +2234,7 @@ export default function SettingsPage() {
                 value={loginAuditQuery}
                 onChange={(e) => setLoginAuditQuery(e.target.value)}
                 className={`${fieldBase} w-full pl-9 pr-3 py-2`}
-                placeholder={'\u041f\u043e\u0438\u0441\u043a \u043f\u043e email \u0438\u043b\u0438 \u0438\u043c\u0435\u043d\u0438'}
+                placeholder={'\П\о\и\с\к \п\о email \и\л\и \и\м\е\н\и'}
                 aria-label="Login audit search"
               />
             </div>
@@ -2245,7 +2245,7 @@ export default function SettingsPage() {
               }}
               className="px-3 py-2 text-gray-300 hover:text-white border border-white/10 rounded"
             >
-              {'\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c'}
+              {'\С\б\р\о\с\и\т\ь'}
             </button>
           </div>
 
@@ -2258,10 +2258,10 @@ export default function SettingsPage() {
                 >
                   <div className="text-xs text-gray-400">{formatSummaryDate(day.date)}</div>
                   <div className="text-sm text-white">
-                    {day.success} {'\u0443\u0441\u043f\u0435\u0448\u043d\u043e'}
+                    {day.success} {'\у\с\п\е\ш\н\о'}
                   </div>
                   <div className="text-xs text-red-400">
-                    {day.failure} {'\u043e\u0448\u0438\u0431\u043e\u043a'}
+                    {day.failure} {'\о\ш\и\б\о\к'}
                   </div>
                 </div>
               ))}
@@ -2269,16 +2269,16 @@ export default function SettingsPage() {
           )}
 
           {loginAuditLoading && loginAudits.length === 0 ? (
-            <div className="text-xs text-gray-500">{'\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430...'}</div>
+            <div className="text-xs text-gray-500">{'\З\а\г\р\у\з\к\а...'}</div>
           ) : loginAudits.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/10">
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\u0414\u0430\u0442\u0430'}</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c'}</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\u0420\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442'}</th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\u041f\u0440\u0438\u0447\u0438\u043d\u0430'}</th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\Д\а\т\а'}</th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\П\о\л\ь\з\о\в\а\т\е\л\ь'}</th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\Р\е\з\у\л\ь\т\а\т'}</th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">{'\П\р\и\ч\и\н\а'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2305,7 +2305,7 @@ export default function SettingsPage() {
               </table>
             </div>
           ) : (
-            <div className="text-xs text-gray-500">{'\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445'} </div>
+            <div className="text-xs text-gray-500">{'\Н\е\т \д\а\н\н\ы\х'} </div>
           )}
 
           {loginAuditCursor && (
@@ -2318,10 +2318,10 @@ export default function SettingsPage() {
                 {loginAuditLoading ? (
                   <span className="inline-flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    {'\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430...'}
+                    {'\З\а\г\р\у\з\к\а...'}
                   </span>
                 ) : (
-                  '\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0435\u0449\u0435'
+                  '\П\о\к\а\з\а\т\ь \е\щ\е'
                 )}
               </button>
             </div>

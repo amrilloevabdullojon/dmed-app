@@ -162,7 +162,7 @@ export default function ReportsPage() {
       ownerSortDir,
     }
     window.localStorage.setItem('reportsView', JSON.stringify(payload))
-    toast.success('\u0412\u0438\u0434 \u043e\u0442\u0447\u0451\u0442\u043e\u0432 \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d')
+    toast.success('\В\и\д \о\т\ч\ё\т\о\в \с\о\х\р\а\н\ё\н')
   }
 
   const handleShare = async () => {
@@ -172,10 +172,10 @@ export default function ReportsPage() {
     url.searchParams.set('chart', chartView)
     try {
       await navigator.clipboard.writeText(url.toString())
-      toast.success('\u0421\u0441\u044b\u043b\u043a\u0430 \u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0430')
+      toast.success('\С\с\ы\л\к\а \с\к\о\п\и\р\о\в\а\н\а')
     } catch (error) {
       console.error('Failed to copy link', error)
-      toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443')
+      toast.error('\Н\е \у\д\а\л\о\с\ь \с\к\о\п\и\р\о\в\а\т\ь \с\с\ы\л\к\у')
     }
   }
 
@@ -254,7 +254,7 @@ export default function ReportsPage() {
     current: number,
     previous: number | null
   ): { direction: 'up' | 'down' | 'flat'; label: string } => {
-    if (previous === null) return { direction: 'flat', label: '\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445' }
+    if (previous === null) return { direction: 'flat', label: '\Н\е\т \д\а\н\н\ы\х' }
     if (previous === 0) {
       return current === 0
         ? { direction: 'flat', label: '0%' }
@@ -315,7 +315,7 @@ export default function ReportsPage() {
     return (
       <div className="min-h-screen flex items-center justify-center app-shell">
         <p className="text-gray-400">
-          {'\u041f\u043e\u0436\u0430\u043b\u0443\u0439\u0441\u0442\u0430, \u0432\u043e\u0439\u0434\u0438\u0442\u0435 \u0432 \u0441\u0438\u0441\u0442\u0435\u043c\u0443'}
+          {'\П\о\ж\а\л\у\й\с\т\а, \в\о\й\д\и\т\е \в \с\и\с\т\е\м\у'}
         </p>
       </div>
     )
@@ -343,7 +343,7 @@ export default function ReportsPage() {
   if (!stats) {
     return (
       <div className="min-h-screen flex items-center justify-center app-shell">
-        <p className="text-gray-400">{'\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445.'}</p>
+        <p className="text-gray-400">{'\Н\е\т \д\а\н\н\ы\х.'}</p>
       </div>
     )
   }
@@ -395,11 +395,11 @@ export default function ReportsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
           <div>
             <h1 className="text-2xl font-bold text-white">
-              {'\u041e\u0442\u0447\u0451\u0442\u044b \u0438 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430'}
+              {'\О\т\ч\ё\т\ы \и \с\т\а\т\и\с\т\и\к\а'}
             </h1>
             {lastUpdated && (
               <p className="text-sm text-gray-400 mt-1">
-                {'\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e'}: {lastUpdated.toLocaleString('ru-RU')}
+                {'\О\б\н\о\в\л\е\н\о'}: {lastUpdated.toLocaleString('ru-RU')}
               </p>
             )}
           </div>
@@ -413,7 +413,7 @@ export default function ReportsPage() {
             ) : (
               <RefreshCw className="w-4 h-4" />
             )}
-            {'\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c'}
+            {'\О\б\н\о\в\и\т\ь'}
           </button>
         </div>
 
@@ -421,7 +421,7 @@ export default function ReportsPage() {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-gray-400 uppercase tracking-wide">
-                {'\u041f\u0435\u0440\u0438\u043e\u0434'}
+                {'\П\е\р\и\о\д'}
               </span>
               {periodOptions.map((months) => (
                 <button
@@ -430,10 +430,10 @@ export default function ReportsPage() {
                   className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition app-chip ${
                     periodMonths === months ? 'app-chip-active' : ''
                   }`}
-                  aria-label={`\u041f\u0435\u0440\u0438\u043e\u0434 ${months} \u043c\u0435\u0441\u044f\u0446\u0435\u0432`}
+                  aria-label={`\П\е\р\и\о\д ${months} \м\е\с\я\ц\е\в`}
                 >
                   <Calendar className="w-4 h-4" />
-                  {months} {'\u043c\u0435\u0441'}
+                  {months} {'\м\е\с'}
                 </button>
               ))}
               <button
@@ -442,7 +442,7 @@ export default function ReportsPage() {
                 aria-label="Reset report view"
               >
                 <RefreshCw className="w-4 h-4" />
-                {'\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c'}
+                {'\С\б\р\о\с\и\т\ь'}
               </button>
               <button
                 onClick={handleSaveView}
@@ -450,7 +450,7 @@ export default function ReportsPage() {
                 aria-label="Save report view"
               >
                 <Save className="w-4 h-4" />
-                {'\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0432\u0438\u0434'}
+                {'\С\о\х\р\а\н\и\т\ь \в\и\д'}
               </button>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -459,14 +459,14 @@ export default function ReportsPage() {
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition btn-secondary w-full sm:w-auto"
               >
                 <Download className="w-4 h-4" />
-                {'\u042d\u043a\u0441\u043f\u043e\u0440\u0442 CSV'}
+                {'\Э\к\с\п\о\р\т CSV'}
               </button>
               <button
                 onClick={handleShare}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition btn-primary w-full sm:w-auto"
               >
                 <Share2 className="w-4 h-4" />
-                {'\u041f\u043e\u0434\u0435\u043b\u0438\u0442\u044c\u0441\u044f'}
+                {'\П\о\д\е\л\и\т\ь\с\я'}
               </button>
             </div>
           </div>
@@ -476,7 +476,7 @@ export default function ReportsPage() {
           <div className="panel panel-soft rounded-xl p-4">
             <div className="flex items-center gap-3 mb-2">
               <FileText className="w-5 h-5 text-emerald-400" />
-              <span className="text-gray-400 text-sm">{'\u0412\u0441\u0435 \u043f\u0438\u0441\u044c\u043c\u0430'}</span>
+              <span className="text-gray-400 text-sm">{'\В\с\е \п\и\с\ь\м\а'}</span>
             </div>
             <div className="text-3xl font-bold text-white">{stats.summary.total}</div>
           </div>
@@ -484,7 +484,7 @@ export default function ReportsPage() {
           <div className="panel panel-soft rounded-xl p-4">
             <div className="flex items-center gap-3 mb-2">
               <AlertTriangle className="w-5 h-5 text-red-400" />
-              <span className="text-gray-400 text-sm">{'\u041f\u0440\u043e\u0441\u0440\u043e\u0447\u0435\u043d\u043d\u044b\u0435'}</span>
+              <span className="text-gray-400 text-sm">{'\П\р\о\с\р\о\ч\е\н\н\ы\е'}</span>
             </div>
             <div className="text-3xl font-bold text-red-400">{stats.summary.overdue}</div>
           </div>
@@ -492,7 +492,7 @@ export default function ReportsPage() {
           <div className="panel panel-soft rounded-xl p-4">
             <div className="flex items-center gap-3 mb-2">
               <Clock className="w-5 h-5 text-yellow-400" />
-              <span className="text-gray-400 text-sm">{'\u0421\u0440\u043e\u0447\u043d\u044b\u0435 (3 \u0434\u043d\u044f)'}</span>
+              <span className="text-gray-400 text-sm">{'\С\р\о\ч\н\ы\е (3 \д\н\я)'}</span>
             </div>
             <div className="text-3xl font-bold text-yellow-400">{stats.summary.urgent}</div>
           </div>
@@ -500,7 +500,7 @@ export default function ReportsPage() {
           <div className="panel panel-soft rounded-xl p-4">
             <div className="flex items-center gap-3 mb-2">
               <TrendingUp className="w-5 h-5 text-blue-400" />
-              <span className="text-gray-400 text-sm">{'\u0412 \u0440\u0430\u0431\u043e\u0442\u0435'}</span>
+              <span className="text-gray-400 text-sm">{'\В \р\а\б\о\т\е'}</span>
             </div>
             <div className="text-3xl font-bold text-blue-400">{stats.summary.inProgress}</div>
           </div>
@@ -508,7 +508,7 @@ export default function ReportsPage() {
           <div className="panel panel-soft rounded-xl p-4">
             <div className="flex items-center gap-3 mb-2">
               <CheckCircle className="w-5 h-5 text-emerald-400" />
-              <span className="text-gray-400 text-sm">{'\u0412\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u043e'}</span>
+              <span className="text-gray-400 text-sm">{'\В\ы\п\о\л\н\е\н\о'}</span>
             </div>
             <div className="text-3xl font-bold text-emerald-400">{stats.summary.done}</div>
           </div>
@@ -519,7 +519,7 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
                 <FileText className="w-5 h-5 text-purple-400" />
-                <span className="text-gray-400 text-sm">{'\u0421\u043e\u0437\u0434\u0430\u043d\u043e \u0437\u0430'} {periodMonths} {'\u043c\u0435\u0441'}</span>
+                <span className="text-gray-400 text-sm">{'\С\о\з\д\а\н\о \з\а'} {periodMonths} {'\м\е\с'}</span>
               </div>
               {renderTrend(createdTrend)}
             </div>
@@ -530,7 +530,7 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-5 h-5 text-emerald-400" />
-                <span className="text-gray-400 text-sm">{'\u0417\u0430\u043a\u0440\u044b\u0442\u043e \u0437\u0430'} {periodMonths} {'\u043c\u0435\u0441'}</span>
+                <span className="text-gray-400 text-sm">{'\З\а\к\р\ы\т\о \з\а'} {periodMonths} {'\м\е\с'}</span>
               </div>
               {renderTrend(doneTrend)}
             </div>
@@ -541,7 +541,7 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
                 <Calendar className="w-5 h-5 text-blue-400" />
-                <span className="text-gray-400 text-sm">{'\u0421\u0440\u0435\u0434\u043d\u0435\u0435 \u0432 \u043c\u0435\u0441\u044f\u0446'}</span>
+                <span className="text-gray-400 text-sm">{'\С\р\е\д\н\е\е \в \м\е\с\я\ц'}</span>
               </div>
               {renderTrend(avgTrend)}
             </div>
@@ -551,7 +551,7 @@ export default function ReportsPage() {
           <div className="panel panel-soft rounded-xl p-4">
             <div className="flex items-center gap-3 mb-2">
               <Timer className="w-5 h-5 text-orange-400" />
-              <span className="text-gray-400 text-sm">{'\u0421\u0440\u0435\u0434\u043d\u0435\u0435 \u0432\u0440\u0435\u043c\u044f \u0434\u043e \u0437\u0430\u043a\u0440\u044b\u0442\u0438\u044f'}</span>
+              <span className="text-gray-400 text-sm">{'\С\р\е\д\н\е\е \в\р\е\м\я \д\о \з\а\к\р\ы\т\и\я'}</span>
             </div>
             <div className="text-3xl font-bold text-orange-400">{stats.summary.avgDays}</div>
           </div>
@@ -560,8 +560,8 @@ export default function ReportsPage() {
         <div className="panel panel-solid rounded-2xl p-6 mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-white">{'\u0420\u0430\u0441\u043f\u0440\u0435\u0434\u0435\u043b\u0435\u043d\u0438\u0435'}</h3>
-              <p className="text-sm text-gray-400">{'\u041f\u0438\u0441\u044c\u043c\u0430 \u043f\u043e \u0441\u0442\u0430\u0442\u0443\u0441\u0430\u043c, \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f\u043c \u0438 \u0442\u0438\u043f\u0430\u043c'}</p>
+              <h3 className="text-lg font-semibold text-white">{'\Р\а\с\п\р\е\д\е\л\е\н\и\е'}</h3>
+              <p className="text-sm text-gray-400">{'\П\и\с\ь\м\а \п\о \с\т\а\т\у\с\а\м, \и\с\п\о\л\н\и\т\е\л\я\м \и \т\и\п\а\м'}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -571,7 +571,7 @@ export default function ReportsPage() {
                 }`}
               >
                 <Filter className="w-4 h-4" />
-                {'\u0421\u0442\u0430\u0442\u0443\u0441\u044b'}
+                {'\С\т\а\т\у\с\ы'}
               </button>
               <button
                 onClick={() => setChartView('owner')}
@@ -580,7 +580,7 @@ export default function ReportsPage() {
                 }`}
               >
                 <Users className="w-4 h-4" />
-                {'\u0418\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u0438'}
+                {'\И\с\п\о\л\н\и\т\е\л\и'}
               </button>
               <button
                 onClick={() => setChartView('type')}
@@ -589,7 +589,7 @@ export default function ReportsPage() {
                 }`}
               >
                 <Layers className="w-4 h-4" />
-                {'\u0422\u0438\u043f\u044b'}
+                {'\Т\и\п\ы'}
               </button>
             </div>
           </div>
@@ -639,7 +639,7 @@ export default function ReportsPage() {
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-gray-500 py-6">{'\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445.'}</p>
+                <p className="text-sm text-gray-500 py-6">{'\Н\е\т \д\а\н\н\ы\х.'}</p>
               )}
             </>
           )}
@@ -666,7 +666,7 @@ export default function ReportsPage() {
                   })}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500 py-6">{'\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445.'}</p>
+                <p className="text-sm text-gray-500 py-6">{'\Н\е\т \д\а\н\н\ы\х.'}</p>
               )}
             </>
           )}
@@ -692,7 +692,7 @@ export default function ReportsPage() {
                   })}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500 py-6">{'\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445.'}</p>
+                <p className="text-sm text-gray-500 py-6">{'\Н\е\т \д\а\н\н\ы\х.'}</p>
               )}
             </>
           )}
@@ -701,8 +701,8 @@ export default function ReportsPage() {
         <div className="panel panel-solid rounded-2xl p-6 mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-white">{'\u0410\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u044c \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u0435\u0439'}</h3>
-              <p className="text-sm text-gray-400">{'\u0421\u043e\u0440\u0442\u0438\u0440\u0443\u0439\u0442\u0435 \u0438 \u043f\u0440\u043e\u043b\u0438\u0441\u0442\u044b\u0432\u0430\u0439\u0442\u0435 \u0442\u043e\u043f'}</p>
+              <h3 className="text-lg font-semibold text-white">{'\А\к\т\и\в\н\о\с\т\ь \и\с\п\о\л\н\и\т\е\л\е\й'}</h3>
+              <p className="text-sm text-gray-400">{'\С\о\р\т\и\р\у\й\т\е \и \п\р\о\л\и\с\т\ы\в\а\й\т\е \т\о\п'}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -712,7 +712,7 @@ export default function ReportsPage() {
                 }`}
               >
                 <Filter className="w-4 h-4" />
-                {'\u041f\u043e \u043e\u0431\u044a\u0435\u043c\u0443'}
+                {'\П\о \о\б\ъ\е\м\у'}
                 {ownerSort === 'count' && <SortIcon className="w-4 h-4" />}
               </button>
               <button
@@ -722,7 +722,7 @@ export default function ReportsPage() {
                 }`}
               >
                 <Users className="w-4 h-4" />
-                {'\u041f\u043e \u0438\u043c\u0435\u043d\u0438'}
+                {'\П\о \и\м\е\н\и'}
                 {ownerSort === 'name' && <SortIcon className="w-4 h-4" />}
               </button>
             </div>
@@ -734,9 +734,9 @@ export default function ReportsPage() {
                 <table className="min-w-full text-sm">
                   <thead>
                     <tr className="text-xs text-gray-400 uppercase tracking-wide">
-                      <th className="px-2 pb-3 text-left">{'\u0418\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044c'}</th>
-                      <th className="px-2 pb-3 text-right">{'\u041f\u0438\u0441\u0435\u043c'}</th>
-                      <th className="hidden sm:table-cell px-2 pb-3 text-right">{'\u0414\u043e\u043b\u044f'}</th>
+                      <th className="px-2 pb-3 text-left">{'\И\с\п\о\л\н\и\т\е\л\ь'}</th>
+                      <th className="px-2 pb-3 text-right">{'\П\и\с\е\м'}</th>
+                      <th className="hidden sm:table-cell px-2 pb-3 text-right">{'\Д\о\л\я'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800">
@@ -749,7 +749,7 @@ export default function ReportsPage() {
                         <tr key={owner.id} className="text-sm">
                           <td className="px-2 py-3 text-white">
                             <div className="font-medium">{owner.name}</div>
-                            <div className="text-xs text-gray-500">{share}% {'\u043e\u0442 \u0432\u0441\u0435\u0445 \u043f\u0438\u0441\u0435\u043c'}</div>
+                            <div className="text-xs text-gray-500">{share}% {'\о\т \в\с\е\х \п\и\с\е\м'}</div>
                           </td>
                           <td className="px-2 py-3 text-right text-white font-semibold">{owner.count}</td>
                           <td className="hidden sm:table-cell px-2 py-3">
@@ -776,7 +776,7 @@ export default function ReportsPage() {
                     onClick={handleMoreOwners}
                     className="text-sm text-emerald-400 hover:text-emerald-300 transition"
                   >
-                    {'\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0435\u0449\u0435'}
+                    {'\П\о\к\а\з\а\т\ь \е\щ\е'}
                   </button>
                 )}
                 {canCollapseOwners && (
@@ -784,23 +784,23 @@ export default function ReportsPage() {
                     onClick={handleCollapseOwners}
                     className="text-sm text-gray-400 hover:text-gray-300 transition"
                   >
-                    {'\u0421\u0432\u0435\u0440\u043d\u0443\u0442\u044c'}
+                    {'\С\в\е\р\н\у\т\ь'}
                   </button>
                 )}
               </div>
             </>
           ) : (
-            <p className="text-sm text-gray-500 py-6">{'\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445.'}</p>
+            <p className="text-sm text-gray-500 py-6">{'\Н\е\т \д\а\н\н\ы\х.'}</p>
           )}
         </div>
 
         <div className="panel panel-solid rounded-2xl p-6 mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
             <div>
-              <h3 className="text-lg font-semibold text-white">{'\u0414\u0438\u043d\u0430\u043c\u0438\u043a\u0430 \u043f\u043e \u043c\u0435\u0441\u044f\u0446\u0430\u043c'}</h3>
-              <p className="text-sm text-gray-400">{'\u0421\u0440\u0430\u0432\u043d\u0435\u043d\u0438\u0435 \u0441\u043e\u0437\u0434\u0430\u043d\u043d\u044b\u0445 \u0438 \u0437\u0430\u043a\u0440\u044b\u0442\u044b\u0445'}</p>
+              <h3 className="text-lg font-semibold text-white">{'\Д\и\н\а\м\и\к\а \п\о \м\е\с\я\ц\а\м'}</h3>
+              <p className="text-sm text-gray-400">{'\С\р\а\в\н\е\н\и\е \с\о\з\д\а\н\н\ы\х \и \з\а\к\р\ы\т\ы\х'}</p>
             </div>
-            <span className="text-xs text-gray-500">{periodMonthly.length} {'\u043c\u0435\u0441'}</span>
+            <span className="text-xs text-gray-500">{periodMonthly.length} {'\м\е\с'}</span>
           </div>
 
           {periodMonthly.length > 0 ? (
@@ -837,17 +837,17 @@ export default function ReportsPage() {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-500 py-6">{'\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445.'}</p>
+            <p className="text-sm text-gray-500 py-6">{'\Н\е\т \д\а\н\н\ы\х.'}</p>
           )}
 
           <div className="flex flex-wrap justify-center gap-6 mt-4 pt-4 border-t border-gray-700">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-blue-500 rounded" />
-              <span className="text-sm text-gray-400">{'\u0421\u043e\u0437\u0434\u0430\u043d\u043e'}</span>
+              <span className="text-sm text-gray-400">{'\С\о\з\д\а\н\о'}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-emerald-500 rounded" />
-              <span className="text-sm text-gray-400">{'\u0417\u0430\u043a\u0440\u044b\u0442\u043e'}</span>
+              <span className="text-sm text-gray-400">{'\З\а\к\р\ы\т\о'}</span>
             </div>
           </div>
         </div>
@@ -855,7 +855,7 @@ export default function ReportsPage() {
         {stats.byType.length > 0 && (
           <div className="panel panel-solid rounded-2xl p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-              <h3 className="text-lg font-semibold text-white">{'\u0422\u0438\u043f\u044b \u043f\u0438\u0441\u0435\u043c'}</h3>
+              <h3 className="text-lg font-semibold text-white">{'\Т\и\п\ы \п\и\с\е\м'}</h3>
               <span className="text-xs text-gray-500">
                 {typesToShow.length} / {stats.byType.length}
               </span>
@@ -875,7 +875,7 @@ export default function ReportsPage() {
                 onClick={() => setShowAllTypes((prev) => !prev)}
                 className="mt-4 text-sm text-emerald-400 hover:text-emerald-300 transition"
               >
-                {showAllTypes ? '\u0421\u0432\u0435\u0440\u043d\u0443\u0442\u044c' : '\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0432\u0441\u0435'}
+                {showAllTypes ? '\С\в\е\р\н\у\т\ь' : '\П\о\к\а\з\а\т\ь \в\с\е'}
               </button>
             )}
           </div>

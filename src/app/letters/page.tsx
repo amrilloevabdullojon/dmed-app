@@ -92,12 +92,12 @@ const STATUSES: (LetterStatus | 'all')[] = [
 ]
 
 const FILTERS = [
-  { value: '', label: '\u0412\u0441\u0435 \u043f\u0438\u0441\u044c\u043c\u0430', icon: List },
-  { value: 'favorites', label: '\u0418\u0437\u0431\u0440\u0430\u043d\u043d\u044b\u0435', icon: Star },
-  { value: 'overdue', label: '\u041f\u0440\u043e\u0441\u0440\u043e\u0447\u0435\u043d\u043d\u044b\u0435', icon: AlertTriangle },
-  { value: 'urgent', label: '\u0421\u0440\u043e\u0447\u043d\u044b\u0435 (3 \u0434\u043d\u044f)', icon: Clock },
-  { value: 'active', label: '\u0412 \u0440\u0430\u0431\u043e\u0442\u0435', icon: XCircle },
-  { value: 'done', label: '\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u043d\u044b\u0435', icon: CheckCircle },
+  { value: '', label: '\В\с\е \п\и\с\ь\м\а', icon: List },
+  { value: 'favorites', label: '\И\з\б\р\а\н\н\ы\е', icon: Star },
+  { value: 'overdue', label: '\П\р\о\с\р\о\ч\е\н\н\ы\е', icon: AlertTriangle },
+  { value: 'urgent', label: '\С\р\о\ч\н\ы\е (3 \д\н\я)', icon: Clock },
+  { value: 'active', label: '\В \р\а\б\о\т\е', icon: XCircle },
+  { value: 'done', label: '\З\а\в\е\р\ш\е\н\н\ы\е', icon: CheckCircle },
 ]
 
 type ViewMode = 'cards' | 'table'
@@ -107,10 +107,10 @@ const pluralizeLetters = (count: number) => {
   const value = Math.abs(count) % 100
   const lastDigit = value % 10
 
-  if (value > 10 && value < 20) return '\u043f\u0438\u0441\u0435\u043c'
-  if (lastDigit === 1) return '\u043f\u0438\u0441\u044c\u043c\u043e'
-  if (lastDigit > 1 && lastDigit < 5) return '\u043f\u0438\u0441\u044c\u043c\u0430'
-  return '\u043f\u0438\u0441\u0435\u043c'
+  if (value > 10 && value < 20) return '\п\и\с\е\м'
+  if (lastDigit === 1) return '\п\и\с\ь\м\о'
+  if (lastDigit > 1 && lastDigit < 5) return '\п\и\с\ь\м\а'
+  return '\п\и\с\е\м'
 }
 
 function LettersPageContent() {
@@ -334,7 +334,7 @@ function LettersPageContent() {
     } catch (error) {
       if (controller.signal.aborted) return
       console.error('Failed to load letters:', error)
-      toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0441\u043f\u0438\u0441\u043e\u043a \u043f\u0438\u0441\u0435\u043c')
+      toast.error('\Н\е \у\д\а\л\о\с\ь \з\а\г\р\у\з\и\т\ь \с\п\и\с\о\к \п\и\с\е\м')
     } finally {
       if (requestId === lettersRequestIdRef.current) {
         setLoading(false)
@@ -442,7 +442,7 @@ function LettersPageContent() {
 
       if (data.success) {
         toast.success(
-          `\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e ${data.updated} ${pluralizeLetters(data.updated)}`
+          `\О\б\н\о\в\л\е\н\о ${data.updated} ${pluralizeLetters(data.updated)}`
         )
         setBulkAction(null)
         setBulkValue('')
@@ -451,12 +451,12 @@ function LettersPageContent() {
       } else {
         toast.error(
           data.error ||
-            '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0432\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u044c \u043e\u043f\u0435\u0440\u0430\u0446\u0438\u044e'
+            '\Н\е \у\д\а\л\о\с\ь \в\ы\п\о\л\н\и\т\ь \о\п\е\р\а\ц\и\ю'
         )
       }
     } catch (error) {
       console.error('Bulk action error:', error)
-      toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0432\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u044c \u043e\u043f\u0435\u0440\u0430\u0446\u0438\u044e')
+      toast.error('\Н\е \у\д\а\л\о\с\ь \в\ы\п\о\л\н\и\т\ь \о\п\е\р\а\ц\и\ю')
     } finally {
       setBulkLoading(false)
     }
@@ -467,9 +467,9 @@ function LettersPageContent() {
 
     if (bulkAction === 'delete') {
       confirmDialog({
-        title: '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u043f\u0438\u0441\u044c\u043c\u0430?',
-        message: `\u0423\u0434\u0430\u043b\u0438\u0442\u044c ${selectedIds.size} \u043f\u0438\u0441\u0435\u043c? \u042d\u0442\u043e \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043d\u0435\u043b\u044c\u0437\u044f \u043e\u0442\u043c\u0435\u043d\u0438\u0442\u044c.`,
-        confirmText: '\u0423\u0434\u0430\u043b\u0438\u0442\u044c',
+        title: '\У\д\а\л\и\т\ь \п\и\с\ь\м\а?',
+        message: `\У\д\а\л\и\т\ь ${selectedIds.size} \п\и\с\е\м? \Э\т\о \д\е\й\с\т\в\и\е \н\е\л\ь\з\я \о\т\м\е\н\и\т\ь.`,
+        confirmText: '\У\д\а\л\и\т\ь',
         variant: 'danger',
         onConfirm: runBulkAction,
       })
@@ -479,9 +479,9 @@ function LettersPageContent() {
     if (bulkAction === 'status') {
       const statusLabel = STATUS_LABELS[bulkValue as LetterStatus] || bulkValue
       confirmDialog({
-        title: '\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0441\u0442\u0430\u0442\u0443\u0441?',
-        message: `\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c ${selectedIds.size} \u043f\u0438\u0441\u0435\u043c \u043d\u0430 \u0441\u0442\u0430\u0442\u0443\u0441 \"${statusLabel}\"?`,
-        confirmText: '\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c',
+        title: '\И\з\м\е\н\и\т\ь \с\т\а\т\у\с?',
+        message: `\О\б\н\о\в\и\т\ь ${selectedIds.size} \п\и\с\е\м \н\а \с\т\а\т\у\с \"${statusLabel}\"?`,
+        confirmText: '\П\р\и\м\е\н\и\т\ь',
         onConfirm: runBulkAction,
       })
       return
@@ -490,12 +490,12 @@ function LettersPageContent() {
     if (bulkAction === 'owner') {
       const owner = users.find((user) => user.id === bulkValue)
       const ownerLabel = bulkValue
-        ? (owner?.name || owner?.email || '\u0418\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044c')
-        : '\u0411\u0435\u0437 \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f'
+        ? (owner?.name || owner?.email || '\И\с\п\о\л\н\и\т\е\л\ь')
+        : '\Б\е\з \и\с\п\о\л\н\и\т\е\л\я'
       confirmDialog({
-        title: '\u041d\u0430\u0437\u043d\u0430\u0447\u0438\u0442\u044c \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f?',
-        message: `\u041d\u0430\u0437\u043d\u0430\u0447\u0438\u0442\u044c ${selectedIds.size} \u043f\u0438\u0441\u0435\u043c: ${ownerLabel}?`,
-        confirmText: '\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c',
+        title: '\Н\а\з\н\а\ч\и\т\ь \и\с\п\о\л\н\и\т\е\л\я?',
+        message: `\Н\а\з\н\а\ч\и\т\ь ${selectedIds.size} \п\и\с\е\м: ${ownerLabel}?`,
+        confirmText: '\П\р\и\м\е\н\и\т\ь',
         onConfirm: runBulkAction,
       })
       return
@@ -516,7 +516,7 @@ function LettersPageContent() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-transparent">
         <p className="text-slate-300/70">
-          {'\u041f\u043e\u0436\u0430\u043b\u0443\u0439\u0441\u0442\u0430, \u0432\u043e\u0439\u0434\u0438\u0442\u0435 \u0432 \u0441\u0438\u0441\u0442\u0435\u043c\u0443'}
+          {'\П\о\ж\а\л\у\й\с\т\а, \в\о\й\д\и\т\е \в \с\и\с\т\е\м\у'}
         </p>
       </div>
     )
@@ -530,9 +530,9 @@ function LettersPageContent() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl md:text-4xl font-display font-semibold text-white">{'\u041f\u0438\u0441\u044c\u043c\u0430'}</h1>
+            <h1 className="text-3xl md:text-4xl font-display font-semibold text-white">{'\П\и\с\ь\м\а'}</h1>
             {pagination && (
-              <p className="text-muted text-sm mt-1">{`\u0412\u0441\u0435\u0433\u043e: ${pagination.total} \u043f\u0438\u0441\u0435\u043c`}</p>
+              <p className="text-muted text-sm mt-1">{`\В\с\е\г\о: ${pagination.total} \п\и\с\е\м`}</p>
             )}
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
@@ -547,7 +547,7 @@ function LettersPageContent() {
               className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition btn-secondary w-full sm:w-auto"
             >
               <Download className="w-5 h-5" />
-              {'\u042d\u043a\u0441\u043f\u043e\u0440\u0442'}
+              {'\Э\к\с\п\о\р\т'}
             </a>
             <button
               type="button"
@@ -555,14 +555,14 @@ function LettersPageContent() {
               className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition btn-secondary w-full sm:w-auto"
             >
               <ListPlus className="w-5 h-5" />
-              {'\u041c\u0430\u0441\u0441\u043e\u0432\u043e\u0435 \u0441\u043e\u0437\u0434\u0430\u043d\u0438\u0435 \u043f\u0438\u0441\u0435\u043c'}
+              {'\М\а\с\с\о\в\о\е \с\о\з\д\а\н\и\е \п\и\с\е\м'}
             </button>
             <Link
               href="/letters/new"
               className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition btn-primary w-full sm:w-auto"
             >
               <Plus className="w-5 h-5" />
-              {'\u041d\u043e\u0432\u043e\u0435 \u043f\u0438\u0441\u044c\u043c\u043e'}
+              {'\Н\о\в\о\е \п\и\с\ь\м\о'}
             </Link>
           </div>
         </div>
@@ -572,7 +572,7 @@ function LettersPageContent() {
           <div className="panel panel-soft rounded-2xl p-4 mb-4 flex flex-col lg:flex-row lg:items-center gap-4">
             <div className="flex items-center gap-2">
               <CheckSquare className="w-5 h-5 text-teal-300" />
-              <span className="text-white font-medium">{'\u0412\u044b\u0431\u0440\u0430\u043d\u043e'}: {selectedIds.size}</span>
+              <span className="text-white font-medium">{'\В\ы\б\р\а\н\о'}: {selectedIds.size}</span>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1 w-full">
@@ -584,13 +584,13 @@ function LettersPageContent() {
                   setBulkValue('')
                 }}
                 className="w-full sm:w-auto px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white"
-                aria-label="\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435"
+                aria-label="\В\ы\б\е\р\и\т\е \д\е\й\с\т\в\и\е"
               >
-                <option value="">{'\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435'}</option>
-                <option value="status">{'\u0418\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0441\u0442\u0430\u0442\u0443\u0441'}</option>
-                <option value="owner">{'\u041d\u0430\u0437\u043d\u0430\u0447\u0438\u0442\u044c \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f'}</option>
+                <option value="">{'\В\ы\б\е\р\и\т\е \д\е\й\с\т\в\и\е'}</option>
+                <option value="status">{'\И\з\м\е\н\и\т\ь \с\т\а\т\у\с'}</option>
+                <option value="owner">{'\Н\а\з\н\а\ч\и\т\ь \и\с\п\о\л\н\и\т\е\л\я'}</option>
                 {(session.user.role === 'ADMIN' || session.user.role === 'SUPERADMIN') && (
-                  <option value="delete">{'\u0423\u0434\u0430\u043b\u0438\u0442\u044c'}</option>
+                  <option value="delete">{'\У\д\а\л\и\т\ь'}</option>
                 )}
               </select>
 
@@ -599,9 +599,9 @@ function LettersPageContent() {
                   value={bulkValue}
                   onChange={(e) => setBulkValue(e.target.value)}
                   className="w-full sm:w-auto px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white"
-                  aria-label="\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0441\u0442\u0430\u0442\u0443\u0441"
+                  aria-label="\В\ы\б\е\р\и\т\е \с\т\а\т\у\с"
                 >
-                  <option value="">{'\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0441\u0442\u0430\u0442\u0443\u0441'}</option>
+                  <option value="">{'\В\ы\б\е\р\и\т\е \с\т\а\т\у\с'}</option>
                   {STATUSES.filter((s) => s !== 'all').map((status) => (
                     <option key={status} value={status}>
                       {STATUS_LABELS[status as LetterStatus]}
@@ -615,10 +615,10 @@ function LettersPageContent() {
                   value={bulkValue}
                   onChange={(e) => setBulkValue(e.target.value)}
                   className="w-full sm:w-auto px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white"
-                  aria-label="\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f"
+                  aria-label="\В\ы\б\е\р\и\т\е \и\с\п\о\л\н\и\т\е\л\я"
                 >
-                  <option value="">{'\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f'}</option>
-                  <option value="">{'\u0411\u0435\u0437 \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f'}</option>
+                  <option value="">{'\В\ы\б\е\р\и\т\е \и\с\п\о\л\н\и\т\е\л\я'}</option>
+                  <option value="">{'\Б\е\з \и\с\п\о\л\н\и\т\е\л\я'}</option>
                   {users.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.name || user.email}
@@ -646,7 +646,7 @@ function LettersPageContent() {
                   ) : (
                     <CheckCircle className="w-4 h-4" />
                   )}
-                  {'\u041f\u0440\u0438\u043c\u0435\u043d\u0438\u0442\u044c'}
+                  {'\П\р\и\м\е\н\и\т\ь'}
                 </button>
               )}
             </div>
@@ -658,7 +658,7 @@ function LettersPageContent() {
                 setBulkValue('')
               }}
               className="p-2 text-slate-300 hover:text-white transition hover:bg-white/10 rounded-lg self-start lg:self-auto"
-              aria-label="\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c \u0432\u044b\u0431\u043e\u0440"
+              aria-label="\С\б\р\о\с\и\т\ь \в\ы\б\о\р"
             >
               <X className="w-5 h-5" />
             </button>
@@ -698,17 +698,17 @@ function LettersPageContent() {
             <input
               ref={searchInputRef}
               type="text"
-              placeholder="\u041f\u043e\u0438\u0441\u043a \u043f\u043e \u043d\u043e\u043c\u0435\u0440\u0443, \u043e\u0440\u0433\u0430\u043d\u0438\u0437\u0430\u0446\u0438\u0438, Jira, \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u043d\u0438\u044e... (\u043d\u0430\u0436\u043c\u0438\u0442\u0435 /)"
+              placeholder="Поиск по номеру, организации, Jira, содержанию... (нажмите /)"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-10 py-2 rounded-xl border border-white/10 bg-white/5 text-white placeholder-slate-400 focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
-              aria-label="\u041f\u043e\u0438\u0441\u043a"
+              aria-label="Поиск"
             />
             {search && (
               <button
                 onClick={() => setSearch('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition"
-                aria-label="\u041e\u0447\u0438\u0441\u0442\u0438\u0442\u044c \u043f\u043e\u0438\u0441\u043a"
+                aria-label="\О\ч\и\с\т\и\т\ь \п\о\и\с\к"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -726,9 +726,9 @@ function LettersPageContent() {
                 goToPage(1)
               }}
               className="w-full sm:w-auto px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
-              aria-label="\u0424\u0438\u043b\u044c\u0442\u0440 \u043f\u043e \u0441\u0442\u0430\u0442\u0443\u0441\u0443"
+              aria-label="\Ф\и\л\ь\т\р \п\о \с\т\а\т\у\с\у"
             >
-              <option value="all">{'\u0412\u0441\u0435 \u0441\u0442\u0430\u0442\u0443\u0441\u044b'}</option>
+              <option value="all">{'\В\с\е \с\т\а\т\у\с\ы'}</option>
               {STATUSES.filter((s) => s !== 'all').map((status) => (
                 <option key={status} value={status}>
                   {STATUS_LABELS[status as LetterStatus]}
@@ -746,9 +746,9 @@ function LettersPageContent() {
                 goToPage(1)
               }}
               className="w-full sm:w-auto px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
-              aria-label="\u0424\u0438\u043b\u044c\u0442\u0440 \u043f\u043e \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044e"
+              aria-label="\Ф\и\л\ь\т\р \п\о \и\с\п\о\л\н\и\т\е\л\ю"
             >
-              <option value="">{'\u0412\u0441\u0435 \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u0438'}</option>
+              <option value="">{'\В\с\е \и\с\п\о\л\н\и\т\е\л\и'}</option>
               {users.map((user) => (
                 <option key={user.id} value={user.id}>
                   {user.name || user.email}
@@ -766,9 +766,9 @@ function LettersPageContent() {
                 goToPage(1)
               }}
               className="w-full sm:w-auto px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:border-teal-400/80 focus:ring-1 focus:ring-teal-400/40"
-              aria-label="\u0424\u0438\u043b\u044c\u0442\u0440 \u043f\u043e \u0442\u0438\u043f\u0443"
+              aria-label="\Ф\и\л\ь\т\р \п\о \т\и\п\у"
             >
-              <option value="">{'\u0412\u0441\u0435 \u0442\u0438\u043f\u044b'}</option>
+              <option value="">{'\В\с\е \т\и\п\ы'}</option>
               {LETTER_TYPES.filter((item) => item.value !== 'all').map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}
@@ -781,10 +781,10 @@ function LettersPageContent() {
             <button
               onClick={resetFilters}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200 hover:text-white hover:bg-white/10 transition"
-              aria-label="\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c \u0444\u0438\u043b\u044c\u0442\u0440\u044b"
+              aria-label="\С\б\р\о\с\и\т\ь \ф\и\л\ь\т\р\ы"
             >
               <XCircle className="w-4 h-4" />
-              {`\u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c (${activeFiltersCount})`}
+              {`\С\б\р\о\с\и\т\ь (${activeFiltersCount})`}
             </button>
           )}
 
@@ -793,16 +793,16 @@ function LettersPageContent() {
             <button
               onClick={() => setViewMode('table')}
               className={`p-2 rounded-lg transition ${viewMode === 'table' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
-              title="\u0422\u0430\u0431\u043b\u0438\u0446\u0430"
-              aria-label="\u0422\u0430\u0431\u043b\u0438\u0447\u043d\u044b\u0439 \u0432\u0438\u0434"
+              title="\Т\а\б\л\и\ц\а"
+              aria-label="\Т\а\б\л\и\ч\н\ы\й \в\и\д"
             >
               <List className="w-5 h-5" />
             </button>
             <button
               onClick={() => setViewMode('cards')}
               className={`p-2 rounded-lg transition ${viewMode === 'cards' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
-              title="\u041a\u0430\u0440\u0442\u043e\u0447\u043a\u0438"
-              aria-label="\u041a\u0430\u0440\u0442\u043e\u0447\u043d\u044b\u0439 \u0432\u0438\u0434"
+              title="\К\а\р\т\о\ч\к\и"
+              aria-label="\К\а\р\т\о\ч\н\ы\й \в\и\д"
             >
               <LayoutGrid className="w-5 h-5" />
             </button>
@@ -813,8 +813,8 @@ function LettersPageContent() {
             <button
               onClick={() => (shortcutsOpen ? closeShortcuts() : openShortcuts())}
               className={`p-2 rounded-lg transition ${shortcutsOpen ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:text-white'}`}
-              title="\u0413\u043e\u0440\u044f\u0447\u0438\u0435 \u043a\u043b\u0430\u0432\u0438\u0448\u0438"
-              aria-label="\u0413\u043e\u0440\u044f\u0447\u0438\u0435 \u043a\u043b\u0430\u0432\u0438\u0448\u0438"
+              title="\Г\о\р\я\ч\и\е \к\л\а\в\и\ш\и"
+              aria-label="\Г\о\р\я\ч\и\е \к\л\а\в\и\ш\и"
             >
               <Keyboard className="w-5 h-5" />
             </button>
@@ -830,7 +830,7 @@ function LettersPageContent() {
           )
         ) : letters.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-slate-300/70">{'\u041f\u0438\u0441\u0435\u043c \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e'}</p>
+            <p className="text-slate-300/70">{'\П\и\с\е\м \н\е \н\а\й\д\е\н\о'}</p>
           </div>
         ) : effectiveViewMode === 'cards' ? (
           <VirtualLetterList
@@ -856,7 +856,7 @@ function LettersPageContent() {
         {/* Pagination */}
         {pagination && pagination.totalPages > 1 && (
           <div className="flex items-center justify-between mt-6">
-            <div className="text-slate-300/70 text-sm">{`\u041f\u043e\u043a\u0430\u0437\u0430\u043d\u044b ${((page - 1) * limit) + 1}-${Math.min(page * limit, pagination.total)} \u0438\u0437 ${pagination.total}`}</div>
+            <div className="text-slate-300/70 text-sm">{`\П\о\к\а\з\а\н\ы ${((page - 1) * limit) + 1}-${Math.min(page * limit, pagination.total)} \и\з ${pagination.total}`}</div>
             <div className="flex items-center gap-2">
               <button
                 onClick={prevPage}
