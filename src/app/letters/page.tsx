@@ -121,6 +121,7 @@ function LettersPageContent() {
   const [loading, setLoading] = useState(true)
   const [isSearching, setIsSearching] = useState(false)
   const [search, setSearch] = useState('')
+  const searchRef = useRef(search)
   const [statusFilter, setStatusFilter] = useState<LetterStatus | 'all'>(
     (searchParams.get('status') as LetterStatus) || 'all'
   )
@@ -260,6 +261,10 @@ function LettersPageContent() {
     }
   }, [showBulkCreate])
 
+  useEffect(() => {
+    searchRef.current = search
+  }, [search])
+
 
   const loadLetters = useCallback(async (showLoading = true) => {
     const requestId = ++lettersRequestIdRef.current
@@ -281,7 +286,8 @@ function LettersPageContent() {
       if (quickFilter) params.set('filter', quickFilter)
       if (ownerFilter) params.set('owner', ownerFilter)
       if (typeFilter) params.set('type', typeFilter)
-      if (search) params.set('search', search)
+      const currentSearch = searchRef.current
+      if (currentSearch) params.set('search', currentSearch)
 
       const res = await fetch(`/api/letters?${params}`, { signal: controller.signal })
       if (!res.ok) throw new Error('Failed to load letters')
@@ -310,7 +316,6 @@ function LettersPageContent() {
     quickFilter,
     ownerFilter,
     typeFilter,
-    search,
   ])
 
   const loadUsers = useCallback(async () => {
