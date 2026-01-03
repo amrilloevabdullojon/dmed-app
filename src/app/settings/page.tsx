@@ -211,6 +211,8 @@ const controlBase = 'rounded border-white/20 bg-white/5'
 
 export default function SettingsPage() {
   const toast = useToast()
+  const toastRef = useRef(toast)
+  toastRef.current = toast
   const { data: session, status: authStatus } = useSession()
   useAuthRedirect(authStatus)
   const router = useRouter()
@@ -491,7 +493,7 @@ export default function SettingsPage() {
 
     const toastId = `user-save-${editingId}`
     if (mode === 'auto') {
-      toast.loading('\С\о\х\р\а\н\е\н\и\е...', { id: toastId })
+      toastRef.current.loading('Сохранение...', { id: toastId })
     }
 
     setSavingId(editingId)
@@ -529,27 +531,25 @@ export default function SettingsPage() {
         }
         setEditSnapshot(nextSnapshot)
         if (data.requiresApproval) {
-          toast.message('\Н\у\ж\н\о \в\т\о\р\о\е \п\о\д\т\в\е\р\ж\д\е\н\и\е \а\д\м\и\н\а', { id: toastId })
+          toastRef.current.message('Нужно второе подтверждение админа', { id: toastId })
           loadApprovals()
         } else {
-          toast.success(
-            mode === 'auto'
-              ? '\А\в\т\о\с\о\х\р\а\н\е\н\о'
-              : '\И\з\м\е\н\е\н\и\я \с\о\х\р\а\н\е\н\ы',
+          toastRef.current.success(
+            mode === 'auto' ? 'Автосохранено' : 'Изменения сохранены',
             { id: toastId }
           )
         }
       } else {
         const data = await res.json().catch(() => ({}))
-        toast.error(data.error || '\Н\е \у\д\а\л\о\с\ь \с\о\х\р\а\н\и\т\ь', { id: toastId })
+        toastRef.current.error(data.error || 'Не удалось сохранить', { id: toastId })
       }
     } catch (error) {
       console.error('Failed to save user:', error)
-      toast.error('\О\ш\и\б\к\а \с\о\х\р\а\н\е\н\и\я', { id: toastId })
+      toastRef.current.error('Ошибка сохранения', { id: toastId })
     } finally {
       setSavingId(null)
     }
-  }, [editData, editingId, loadApprovals, toast])
+  }, [editData, editingId, loadApprovals])
 
   const hasEditChanges =
     !!editingId &&
