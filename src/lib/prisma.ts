@@ -11,11 +11,15 @@ const getPrisma = () => prisma
 const prismaClientSingleton = () => {
   const enableQueryLogging = process.env.PRISMA_LOG_QUERIES === 'true'
 
+  const baseLog = [{ emit: 'stdout', level: 'error' }] as const
+  const devLog = [{ emit: 'stdout', level: 'warn' }] as const
+  const queryLog = [{ emit: 'event', level: 'query' }] as const
+
   const log = [
-    { emit: 'stdout', level: 'error' },
-    ...(process.env.NODE_ENV === 'development' ? [{ emit: 'stdout', level: 'warn' }] : []),
-    ...(enableQueryLogging ? [{ emit: 'event', level: 'query' }] : []),
-  ] satisfies Prisma.LogDefinition[]
+    ...baseLog,
+    ...(process.env.NODE_ENV === 'development' ? devLog : []),
+    ...(enableQueryLogging ? queryLog : []),
+  ]
 
   const client = new PrismaClient({ log })
 
