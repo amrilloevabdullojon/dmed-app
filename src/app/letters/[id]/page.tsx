@@ -224,7 +224,7 @@ export default function LetterDetailPage() {
     }
   }
 
-  const deleteLetter = async () => {
+  const deleteLetter = useCallback(async () => {
     if (!letter) return
 
     setDeleting(true)
@@ -245,7 +245,7 @@ export default function LetterDetailPage() {
     } finally {
       setDeleting(false)
     }
-  }
+  }, [letter, router, toast])
 
   const handleDelete = useCallback(() => {
     if (!letter) return

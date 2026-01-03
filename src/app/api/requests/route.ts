@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withValidation } from '@/lib/api-handler'
-import { requestQuerySchema, createRequestSchema } from '@/lib/schemas'
+import { requestQuerySchema, createRequestSchema, type RequestQueryInput } from '@/lib/schemas'
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
 import { sanitizeInput } from '@/lib/utils'
 import { getRequestContext } from '@/lib/request-context'
@@ -85,7 +85,7 @@ type RequestsListError = {
 
 type RequestsListResult = RequestsListResponse | RequestsListError
 
-export const GET = withValidation<RequestsListResult>(
+export const GET = withValidation<RequestsListResult, unknown, RequestQueryInput>(
   async (_request, _session, { query }) => {
     const requestId = getRequestContext()?.requestId ?? randomUUID()
     const startTime = Date.now()
