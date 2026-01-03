@@ -248,6 +248,14 @@ export async function POST(request: NextRequest) {
     let savedFiles = 0
 
     if (!isSpam) {
+      // Validate files first (synchronously)
+      interface ValidatedFile {
+        file: File
+        index: number
+        safeFileName: string
+      }
+      const validatedFiles: ValidatedFile[] = []
+
       for (let index = 0; index < files.length; index++) {
         const file = files[index]
         if (!file || !(file instanceof File)) continue
@@ -269,10 +277,21 @@ export async function POST(request: NextRequest) {
         }
 
         const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-        const storedFileName = `${Date.now()}_${index}_${safeFileName}`
+        validatedFiles.push({ file, index, safeFileName })
+      }
 
-        try {
+      // Upload files in parallel using Promise.allSettled
+      interface UploadResult {
+        fileName: string
+        success: boolean
+        error?: string
+      }
+
+      const uploadResults = await Promise.allSettled(
+        validatedFiles.map(async ({ file, index, safeFileName }): Promise<UploadResult> => {
+          const storedFileName = `${Date.now()}_${index}_${safeFileName}`
           const buffer = Buffer.from(await file.arrayBuffer())
+
           const upload = await saveLocalRequestUpload({
             buffer,
             requestId: requestRecord.id,
@@ -290,11 +309,25 @@ export async function POST(request: NextRequest) {
               storagePath: upload.storagePath,
             },
           })
+
+          return { fileName: file.name, success: true }
+        })
+      )
+
+      // Process results
+      for (let i = 0; i < uploadResults.length; i++) {
+        const result = uploadResults[i]
+        const fileInfo = validatedFiles[i]
+
+        if (result.status === 'fulfilled') {
           savedFiles++
-        } catch (error) {
-          console.error('Request file upload failed:', error)
+        } else {
+          logger.error('POST /api/requests', result.reason, {
+            fileName: fileInfo.file.name,
+            requestId: requestRecord.id,
+          })
           filesFailed.push({
-            name: file.name,
+            name: fileInfo.file.name,
             reason: 'Upload failed.',
           })
         }
@@ -328,7 +361,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    console.error('POST /api/requests error:', error)
+    logger.error('POST /api/requests', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
