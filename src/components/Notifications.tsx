@@ -81,7 +81,10 @@ export function Notifications() {
     { ids?: string[]; all?: boolean }
   >('/api/notifications', { method: 'PATCH' })
 
-  const userNotifications = userNotificationsQuery.data || []
+  const userNotifications = useMemo(
+    () => userNotificationsQuery.data || [],
+    [userNotificationsQuery.data]
+  )
   const setUserNotifications = userNotificationsQuery.mutate
   const notifications = useMemo(() => {
     if (!loadDeadlineNotifications) return []

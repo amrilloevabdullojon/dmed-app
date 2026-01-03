@@ -62,6 +62,25 @@ interface ParsedPdfData {
   organization: string | null
   content: string | null
 }
+const parsePdfContent = async (file: File): Promise<ParsedPdfData | null> => {
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const res = await fetch('/api/parse-pdf', {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!res.ok) return null
+
+    const result = await res.json()
+    return result.data
+  } catch {
+    return null
+  }
+}
+
 
 interface BulkCreateLettersProps {
   onClose?: () => void
@@ -81,26 +100,6 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
   const [uploadingFiles, setUploadingFiles] = useState(false)
 
   // Парсинг PDF через API
-  const parsePdfContent = async (file: File): Promise<ParsedPdfData | null> => {
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const res = await fetch('/api/parse-pdf', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!res.ok) return null
-
-      const result = await res.json()
-      return result.data
-    } catch {
-      return null
-    }
-  }
-
-  // Обработка загруженных файлов
   const handleFiles = useCallback(async (files: FileList | File[]) => {
     const pdfFiles = Array.from(files).filter(
       (f) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
@@ -173,7 +172,7 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
     } else {
       toast.error('Не удалось распознать PDF файлы', { id: toastId })
     }
-  }, [])
+  }, [toast])
 
   // Drag & Drop
   const handleDrop = useCallback(

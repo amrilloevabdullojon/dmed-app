@@ -72,7 +72,9 @@ export async function PATCH(
     }
 
     if (parsed.data.assignedToId !== undefined) {
-      updateData.assignedToId = parsed.data.assignedToId || null
+      updateData.assignedTo = parsed.data.assignedToId
+        ? { connect: { id: parsed.data.assignedToId } }
+        : { disconnect: true }
     }
 
     if (Object.keys(updateData).length === 0) {
