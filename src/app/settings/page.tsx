@@ -36,6 +36,7 @@ import {
 import { useToast } from '@/components/Toast'
 import { hasPermission } from '@/lib/permissions'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
+import { PermissionsManager } from '@/components/PermissionsManager'
 
 interface User {
   id: string
@@ -1229,7 +1230,14 @@ export default function SettingsPage() {
 
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 animate-pageIn relative">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-semibold text-white">Настройки</h1>
-        <p className="text-muted text-sm mt-2 mb-6 sm:mb-8">{'\Р\о\л\и, \д\о\с\т\у\п, \у\в\е\д\о\м\л\е\н\и\я \и \ж\у\р\н\а\л \б\е\з\о\п\а\с\н\о\с\т\и.'}</p>
+        <p className="text-muted text-sm mt-2 mb-6 sm:mb-8">{'Роли, доступ, уведомления и журнал безопасности.'}</p>
+
+        {/* Permissions Manager - only for SUPERADMIN */}
+        {isSuperAdmin && (
+          <div className="panel panel-glass rounded-2xl p-6 mb-8">
+            <PermissionsManager />
+          </div>
+        )}
 
         {/* Sync Logs */}
         <div className="panel panel-glass rounded-2xl p-6 mb-8">

@@ -597,3 +597,30 @@ enum NotificationType {
   ASSIGNMENT
   SYSTEM
 }
+
+// ===== НАСТРОЙКИ РАЗРЕШЕНИЙ =====
+
+model RolePermission {
+  id         String   @id @default(cuid())
+  role       Role
+  permission String   // Permission key (MANAGE_USERS, VIEW_LETTERS, etc.)
+  enabled    Boolean  @default(true)
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  @@unique([role, permission])
+  @@index([role])
+}
+
+// Аудит изменений разрешений
+model PermissionAudit {
+  id         String   @id @default(cuid())
+  role       Role
+  permission String
+  oldValue   Boolean
+  newValue   Boolean
+  actorId    String
+  createdAt  DateTime @default(now())
+
+  @@index([role, createdAt])
+}
