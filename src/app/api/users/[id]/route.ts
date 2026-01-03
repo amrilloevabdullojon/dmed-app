@@ -4,6 +4,12 @@ import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { hasPermission } from '@/lib/permissions'
 import { resolveProfileAssetUrl } from '@/lib/profile-assets'
+import { logger } from '@/lib/logger'
+import { updateUserSchema, idParamSchema } from '@/lib/schemas'
+import { USER_ROLES } from '@/lib/constants'
+import type { Role } from '@prisma/client'
+
+const CONTEXT = 'API:Users:[id]'
 
 // GET /api/users/[id] - получить пользователя по ID
 export async function GET(
@@ -15,6 +21,12 @@ export async function GET(
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const paramResult = idParamSchema.safeParse({ id: params.id })
+    if (!paramResult.success) {
+      return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
+    }
+
     if (
       !hasPermission(session.user.role, 'MANAGE_USERS') &&
       session.user.id !== params.id
@@ -71,7 +83,7 @@ export async function GET(
 
     return NextResponse.json(normalizedUser)
   } catch (error) {
-    console.error('GET /api/users/[id] error:', error)
+    logger.error(CONTEXT, error, { method: 'GET', userId: params.id })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -95,22 +107,24 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    const paramResult = idParamSchema.safeParse({ id: params.id })
+    if (!paramResult.success) {
+      return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
+    }
+
     const body = await request.json()
+
+    // Валидация тела запроса через Zod
+    const parseResult = updateUserSchema.safeParse(body)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Validation error', details: parseResult.error.flatten() },
+        { status: 400 }
+      )
+    }
+
+    const validatedData = parseResult.data
     const isSuperAdmin = session.user.role === 'SUPERADMIN'
-    const {
-      role,
-      name,
-      telegramChatId,
-      email,
-      canLogin,
-      notifyEmail,
-      notifyTelegram,
-      notifySms,
-      notifyInApp,
-      quietHoursStart,
-      quietHoursEnd,
-      digestFrequency,
-    } = body
 
     const currentUser = await prisma.user.findUnique({
       where: { id: params.id },
@@ -128,6 +142,7 @@ export async function PATCH(
         quietHoursStart: true,
         quietHoursEnd: true,
         digestFrequency: true,
+        tokenVersion: true,
       },
     })
 
@@ -135,125 +150,104 @@ export async function PATCH(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const updateData: any = {}
-    const requestedRole =
-      role === 'SUPERADMIN'
-        ? 'SUPERADMIN'
-        : role === 'ADMIN'
-          ? 'ADMIN'
-          : role === 'MANAGER'
-            ? 'MANAGER'
-            : role === 'AUDITOR'
-              ? 'AUDITOR'
-              : role === 'VIEWER'
-                ? 'VIEWER'
-                : role === 'EMPLOYEE'
-                  ? 'EMPLOYEE'
-                  : null
+    const updateData: Partial<{
+      role: Role
+      name: string | null
+      telegramChatId: string | null
+      canLogin: boolean
+      notifyEmail: boolean
+      notifyTelegram: boolean
+      notifySms: boolean
+      notifyInApp: boolean
+      quietHoursStart: string | null
+      quietHoursEnd: string | null
+      digestFrequency: 'NONE' | 'DAILY' | 'WEEKLY'
+      tokenVersion: number
+    }> = {}
 
-    if (requestedRole && requestedRole !== currentUser.role && !isSuperAdmin) {
-      return NextResponse.json({ error: 'Only superadmin can change roles' }, { status: 403 })
-    }
+    // Обработка смены роли
+    const validRoles = Object.keys(USER_ROLES) as Role[]
+    const requestedRole = validatedData.role
 
-    if (requestedRole && requestedRole !== currentUser.role) {
-      if (currentUser.role === 'ADMIN' && requestedRole !== 'ADMIN') {
-        const adminCount = await prisma.user.count({
-          where: { role: 'ADMIN' },
-        })
-        if (adminCount <= 1) {
-          return NextResponse.json(
-            { error: 'At least one admin is required' },
-            { status: 400 }
-          )
-        }
+    if (requestedRole && validRoles.includes(requestedRole)) {
+      if (requestedRole !== currentUser.role && !isSuperAdmin) {
+        return NextResponse.json({ error: 'Only superadmin can change roles' }, { status: 403 })
       }
 
-      if (currentUser.role === 'SUPERADMIN' && requestedRole !== 'SUPERADMIN') {
-        const superAdminCount = await prisma.user.count({
-          where: { role: 'SUPERADMIN' },
-        })
-        if (superAdminCount <= 1) {
-          return NextResponse.json(
-            { error: 'At least one superadmin is required' },
-            { status: 400 }
-          )
+      if (requestedRole !== currentUser.role) {
+        // Проверка на последнего админа/суперадмина
+        if (currentUser.role === 'ADMIN' && requestedRole !== 'ADMIN') {
+          const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } })
+          if (adminCount <= 1) {
+            return NextResponse.json(
+              { error: 'At least one admin is required' },
+              { status: 400 }
+            )
+          }
         }
-      }
-    }
 
-    if (requestedRole) {
-      updateData.role = requestedRole
-    }
-
-    if (name !== undefined) {
-      updateData.name = name
-    }
-
-    if (telegramChatId !== undefined) {
-      updateData.telegramChatId = telegramChatId || null
-    }
-
-    if (typeof canLogin === 'boolean') {
-      updateData.canLogin = canLogin
-    }
-
-    if (typeof notifyEmail === 'boolean') {
-      updateData.notifyEmail = notifyEmail
-    }
-
-    if (typeof notifyTelegram === 'boolean') {
-      updateData.notifyTelegram = notifyTelegram
-    }
-
-    if (typeof notifySms === 'boolean') {
-      updateData.notifySms = notifySms
-    }
-
-    if (typeof notifyInApp === 'boolean') {
-      updateData.notifyInApp = notifyInApp
-    }
-
-    if (quietHoursStart !== undefined) {
-      updateData.quietHoursStart = quietHoursStart || null
-    }
-
-    if (quietHoursEnd !== undefined) {
-      updateData.quietHoursEnd = quietHoursEnd || null
-    }
-
-    if (
-      digestFrequency === 'NONE' ||
-      digestFrequency === 'DAILY' ||
-      digestFrequency === 'WEEKLY'
-    ) {
-      updateData.digestFrequency = digestFrequency
-    }
-
-    if (email !== undefined) {
-      const normalizedEmail = String(email || '').trim().toLowerCase()
-      if (normalizedEmail) {
-        const existing = await prisma.user.findFirst({
-          where: {
-            email: normalizedEmail,
-            id: { not: params.id },
-          },
-          select: { id: true },
-        })
-        if (existing) {
-          return NextResponse.json(
-            { error: 'Email already in use' },
-            { status: 409 }
-          )
+        if (currentUser.role === 'SUPERADMIN' && requestedRole !== 'SUPERADMIN') {
+          const superAdminCount = await prisma.user.count({ where: { role: 'SUPERADMIN' } })
+          if (superAdminCount <= 1) {
+            return NextResponse.json(
+              { error: 'At least one superadmin is required' },
+              { status: 400 }
+            )
+          }
         }
-        updateData.email = normalizedEmail
-      } else {
-        updateData.email = null
+
+        updateData.role = requestedRole
+        // Инкрементируем tokenVersion для инвалидации JWT при смене роли
+        updateData.tokenVersion = currentUser.tokenVersion + 1
       }
     }
 
-    let user = {
-      ...currentUser,
+    // Обработка остальных полей
+    if (validatedData.name !== undefined) {
+      updateData.name = validatedData.name || null
     }
+
+    if (validatedData.telegramChatId !== undefined) {
+      updateData.telegramChatId = validatedData.telegramChatId || null
+    }
+
+    if (validatedData.canLogin !== undefined) {
+      updateData.canLogin = validatedData.canLogin
+      // Также инвалидируем токен при отключении доступа
+      if (!validatedData.canLogin && currentUser.canLogin) {
+        updateData.tokenVersion = (updateData.tokenVersion ?? currentUser.tokenVersion) + 1
+      }
+    }
+
+    if (validatedData.notifyEmail !== undefined) {
+      updateData.notifyEmail = validatedData.notifyEmail
+    }
+
+    if (validatedData.notifyTelegram !== undefined) {
+      updateData.notifyTelegram = validatedData.notifyTelegram
+    }
+
+    if (validatedData.notifySms !== undefined) {
+      updateData.notifySms = validatedData.notifySms
+    }
+
+    if (validatedData.notifyInApp !== undefined) {
+      updateData.notifyInApp = validatedData.notifyInApp
+    }
+
+    if (validatedData.quietHoursStart !== undefined) {
+      updateData.quietHoursStart = validatedData.quietHoursStart
+    }
+
+    if (validatedData.quietHoursEnd !== undefined) {
+      updateData.quietHoursEnd = validatedData.quietHoursEnd
+    }
+
+    if (validatedData.digestFrequency !== undefined) {
+      updateData.digestFrequency = validatedData.digestFrequency
+    }
+
+    let user = { ...currentUser }
 
     if (Object.keys(updateData).length > 0) {
       user = await prisma.user.update({
@@ -274,10 +268,12 @@ export async function PATCH(
           quietHoursStart: true,
           quietHoursEnd: true,
           digestFrequency: true,
+          tokenVersion: true,
         },
       })
     }
 
+    // Создаём записи аудита
     const auditEntries: Array<{
       userId: string
       actorId: string
@@ -287,161 +283,54 @@ export async function PATCH(
       newValue: string | null
     }> = []
 
-    const normalizeValue = (value: string | boolean | null | undefined) =>
+    const normalizeValue = (value: string | boolean | number | null | undefined) =>
       value === null || value === undefined ? null : String(value)
 
-    const nextName = updateData.name ?? currentUser.name
-    const nextEmail = updateData.email ?? currentUser.email
-    const nextRole = updateData.role ?? currentUser.role
-    const nextCanLogin = updateData.canLogin ?? currentUser.canLogin
-    const nextTelegram = updateData.telegramChatId ?? currentUser.telegramChatId
-    const nextNotifyEmail = updateData.notifyEmail ?? currentUser.notifyEmail
-    const nextNotifyTelegram = updateData.notifyTelegram ?? currentUser.notifyTelegram
-    const nextNotifySms = updateData.notifySms ?? currentUser.notifySms
-    const nextNotifyInApp = updateData.notifyInApp ?? currentUser.notifyInApp
-    const nextQuietHoursStart = updateData.quietHoursStart ?? currentUser.quietHoursStart
-    const nextQuietHoursEnd = updateData.quietHoursEnd ?? currentUser.quietHoursEnd
-    const nextDigestFrequency = updateData.digestFrequency ?? currentUser.digestFrequency
+    const fieldsToAudit: Array<{
+      field: string
+      action: string
+      oldValue: unknown
+      newValue: unknown
+    }> = [
+      { field: 'name', action: 'UPDATE', oldValue: currentUser.name, newValue: user.name },
+      { field: 'role', action: 'ROLE', oldValue: currentUser.role, newValue: user.role },
+      { field: 'canLogin', action: 'ACCESS', oldValue: currentUser.canLogin, newValue: user.canLogin },
+      { field: 'telegramChatId', action: 'UPDATE', oldValue: currentUser.telegramChatId, newValue: user.telegramChatId },
+      { field: 'notifyEmail', action: 'UPDATE', oldValue: currentUser.notifyEmail, newValue: user.notifyEmail },
+      { field: 'notifyTelegram', action: 'UPDATE', oldValue: currentUser.notifyTelegram, newValue: user.notifyTelegram },
+      { field: 'notifySms', action: 'UPDATE', oldValue: currentUser.notifySms, newValue: user.notifySms },
+      { field: 'notifyInApp', action: 'UPDATE', oldValue: currentUser.notifyInApp, newValue: user.notifyInApp },
+      { field: 'quietHoursStart', action: 'UPDATE', oldValue: currentUser.quietHoursStart, newValue: user.quietHoursStart },
+      { field: 'quietHoursEnd', action: 'UPDATE', oldValue: currentUser.quietHoursEnd, newValue: user.quietHoursEnd },
+      { field: 'digestFrequency', action: 'UPDATE', oldValue: currentUser.digestFrequency, newValue: user.digestFrequency },
+    ]
 
-    if (currentUser.name !== nextName) {
-      auditEntries.push({
-        userId: currentUser.id,
-        actorId: session.user.id,
-        action: 'UPDATE',
-        field: 'name',
-        oldValue: normalizeValue(currentUser.name),
-        newValue: normalizeValue(nextName),
-      })
-    }
-
-    if (currentUser.email !== nextEmail) {
-      auditEntries.push({
-        userId: currentUser.id,
-        actorId: session.user.id,
-        action: 'UPDATE',
-        field: 'email',
-        oldValue: normalizeValue(currentUser.email),
-        newValue: normalizeValue(nextEmail),
-      })
-    }
-
-    if (currentUser.role !== nextRole) {
-      auditEntries.push({
-        userId: currentUser.id,
-        actorId: session.user.id,
-        action: 'ROLE',
-        field: 'role',
-        oldValue: normalizeValue(currentUser.role),
-        newValue: normalizeValue(nextRole),
-      })
-    }
-
-    if (currentUser.canLogin !== nextCanLogin) {
-      auditEntries.push({
-        userId: currentUser.id,
-        actorId: session.user.id,
-        action: 'ACCESS',
-        field: 'canLogin',
-        oldValue: normalizeValue(currentUser.canLogin),
-        newValue: normalizeValue(nextCanLogin),
-      })
-    }
-
-    if (currentUser.telegramChatId !== nextTelegram) {
-      auditEntries.push({
-        userId: currentUser.id,
-        actorId: session.user.id,
-        action: 'UPDATE',
-        field: 'telegramChatId',
-        oldValue: normalizeValue(currentUser.telegramChatId),
-        newValue: normalizeValue(nextTelegram),
-      })
-    }
-
-    if (currentUser.notifyEmail !== nextNotifyEmail) {
-      auditEntries.push({
-        userId: currentUser.id,
-        actorId: session.user.id,
-        action: 'UPDATE',
-        field: 'notifyEmail',
-        oldValue: normalizeValue(currentUser.notifyEmail),
-        newValue: normalizeValue(nextNotifyEmail),
-      })
-    }
-
-    if (currentUser.notifyTelegram !== nextNotifyTelegram) {
-      auditEntries.push({
-        userId: currentUser.id,
-        actorId: session.user.id,
-        action: 'UPDATE',
-        field: 'notifyTelegram',
-        oldValue: normalizeValue(currentUser.notifyTelegram),
-        newValue: normalizeValue(nextNotifyTelegram),
-      })
-    }
-
-    if (currentUser.notifySms !== nextNotifySms) {
-      auditEntries.push({
-        userId: currentUser.id,
-        actorId: session.user.id,
-        action: 'UPDATE',
-        field: 'notifySms',
-        oldValue: normalizeValue(currentUser.notifySms),
-        newValue: normalizeValue(nextNotifySms),
-      })
-    }
-
-    if (currentUser.notifyInApp !== nextNotifyInApp) {
-      auditEntries.push({
-        userId: currentUser.id,
-        actorId: session.user.id,
-        action: 'UPDATE',
-        field: 'notifyInApp',
-        oldValue: normalizeValue(currentUser.notifyInApp),
-        newValue: normalizeValue(nextNotifyInApp),
-      })
-    }
-
-    if (currentUser.quietHoursStart !== nextQuietHoursStart) {
-      auditEntries.push({
-        userId: currentUser.id,
-        actorId: session.user.id,
-        action: 'UPDATE',
-        field: 'quietHoursStart',
-        oldValue: normalizeValue(currentUser.quietHoursStart),
-        newValue: normalizeValue(nextQuietHoursStart),
-      })
-    }
-
-    if (currentUser.quietHoursEnd !== nextQuietHoursEnd) {
-      auditEntries.push({
-        userId: currentUser.id,
-        actorId: session.user.id,
-        action: 'UPDATE',
-        field: 'quietHoursEnd',
-        oldValue: normalizeValue(currentUser.quietHoursEnd),
-        newValue: normalizeValue(nextQuietHoursEnd),
-      })
-    }
-
-    if (currentUser.digestFrequency !== nextDigestFrequency) {
-      auditEntries.push({
-        userId: currentUser.id,
-        actorId: session.user.id,
-        action: 'UPDATE',
-        field: 'digestFrequency',
-        oldValue: normalizeValue(currentUser.digestFrequency),
-        newValue: normalizeValue(nextDigestFrequency),
-      })
+    for (const { field, action, oldValue, newValue } of fieldsToAudit) {
+      if (oldValue !== newValue) {
+        auditEntries.push({
+          userId: currentUser.id,
+          actorId: session.user.id,
+          action,
+          field,
+          oldValue: normalizeValue(oldValue as string | boolean | null),
+          newValue: normalizeValue(newValue as string | boolean | null),
+        })
+      }
     }
 
     if (auditEntries.length > 0) {
       await prisma.userAudit.createMany({ data: auditEntries })
     }
 
+    logger.info(CONTEXT, 'User updated', {
+      userId: params.id,
+      actorId: session.user.id,
+      changedFields: auditEntries.map(e => e.field),
+    })
+
     return NextResponse.json({ success: true, user }, { status: 200 })
   } catch (error) {
-    console.error('PATCH /api/users/[id] error:', error)
+    logger.error(CONTEXT, error, { method: 'PATCH', userId: params.id })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -459,6 +348,12 @@ export async function DELETE(
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const paramResult = idParamSchema.safeParse({ id: params.id })
+    if (!paramResult.success) {
+      return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
+    }
+
     const isSuperAdmin = session.user.role === 'SUPERADMIN'
 
     // Только админ может удалять пользователей
@@ -501,9 +396,7 @@ export async function DELETE(
       if (!isSuperAdmin) {
         return NextResponse.json({ error: 'Only superadmin can delete a superadmin' }, { status: 403 })
       }
-      const superAdminCount = await prisma.user.count({
-        where: { role: 'SUPERADMIN' },
-      })
+      const superAdminCount = await prisma.user.count({ where: { role: 'SUPERADMIN' } })
       if (superAdminCount <= 1) {
         return NextResponse.json(
           { error: 'Cannot delete the last superadmin' },
@@ -517,9 +410,7 @@ export async function DELETE(
     }
 
     if (user.role === 'ADMIN') {
-      const adminCount = await prisma.user.count({
-        where: { role: 'ADMIN' },
-      })
+      const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } })
       if (adminCount <= 1) {
         return NextResponse.json(
           { error: 'Cannot delete the last admin' },
@@ -554,9 +445,11 @@ export async function DELETE(
       where: { id: params.id },
     })
 
+    logger.info(CONTEXT, 'User deleted', { userId: params.id, actorId: session.user.id })
+
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('DELETE /api/users/[id] error:', error)
+    logger.error(CONTEXT, error, { method: 'DELETE', userId: params.id })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

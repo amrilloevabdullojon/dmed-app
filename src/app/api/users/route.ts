@@ -4,8 +4,13 @@ import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { hasPermission } from '@/lib/permissions'
 import { resolveProfileAssetUrl } from '@/lib/profile-assets'
+import { logger } from '@/lib/logger'
+import { createUserSchema, usersQuerySchema } from '@/lib/schemas'
+import { USER_ROLES } from '@/lib/constants'
 
-// GET /api/users - получить всех пользователей
+const CONTEXT = 'API:Users'
+
+// GET /api/users - получить всех пользователей с пагинацией
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -17,40 +22,71 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        image: true,
-        role: true,
-        canLogin: true,
-        telegramChatId: true,
-        createdAt: true,
-        lastLoginAt: true,
-        notifyEmail: true,
-        notifyTelegram: true,
-        notifySms: true,
-        notifyInApp: true,
-        quietHoursStart: true,
-        quietHoursEnd: true,
-        digestFrequency: true,
-        _count: {
-          select: {
-            letters: true,
-            comments: true,
-            sessions: true,
+    // Парсим и валидируем query параметры
+    const searchParams = Object.fromEntries(request.nextUrl.searchParams)
+    const queryResult = usersQuerySchema.safeParse(searchParams)
+
+    if (!queryResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid query parameters', details: queryResult.error.flatten() },
+        { status: 400 }
+      )
+    }
+
+    const { page, limit, search } = queryResult.data
+    const skip = (page - 1) * limit
+
+    // Формируем условие поиска
+    const where = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' as const } },
+            { email: { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {}
+
+    // Выполняем запросы параллельно
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          role: true,
+          canLogin: true,
+          telegramChatId: true,
+          createdAt: true,
+          lastLoginAt: true,
+          notifyEmail: true,
+          notifyTelegram: true,
+          notifySms: true,
+          notifyInApp: true,
+          quietHoursStart: true,
+          quietHoursEnd: true,
+          digestFrequency: true,
+          _count: {
+            select: {
+              letters: true,
+              comments: true,
+              sessions: true,
+            },
+          },
+          profile: {
+            select: {
+              avatarUrl: true,
+              updatedAt: true,
+            },
           },
         },
-        profile: {
-          select: {
-            avatarUrl: true,
-            updatedAt: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.user.count({ where }),
+    ])
 
     const normalizedUsers = users.map((user) => ({
       ...user,
@@ -60,9 +96,17 @@ export async function GET(request: NextRequest) {
       profile: undefined,
     }))
 
-    return NextResponse.json({ users: normalizedUsers })
+    return NextResponse.json({
+      users: normalizedUsers,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    })
   } catch (error) {
-    console.error('GET /api/users error:', error)
+    logger.error(CONTEXT, error, { method: 'GET' })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -83,37 +127,37 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const name = typeof body.name === 'string' ? body.name.trim() : ''
-    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+
+    // Валидация через Zod
+    const parseResult = createUserSchema.safeParse(body)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Validation error', details: parseResult.error.flatten() },
+        { status: 400 }
+      )
+    }
+
+    const { name, email, role: requestedRole, canLogin, telegramChatId } = parseResult.data
+    const normalizedEmail = email.toLowerCase()
+
+    // Проверка прав на назначение роли
     const isSuperAdmin = session.user.role === 'SUPERADMIN'
-    const requestedRole =
-      body.role === 'SUPERADMIN'
-        ? 'SUPERADMIN'
-        : body.role === 'ADMIN'
-          ? 'ADMIN'
-          : body.role === 'MANAGER'
-            ? 'MANAGER'
-            : body.role === 'AUDITOR'
-              ? 'AUDITOR'
-              : body.role === 'VIEWER'
-                ? 'VIEWER'
-                : 'EMPLOYEE'
-    if (!isSuperAdmin && body.role && requestedRole !== 'EMPLOYEE') {
-      return NextResponse.json({ error: 'Only superadmin can assign roles' }, { status: 403 })
-    }
-    const role = isSuperAdmin ? requestedRole : 'EMPLOYEE'
-    const telegramChatId =
-      typeof body.telegramChatId === 'string' && body.telegramChatId.trim()
-        ? body.telegramChatId.trim()
-        : null
-    const canLogin = body.canLogin === false ? false : true
+    const validRoles = Object.keys(USER_ROLES) as Array<keyof typeof USER_ROLES>
 
-    if (!email) {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
+    let role: keyof typeof USER_ROLES = 'EMPLOYEE'
+    if (requestedRole && validRoles.includes(requestedRole)) {
+      if (!isSuperAdmin && requestedRole !== 'EMPLOYEE') {
+        return NextResponse.json(
+          { error: 'Only superadmin can assign roles' },
+          { status: 403 }
+        )
+      }
+      role = requestedRole
     }
 
+    // Проверка на существующего пользователя
     const existing = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
       select: { id: true },
     })
 
@@ -124,10 +168,10 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.create({
       data: {
         name: name || null,
-        email,
+        email: normalizedEmail,
         role,
-        telegramChatId,
-        canLogin,
+        telegramChatId: telegramChatId || null,
+        canLogin: canLogin ?? true,
       },
       select: {
         id: true,
@@ -177,9 +221,11 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    logger.info(CONTEXT, 'User created', { userId: user.id, actorId: session.user.id })
+
     return NextResponse.json({ success: true, user }, { status: 201 })
   } catch (error) {
-    console.error('POST /api/users error:', error)
+    logger.error(CONTEXT, error, { method: 'POST' })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

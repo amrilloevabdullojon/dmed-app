@@ -17,7 +17,6 @@ export const authOptions: AuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      allowDangerousEmailAccountLinking: true,
     }),
   ],
   // Use JWT strategy for better performance (no DB query on each request)
@@ -107,12 +106,14 @@ export const authOptions: AuthOptions = {
           select: {
             id: true,
             role: true,
+            tokenVersion: true,
             profile: { select: { avatarUrl: true, updatedAt: true } },
           },
         })
 
         token.id = user.id
         token.role = dbUser?.role || 'EMPLOYEE'
+        token.tokenVersion = dbUser?.tokenVersion ?? 0
         token.avatarUrl = resolveProfileAssetUrl(
           dbUser?.profile?.avatarUrl ?? null,
           dbUser?.profile?.updatedAt ?? null
@@ -125,16 +126,32 @@ export const authOptions: AuthOptions = {
           where: { id: token.id as string },
           select: {
             role: true,
+            tokenVersion: true,
             profile: { select: { avatarUrl: true, updatedAt: true } },
           },
         })
 
         if (dbUser) {
           token.role = dbUser.role
+          token.tokenVersion = dbUser.tokenVersion
           token.avatarUrl = resolveProfileAssetUrl(
             dbUser.profile?.avatarUrl ?? null,
             dbUser.profile?.updatedAt ?? null
           )
+        }
+      }
+
+      // Validate token version on each request to detect invalidated tokens
+      if (token.id && token.tokenVersion !== undefined) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { tokenVersion: true },
+        })
+
+        // If tokenVersion in DB is higher, the token was invalidated
+        if (dbUser && dbUser.tokenVersion > (token.tokenVersion as number)) {
+          // Return empty token to force re-authentication
+          return { ...token, id: undefined, role: undefined }
         }
       }
 
@@ -163,5 +180,6 @@ declare module 'next-auth/jwt' {
     id?: string
     role?: Role
     avatarUrl?: string | null
+    tokenVersion?: number
   }
 }

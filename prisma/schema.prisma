@@ -62,6 +62,7 @@ model User {
   quietHoursStart String?
   quietHoursEnd   String?
   digestFrequency DigestFrequency @default(NONE)
+  tokenVersion   Int       @default(0) // Инкрементируется для инвалидации JWT токенов
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   lastLoginAt    DateTime?
@@ -83,6 +84,10 @@ model User {
   approvalsRequested AdminApproval[] @relation("AdminApprovalRequestedBy")
   approvalsApproved AdminApproval[] @relation("AdminApprovalApprovedBy")
   requestsAssigned Request[]     @relation("RequestAssignee")
+
+  @@index([role])              // Индекс для фильтрации по роли
+  @@index([canLogin])          // Индекс для фильтрации по доступу
+  @@index([createdAt])         // Индекс для сортировки по дате создания
 }
 
 model UserProfile {

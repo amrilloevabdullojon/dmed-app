@@ -62,7 +62,14 @@ interface ParsedPdfData {
   organization: string | null
   content: string | null
 }
-const parsePdfContent = async (file: File): Promise<ParsedPdfData | null> => {
+
+interface ParseResult {
+  id: string
+  data: ParsedPdfData | null
+  error?: string
+}
+
+const parsePdfContent = async (file: File): Promise<{ data: ParsedPdfData | null; error?: string }> => {
   try {
     const formData = new FormData()
     formData.append('file', file)
@@ -72,19 +79,33 @@ const parsePdfContent = async (file: File): Promise<ParsedPdfData | null> => {
       body: formData,
     })
 
-    if (!res.ok) return null
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}))
+      return { data: null, error: errorData.error || `Ошибка ${res.status}` }
+    }
 
     const result = await res.json()
-    return result.data
-  } catch {
-    return null
+    return { data: result.data }
+  } catch (err) {
+    return { data: null, error: err instanceof Error ? err.message : 'Неизвестная ошибка' }
   }
 }
 
 
+interface CreatedLetter {
+  id: string
+  number: string
+  org: string
+  date?: string
+  deadlineDate?: string
+  type?: string
+  content?: string
+  priority?: number
+}
+
 interface BulkCreateLettersProps {
   onClose?: () => void
-  onSuccess?: (letters: unknown[]) => void
+  onSuccess?: (letters: CreatedLetter[]) => void
   pageHref?: string
 }
 
@@ -95,7 +116,7 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
   const [creating, setCreating] = useState(false)
   const [skipDuplicates, setSkipDuplicates] = useState(false)
   const [errors, setErrors] = useState<Record<string, string[]>>({})
-  const [createdLetters, setCreatedLetters] = useState<unknown[]>([])
+  const [createdLetters, setCreatedLetters] = useState<CreatedLetter[]>([])
   const [dragOver, setDragOver] = useState(false)
   const [uploadingFiles, setUploadingFiles] = useState(false)
 
@@ -123,16 +144,29 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
       return firstRowEmpty ? newRows : [...prev, ...newRows]
     })
 
-    // Парсим каждый файл параллельно
+    // Парсим каждый файл параллельно с использованием Promise.allSettled
     const toastId = toast.loading(`Анализ ${pdfFiles.length} PDF с помощью AI...`)
 
-    const results = await Promise.all(
-      newRows.map(async (row) => {
+    const settledResults = await Promise.allSettled(
+      newRows.map(async (row): Promise<ParseResult> => {
         if (!row.file) return { id: row.id, data: null }
-        const data = await parsePdfContent(row.file)
-        return { id: row.id, data }
+        const result = await parsePdfContent(row.file)
+        return { id: row.id, data: result.data, error: result.error }
       })
     )
+
+    // Преобразуем результаты allSettled в единый формат
+    const results: ParseResult[] = settledResults.map((result, index) => {
+      if (result.status === 'fulfilled') {
+        return result.value
+      }
+      // Если промис отклонён, возвращаем ошибку
+      return {
+        id: newRows[index].id,
+        data: null,
+        error: result.reason instanceof Error ? result.reason.message : 'Ошибка обработки',
+      }
+    })
 
     // Обновляем строки с распознанными данными
     setRows((prev) =>
@@ -165,12 +199,18 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
     )
 
     const successCount = results.filter((r) => r.data).length
+    const errorCount = results.filter((r) => r.error).length
+
     if (successCount === pdfFiles.length) {
       toast.success(`Все ${pdfFiles.length} PDF успешно распознаны`, { id: toastId })
     } else if (successCount > 0) {
-      toast.success(`Распознано ${successCount} из ${pdfFiles.length} PDF`, { id: toastId })
+      const message = errorCount > 0
+        ? `Распознано ${successCount} из ${pdfFiles.length} PDF. Ошибок: ${errorCount}`
+        : `Распознано ${successCount} из ${pdfFiles.length} PDF`
+      toast.warning(message, { id: toastId })
     } else {
-      toast.error('Не удалось распознать PDF файлы', { id: toastId })
+      const firstError = results.find((r) => r.error)?.error
+      toast.error(`Не удалось распознать PDF файлы${firstError ? `: ${firstError}` : ''}`, { id: toastId })
     }
   }, [toast])
 
@@ -363,7 +403,8 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
 
         // Создаём карту номер -> id
         const letterIdMap = new Map<string, string>()
-        for (const letter of data.letters as { id: string; number: string }[]) {
+        const letters = data.letters as CreatedLetter[]
+        for (const letter of letters) {
           letterIdMap.set(letter.number.toLowerCase(), letter.id)
         }
 
@@ -403,12 +444,13 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
 
   // Экспорт в Excel (CSV)
   const exportToExcel = () => {
-    const data = createdLetters.length > 0 ? createdLetters : rows
+    type ExportableItem = LetterRow | CreatedLetter
+    const data: ExportableItem[] = createdLetters.length > 0 ? createdLetters : rows
     const headers = ['Номер', 'Организация', 'Дата', 'Дедлайн', 'Тип', 'Содержание', 'Приоритет']
 
     const csvContent = [
       headers.join(','),
-      ...data.map((item: any) => {
+      ...data.map((item) => {
         const row = [
           `"${(item.number || '').replace(/"/g, '""')}"`,
           `"${(item.org || '').replace(/"/g, '""')}"`,
@@ -498,7 +540,7 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
               <span className="font-medium">Создано {createdLetters.length} писем</span>
             </div>
             <div className="space-y-1 text-sm text-gray-300">
-              {(createdLetters as any[]).slice(0, 5).map((letter: any) => (
+              {createdLetters.slice(0, 5).map((letter) => (
                 <div key={letter.id} className="flex items-center gap-2">
                   <span className="text-emerald-400">#{letter.number}</span>
                   <span className="text-gray-400">—</span>

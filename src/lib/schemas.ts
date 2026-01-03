@@ -113,9 +113,19 @@ export const createCommentSchema = z.object({
 
 // ==================== USER ====================
 
+export const userRoleSchema = z.enum(['SUPERADMIN', 'ADMIN', 'MANAGER', 'AUDITOR', 'EMPLOYEE', 'VIEWER'])
+
+export const createUserSchema = z.object({
+  name: z.string().max(100).optional(),
+  email: z.string().email('Укажите корректный email').max(320),
+  role: userRoleSchema.optional(),
+  canLogin: z.boolean().optional().default(true),
+  telegramChatId: z.string().max(50).optional().nullable(),
+})
+
 export const updateUserSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  role: z.enum(['SUPERADMIN', 'ADMIN', 'MANAGER', 'AUDITOR', 'EMPLOYEE', 'VIEWER']).optional(),
+  role: userRoleSchema.optional(),
   canLogin: z.boolean().optional(),
   notifyEmail: z.boolean().optional(),
   notifyTelegram: z.boolean().optional(),
@@ -125,6 +135,10 @@ export const updateUserSchema = z.object({
   quietHoursStart: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
   quietHoursEnd: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
   digestFrequency: z.enum(['NONE', 'DAILY', 'WEEKLY']).optional(),
+})
+
+export const usersQuerySchema = paginationSchema.extend({
+  search: z.string().max(200).optional(),
 })
 
 export const updateProfileSchema = z.object({
@@ -177,7 +191,9 @@ export type RequestFiltersInput = z.infer<typeof requestFiltersSchema>
 export type RequestQueryInput = z.infer<typeof requestQuerySchema>
 export type UpdateRequestInput = z.infer<typeof updateRequestSchema>
 export type CreateCommentInput = z.infer<typeof createCommentSchema>
+export type CreateUserInput = z.infer<typeof createUserSchema>
 export type UpdateUserInput = z.infer<typeof updateUserSchema>
+export type UsersQueryInput = z.infer<typeof usersQuerySchema>
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>
 export type CreateTemplateInput = z.infer<typeof createTemplateSchema>
 export type UpdateTemplateInput = z.infer<typeof updateTemplateSchema>
