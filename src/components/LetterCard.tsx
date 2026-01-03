@@ -103,7 +103,7 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
                        : 'bg-white/10 text-slate-300 opacity-0 group-hover:opacity-100'
                      }
                      hover:scale-110 hover:bg-amber-500/30`}
-          aria-label={letter.isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+          aria-label={letter.isFavorite ? '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0438\u0437 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0433\u043e' : '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0432 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435'}
         >
           <Star className={`w-4 h-4 ${letter.isFavorite ? 'fill-current' : ''}`} />
         </button>
@@ -116,7 +116,7 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
             <div className="flex items-center gap-2 mb-2">
               <span className="font-mono text-sm font-semibold text-teal-300
                              bg-teal-400/10 px-2 py-0.5 rounded-full">
-                №{letter.number}
+                #{letter.number}
               </span>
               {letter.type && (
                 <span className="text-xs px-2 py-0.5 data-pill rounded-full">
@@ -211,17 +211,17 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
               {isDone ? (
                 <>
                   <Clock className="w-4 h-4" />
-                  Выполнено
+                  {'\u0413\u043e\u0442\u043e\u0432\u043e'}
                 </>
               ) : isOverdue ? (
                 <>
                   <AlertTriangle className="w-4 h-4" />
-                  Просрочено на {Math.abs(daysLeft)} {pluralizeDays(daysLeft)}
+                  {'\u041f\u0440\u043e\u0441\u0440\u043e\u0447\u0435\u043d\u043e \u043d\u0430'} {Math.abs(daysLeft)} {pluralizeDays(daysLeft)}
                 </>
               ) : (
                 <>
                   <Clock className="w-4 h-4" />
-                  {daysLeft} {pluralizeDays(daysLeft)} до дедлайна
+                  {'\u0414\u043e \u0441\u0440\u043e\u043a\u0430:'} {daysLeft} {pluralizeDays(daysLeft)}
                 </>
               )}
             </div>

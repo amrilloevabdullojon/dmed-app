@@ -31,10 +31,10 @@ export function Header() {
   const isAdminRole = session?.user.role === 'ADMIN' || session?.user.role === 'SUPERADMIN'
   const roleLabel =
     session?.user.role === 'SUPERADMIN'
-      ? 'Суперадмин'
+      ? '\u0421\u0443\u043f\u0435\u0440\u0430\u0434\u043c\u0438\u043d'
       : session?.user.role === 'ADMIN'
-        ? 'Администратор'
-        : 'Сотрудник'
+        ? '\u0410\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440'
+        : '\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c'
 
   // Закрыть мобильное меню при переходе на другую страницу
   useEffect(() => {
@@ -66,7 +66,9 @@ export function Header() {
     setSyncMenuOpen(false)
 
     const toastId = toast.loading(
-      direction === 'to_sheets' ? 'Экспорт в Google Sheets...' : 'Импорт из Google Sheets...'
+      direction === 'to_sheets'
+        ? '\u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u044f \u0441 Google Sheets...'
+        : '\u0418\u043c\u043f\u043e\u0440\u0442 \u0438\u0437 Google Sheets...'
     )
 
     try {
@@ -82,16 +84,16 @@ export function Header() {
         const count = data.rowsAffected || data.imported || 0
         const conflicts = Array.isArray(data.conflicts) ? data.conflicts.length : 0
         if (conflicts > 0) {
-          toast.warning(`Обработано ${count} записей. Конфликты: ${conflicts}.`, { id: toastId })
+          toast.warning(`\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e ${count} \u0437\u0430\u043f\u0438\u0441\u0435\u0439. \u041a\u043e\u043d\u0444\u043b\u0438\u043a\u0442\u044b: ${conflicts}.`, { id: toastId })
         } else {
-          toast.success(`Успешно! Обработано ${count} записей`, { id: toastId })
+          toast.success(`\u0413\u043e\u0442\u043e\u0432\u043e! \u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e ${count} \u0437\u0430\u043f\u0438\u0441\u0435\u0439`, { id: toastId })
         }
         setTimeout(() => window.location.reload(), 1500)
       } else {
-        toast.error(`Ошибка: ${data.error}`, { id: toastId })
+        toast.error(`\u041e\u0448\u0438\u0431\u043a\u0430: ${data.error}`, { id: toastId })
       }
     } catch (error) {
-      toast.error('Ошибка синхронизации', { id: toastId })
+      toast.error('\u041e\u0448\u0438\u0431\u043a\u0430 \u0441\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u0438', { id: toastId })
     } finally {
       setSyncing(false)
     }
@@ -143,15 +145,15 @@ export function Header() {
           <nav className="hidden md:flex items-center gap-1">
             <Link href="/" className={navLinkClass('/')}>
               <Home className="w-4 h-4" />
-              Главная
+              {'\u0413\u043b\u0430\u0432\u043d\u0430\u044f'}
             </Link>
             <Link href="/letters" className={navLinkClass('/letters')}>
               <FileText className="w-4 h-4" />
-              Письма
+              {'\u041f\u0438\u0441\u044c\u043c\u0430'}
             </Link>
             <Link href="/reports" className={navLinkClass('/reports')}>
               <BarChart3 className="w-4 h-4" />
-              Отчёты
+              {'\u041e\u0442\u0447\u0435\u0442\u044b'}
             </Link>
 
             {isAdminRole && (
@@ -168,7 +170,7 @@ export function Header() {
                   >
                     <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
                     <span className="hidden lg:inline">
-                      {syncing ? 'Синхронизация...' : 'Google Sheets'}
+                      {syncing ? '\u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u044f...' : 'Google Sheets'}
                     </span>
                     <ChevronDown className={`w-4 h-4 transition ${syncMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
@@ -184,16 +186,16 @@ export function Header() {
                           disabled={syncing}
                           className="w-full flex items-center gap-2 px-4 py-3 text-slate-200/80 hover:bg-white/5 hover:text-white transition rounded-t-lg"
                         >
-                          <span className="text-lg">📥</span>
-                          Импорт из Sheets
+                          <span className="text-lg">*</span>
+                          {'\u0418\u043c\u043f\u043e\u0440\u0442 \u0438\u0437 Sheets'}
                         </button>
                         <button
                           onClick={() => handleSync('to_sheets')}
                           disabled={syncing}
                           className="w-full flex items-center gap-2 px-4 py-3 text-slate-200/80 hover:bg-white/5 hover:text-white transition rounded-b-lg"
                         >
-                          <span className="text-lg">📤</span>
-                          Экспорт в Sheets
+                          <span className="text-lg">*</span>
+                          {'\u042d\u043a\u0441\u043f\u043e\u0440\u0442 \u0432 Sheets'}
                         </button>
                       </div>
                     </>
@@ -201,7 +203,7 @@ export function Header() {
                 </div>
                 <Link href="/settings" className={navLinkClass('/settings')}>
                   <Settings className="w-4 h-4" />
-                  <span className="hidden lg:inline">Настройки</span>
+                  <span className="hidden lg:inline">{'\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438'}</span>
                 </Link>
               </>
             )}
@@ -237,10 +239,11 @@ export function Header() {
                 <button
                   onClick={() => signOut({ callbackUrl: '/login' })}
                   className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition"
-                  title="Выйти"
+                  title="\u0412\u044b\u0439\u0442\u0438"
                 >
                   <LogOut className="w-5 h-5" />
-                </button>
+            {'\u0412\u044b\u0439\u0442\u0438'}
+          </button>
               </>
             )}
           </div>
@@ -322,7 +325,7 @@ export function Header() {
             }`}
           >
             <Home className="w-5 h-5" />
-            Главная
+            {'\u0413\u043b\u0430\u0432\u043d\u0430\u044f'}
           </Link>
 
           <Link
@@ -332,7 +335,7 @@ export function Header() {
             }`}
           >
             <FileText className="w-5 h-5" />
-            Письма
+            {'\u041f\u0438\u0441\u044c\u043c\u0430'}
           </Link>
 
           <Link
@@ -342,7 +345,7 @@ export function Header() {
             }`}
           >
             <BarChart3 className="w-5 h-5" />
-            Отчёты
+            {'\u041e\u0442\u0447\u0435\u0442\u044b'}
           </Link>
 
           {isAdminRole && (
@@ -354,8 +357,8 @@ export function Header() {
                 disabled={syncing}
                 className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-200/80 hover:bg-white/5 transition disabled:opacity-50"
               >
-                <span className="text-lg">📥</span>
-                Импорт из Sheets
+                <span className="text-lg">*</span>
+                {'\u0418\u043c\u043f\u043e\u0440\u0442 \u0438\u0437 Sheets'}
               </button>
 
               <button
@@ -363,8 +366,8 @@ export function Header() {
                 disabled={syncing}
                 className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-200/80 hover:bg-white/5 transition disabled:opacity-50"
               >
-                <span className="text-lg">📤</span>
-                Экспорт в Sheets
+                <span className="text-lg">*</span>
+                {'\u042d\u043a\u0441\u043f\u043e\u0440\u0442 \u0432 Sheets'}
               </button>
 
               <Link
@@ -374,7 +377,7 @@ export function Header() {
                 }`}
               >
                 <Settings className="w-5 h-5" />
-                Настройки
+                {'\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438'}
               </Link>
             </>
           )}
