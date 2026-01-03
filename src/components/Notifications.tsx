@@ -103,7 +103,7 @@ export function Notifications() {
   const markNotificationRead = async (id: string) => {
     const previous = userNotifications
     setUserNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+      (prev ?? []).map((n) => (n.id === id ? { ...n, isRead: true } : n))
     )
 
     const result = await updateNotifications.mutate({ ids: [id] })
@@ -115,7 +115,7 @@ export function Notifications() {
 
   const markAllRead = async () => {
     const previous = userNotifications
-    setUserNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
+    setUserNotifications((prev) => (prev ?? []).map((n) => ({ ...n, isRead: true })))
 
     const result = await updateNotifications.mutate({ all: true })
     if (!result) {
