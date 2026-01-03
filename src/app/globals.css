@@ -263,6 +263,7 @@ h3,
   background: linear-gradient(135deg, rgba(var(--panel) / 0.95), rgba(var(--app-bg-2) / 0.98));
   border-bottom: 1px solid rgba(var(--panel-border) / 0.6);
   box-shadow: 0 12px 30px rgba(2, 6, 23, 0.35);
+  padding-top: env(safe-area-inset-top);
 }
 
 .light .app-header {
@@ -277,6 +278,16 @@ h3,
 
 .virtual-scroll {
   contain: strict;
+}
+
+@media (max-width: 767px) {
+  .app-shell {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4.5rem);
+  }
+
+  .mobile-bottom-offset {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 4.5rem);
+  }
 }
 
 .virtual-rows {

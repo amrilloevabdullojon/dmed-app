@@ -118,7 +118,7 @@ export default function HomePage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="min-h-screen app-shell flex items-center justify-center bg-gray-900">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
       </div>
     )
@@ -139,7 +139,7 @@ export default function HomePage() {
         : '\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a'
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen app-shell bg-gray-900">
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">

@@ -67,7 +67,7 @@ export function VirtualLetterList({
   return (
     <div
       ref={parentRef}
-      className="h-[calc(100vh-320px)] sm:h-[calc(100vh-300px)] overflow-auto pr-1 sm:pr-2 virtual-scroll"
+      className="h-[calc(100vh-320px)] sm:h-[calc(100vh-300px)] overflow-auto pr-1 sm:pr-2 pb-24 sm:pb-0 virtual-scroll"
     >
       <div
         className="virtual-rows"
@@ -94,10 +94,10 @@ export function VirtualLetterList({
                         e.stopPropagation()
                         onToggleSelect(letter.id)
                       }}
-                      className={`absolute top-3 left-3 z-10 p-1 rounded ${
+                      className={`absolute top-3 left-3 z-10 p-2 rounded ${
                         selectedIds.has(letter.id)
                           ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30'
-                          : 'bg-white/10 text-slate-300 opacity-0 group-hover:opacity-100'
+                          : 'bg-white/10 text-slate-300 opacity-100 md:opacity-0 md:group-hover:opacity-100'
                       }`}
                       aria-label={`Выбрать письмо ${letter.number}`}
                     >

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info, Loader2 } from 'lucide-react'
 import { Toast, ToastType, useToast, useToastState, ToastProvider } from '@/hooks/useToast'
 
@@ -115,19 +116,26 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: (id: string) => 
  */
 export function ToastContainer() {
   const { toasts, removeToast } = useToast()
+  const [mounted, setMounted] = useState(false)
 
-  if (toasts.length === 0) return null
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
-  return (
+  if (!mounted || toasts.length === 0) return null
+
+  return createPortal(
     <div
-      className="!fixed top-4 left-1/2 !z-[200] flex w-full max-w-sm -translate-x-1/2 flex-col gap-2"
+      className="!fixed left-1/2 !z-[200] flex w-full max-w-sm -translate-x-1/2 flex-col gap-2"
+      style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1rem)' }}
       aria-live="polite"
-      aria-label="Уведомления"
+      aria-label="Toast notifications"
     >
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onClose={removeToast} />
       ))}
-    </div>
+    </div>,
+    document.body
   )
 }
 

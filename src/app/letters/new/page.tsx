@@ -109,7 +109,7 @@ export default function NewLetterPage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="min-h-screen app-shell flex items-center justify-center bg-gray-900">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
       </div>
     )
@@ -120,7 +120,7 @@ export default function NewLetterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen app-shell bg-gray-900">
       <Header />
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">

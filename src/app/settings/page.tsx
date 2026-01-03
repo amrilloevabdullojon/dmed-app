@@ -1250,7 +1250,53 @@ export default function SettingsPage() {
           </div>
 
           {syncLogs.length > 0 ? (
-            <div className="overflow-x-auto">
+            <>
+              <div className="space-y-3 sm:hidden">
+                {syncLogs.map((log) => {
+                  const duration = log.finishedAt
+                    ? Math.round(
+                        (new Date(log.finishedAt).getTime() -
+                          new Date(log.startedAt).getTime()) /
+                          1000
+                      )
+                    : null
+
+                  return (
+                    <div key={log.id} className="panel-soft panel-glass rounded-xl p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="text-sm text-gray-300">
+                          {formatDate(log.startedAt)}
+                        </div>
+                        {getStatusBadge(log.status)}
+                      </div>
+                      <div className="mt-2 flex items-center gap-2 text-sm">
+                        {log.direction === 'TO_SHEETS' ? (
+                          <>
+                            <ArrowUpFromLine className="w-4 h-4 text-blue-400" />
+                            <span className="text-blue-400">D' Sheets</span>
+                          </>
+                        ) : (
+                          <>
+                            <ArrowDownToLine className="w-4 h-4 text-purple-400" />
+                            <span className="text-purple-400">D~Dú Sheets</span>
+                          </>
+                        )}
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-400">
+                        <div>{`Rows: ${log.rowsAffected}`}</div>
+                        <div>{`Duration: ${duration !== null ? `${duration}s` : '-'}`}</div>
+                      </div>
+                      {log.error && (
+                        <div className="mt-3 text-xs text-red-400">
+                          {log.error.substring(0, 80)}
+                          {log.error.length > 80 ? '...' : ''}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="hidden sm:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/10">
@@ -1313,7 +1359,8 @@ export default function SettingsPage() {
                   })}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           ) : (
             <div className="text-center py-8 text-gray-500">
               Нет записей синхронизации
@@ -2349,7 +2396,31 @@ export default function SettingsPage() {
           {loginAuditLoading && loginAudits.length === 0 ? (
             <div className="text-xs text-gray-500">{'\З\а\г\р\у\з\к\а...'}</div>
           ) : loginAudits.length > 0 ? (
-            <div className="overflow-x-auto">
+            <>
+              <div className="space-y-3 sm:hidden">
+                {loginAudits.map((event) => {
+                  const displayName =
+                    event.user?.name || event.user?.email || event.email
+                  return (
+                    <div key={event.id} className="panel-soft panel-glass rounded-xl p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm text-white">{displayName}</div>
+                          <div className="text-xs text-gray-500">{event.email}</div>
+                        </div>
+                        {getLoginStatusBadge(event.success)}
+                      </div>
+                      <div className="mt-2 text-xs text-gray-400">
+                        {formatDate(event.createdAt)}
+                      </div>
+                      <div className="mt-2 text-xs text-gray-400">
+                        {formatLoginReason(event.reason)}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="hidden sm:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/10">
@@ -2381,7 +2452,8 @@ export default function SettingsPage() {
                   })}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           ) : (
             <div className="text-xs text-gray-500">{'\Н\е\т \д\а\н\н\ы\х'} </div>
           )}

@@ -97,10 +97,10 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
       {onToggleFavorite && (
         <button
           onClick={handleFavoriteClick}
-          className={`absolute top-3 right-3 p-1.5 rounded-full transition-all duration-200 z-10
+          className={`absolute top-3 right-3 p-2 rounded-full transition-all duration-200 z-10
                      ${letter.isFavorite
                        ? 'bg-amber-500/20 text-amber-300'
-                       : 'bg-white/10 text-slate-300 opacity-0 group-hover:opacity-100'
+                       : 'bg-white/10 text-slate-300 opacity-100 md:opacity-0 md:group-hover:opacity-100'
                      }
                      hover:scale-110 hover:bg-amber-500/30`}
           aria-label={letter.isFavorite ? '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0438\u0437 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0433\u043e' : '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0432 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435'}

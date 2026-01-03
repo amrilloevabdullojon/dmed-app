@@ -9,7 +9,7 @@ export function OfflineIndicator() {
   if (!isOffline && !hasUpdate) return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 mobile-bottom-offset">
       {/* Оффлайн индикатор */}
       {isOffline && (
         <div className="flex items-center gap-2 bg-yellow-600 text-white px-4 py-2 rounded-lg shadow-lg animate-fadeIn">

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { Notifications } from './Notifications'
 import { ThemeToggle } from './ThemeToggle'
+import { MobileBottomNav } from './MobileBottomNav'
 import { useToast } from '@/components/Toast'
 
 export function Header() {
@@ -123,7 +124,7 @@ export function Header() {
         ))}
       </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-14 sm:h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 shrink-0">
             <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-lg shadow-teal-500/30">
@@ -285,7 +286,7 @@ export function Header() {
       {/* Mobile menu */}
       <div
         id="mobile-menu"
-        className={`fixed top-16 right-0 bottom-0 w-[85vw] max-w-[320px] mobile-menu z-[120] transform transition-transform duration-300 md:hidden overflow-y-auto ${
+        className={`fixed top-14 sm:top-16 right-0 bottom-0 w-[85vw] max-w-[320px] mobile-menu z-[120] transform transition-transform duration-300 md:hidden overflow-y-auto ${
           mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -408,6 +409,7 @@ export function Header() {
           </button>
         </nav>
       </div>
+      <MobileBottomNav isAdmin={isAdminRole} hidden={mobileMenuOpen} />
     </header>
   )
 }
