@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient } from '@prisma/client'
+import { logger } from '@/lib/logger'
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -8,9 +9,34 @@ const globalForPrisma = globalThis as unknown as {
 const getPrisma = () => prisma
 
 const prismaClientSingleton = () => {
-  const client = new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  })
+  const log: Prisma.LogDefinition[] = []
+  const enableQueryLogging = process.env.PRISMA_LOG_QUERIES === 'true'
+
+  log.push({ emit: 'stdout', level: 'error' })
+  if (process.env.NODE_ENV === 'development') {
+    log.push({ emit: 'stdout', level: 'warn' })
+  }
+  if (enableQueryLogging) {
+    log.push({ emit: 'event', level: 'query' })
+  }
+
+  const client = new PrismaClient({ log })
+
+  if (enableQueryLogging) {
+    client.$on('query', (event) => {
+      const meta = {
+        query: event.query,
+        params: event.params,
+        durationMs: event.duration,
+        target: event.target,
+      }
+      if (event.duration >= 1000) {
+        logger.warn('Prisma', 'Slow query', meta)
+      } else {
+        logger.info('Prisma', 'Query', meta)
+      }
+    })
+  }
 
   // Middleware для автоматического логирования изменений Letter
   client.$use(createLetterChangeLogMiddleware(client))

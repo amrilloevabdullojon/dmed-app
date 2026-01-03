@@ -58,7 +58,7 @@ export default function RequestPage() {
     for (const file of selected) {
       if (file.size > MAX_FILE_SIZE) {
         toast.error(
-          `\u0424\u0430\u0439\u043b \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0431\u043e\u043b\u044c\u0448\u043e\u0439. \u041c\u0430\u043a\u0441\u0438\u043c\u0443\u043c ${MAX_FILE_SIZE_LABEL}.`
+          `Файл слишком большой. Максимум ${MAX_FILE_SIZE_LABEL}.`
         )
         continue
       }
@@ -68,7 +68,7 @@ export default function RequestPage() {
     const combined = [...files, ...nextFiles]
     if (combined.length > REQUEST_MAX_FILES) {
       toast.warning(
-        `\u041c\u0430\u043a\u0441\u0438\u043c\u0443\u043c ${REQUEST_MAX_FILES} \u0444\u0430\u0439\u043b\u043e\u0432. \u041b\u0438\u0448\u043d\u0438\u0435 \u0444\u0430\u0439\u043b\u044b \u043d\u0435 \u0431\u0443\u0434\u0443\u0442 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u044b.`
+        `Максимум ${REQUEST_MAX_FILES} файлов. Лишние файлы не будут добавлены.`
       )
     }
 
@@ -91,7 +91,7 @@ export default function RequestPage() {
     if (submitting) return
 
     setSubmitting(true)
-    const toastId = toast.loading('\u041e\u0442\u043f\u0440\u0430\u0432\u043a\u0430 \u0437\u0430\u044f\u0432\u043a\u0438...')
+    const toastId = toast.loading('Отправка заявки...')
 
     try {
       const formData = new FormData()
@@ -120,19 +120,19 @@ export default function RequestPage() {
 
       if (Array.isArray(data.filesFailed) && data.filesFailed.length > 0) {
         toast.warning(
-          '\u0427\u0430\u0441\u0442\u044c \u0444\u0430\u0439\u043b\u043e\u0432 \u043d\u0435 \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u043b\u0430\u0441\u044c. \u0417\u0430\u044f\u0432\u043a\u0430 \u0432\u0441\u0435 \u0440\u0430\u0432\u043d\u043e \u0441\u043e\u0437\u0434\u0430\u043d\u0430.'
+          'Часть файлов не загрузилась. Заявка все равно создана.'
         )
       }
 
       toast.success(
-        '\u0417\u0430\u044f\u0432\u043a\u0430 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0430. \u041c\u044b \u0441\u0432\u044f\u0436\u0435\u043c\u0441\u044f \u0441 \u0432\u0430\u043c\u0438 \u0432 \u0431\u043b\u0438\u0436\u0430\u0439\u0448\u0435\u0435 \u0432\u0440\u0435\u043c\u044f.',
+        'Заявка отправлена. Мы свяжемся с вами в ближайшее время.',
         { id: toastId }
       )
       setSubmitted(true)
     } catch (error) {
       console.error('Request submit failed:', error)
       toast.error(
-        '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0437\u0430\u044f\u0432\u043a\u0443. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0435\u0449\u0435 \u0440\u0430\u0437.',
+        'Не удалось отправить заявку. Попробуйте еще раз.',
         { id: toastId }
       )
     } finally {
@@ -148,31 +148,31 @@ export default function RequestPage() {
         <div className="panel panel-glass rounded-2xl p-6 sm:p-8">
           <div className="mb-6">
             <h1 className="text-2xl sm:text-3xl font-semibold text-white">
-              {'\u041f\u043e\u0434\u0430\u0442\u044c \u0437\u0430\u044f\u0432\u043a\u0443'}
+              {'Подать заявку'}
             </h1>
             <p className="text-sm text-slate-300/80 mt-2">
-              {'\u041e\u0442\u043f\u0440\u0430\u0432\u044c\u0442\u0435 \u0437\u0430\u044f\u0432\u043a\u0443 \u0447\u0435\u0440\u0435\u0437 \u0444\u043e\u0440\u043c\u0443, \u0438 \u043e\u043d\u0430 \u0441\u0440\u0430\u0437\u0443 \u043f\u043e\u043f\u0430\u0434\u0435\u0442 \u0432 \u043d\u0430\u0448\u0443 \u0441\u0438\u0441\u0442\u0435\u043c\u0443.'}
+              {'Отправьте заявку через форму, и она сразу попадет в нашу систему.'}
             </p>
           </div>
 
           {submitted ? (
             <div className="space-y-4">
               <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-emerald-200">
-                {'\u0421\u043f\u0430\u0441\u0438\u0431\u043e! \u0417\u0430\u044f\u0432\u043a\u0430 \u043f\u0440\u0438\u043d\u044f\u0442\u0430.'}
+                {'Спасибо! Заявка принята.'}
               </div>
               <button
                 type="button"
                 onClick={resetForm}
                 className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/20 transition"
               >
-                {'\u041e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0435\u0449\u0435 \u043e\u0434\u043d\u0443'}
+                {'Отправить еще одну'}
               </button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  {'\u041e\u0440\u0433\u0430\u043d\u0438\u0437\u0430\u0446\u0438\u044f *'}
+                  {'Организация *'}
                 </label>
                 <input
                   type="text"
@@ -181,14 +181,14 @@ export default function RequestPage() {
                   value={form.organization}
                   onChange={handleChange}
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500"
-                  placeholder="\u041d\u0430\u0438\u043c\u0435\u043d\u043e\u0432\u0430\u043d\u0438\u0435 \u043e\u0440\u0433\u0430\u043d\u0438\u0437\u0430\u0446\u0438\u0438"
+                  placeholder="Наименование организации"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    {'\u041a\u043e\u043d\u0442\u0430\u043a\u0442\u043d\u043e\u0435 \u043b\u0438\u0446\u043e *'}
+                    {'Контактное лицо *'}
                   </label>
                   <input
                     type="text"
@@ -197,12 +197,12 @@ export default function RequestPage() {
                     value={form.contactName}
                     onChange={handleChange}
                     className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500"
-                    placeholder="\u041a\u043e\u043c\u0443 \u043e\u0442\u0432\u0435\u0447\u0430\u0442\u044c"
+                    placeholder="Кому отвечать"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    {'\u0422\u0435\u043b\u0435\u0444\u043e\u043d *'}
+                    {'Телефон *'}
                   </label>
                   <input
                     type="tel"
@@ -249,7 +249,7 @@ export default function RequestPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  {'\u0421\u043e\u0434\u0435\u0440\u0436\u0430\u043d\u0438\u0435 \u043f\u0440\u043e\u0431\u043b\u0435\u043c\u044b *'}
+                  {'Содержание проблемы *'}
                 </label>
                 <textarea
                   name="description"
@@ -258,18 +258,18 @@ export default function RequestPage() {
                   onChange={handleChange}
                   rows={6}
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500 resize-none"
-                  placeholder="\u041e\u043f\u0438\u0448\u0438\u0442\u0435, \u0447\u0442\u043e \u043d\u0443\u0436\u043d\u043e \u0441\u0434\u0435\u043b\u0430\u0442\u044c, \u043a\u0430\u043a\u043e\u0439 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u043e\u0436\u0438\u0434\u0430\u0435\u0442\u0441\u044f."
+                  placeholder="Опишите, что нужно сделать, какой результат ожидается."
                 />
               </div>
 
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-gray-300">
-                  {'\u0412\u043b\u043e\u0436\u0435\u043d\u0438\u044f'}
+                  {'Вложения'}
                 </label>
                 <div className="flex flex-col gap-3">
                   <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 border border-dashed border-gray-500 rounded-lg text-sm text-gray-200 hover:border-emerald-500 hover:text-white cursor-pointer">
                     <Paperclip className="w-4 h-4" />
-                    {'\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0444\u0430\u0439\u043b\u044b'}
+                    {'Добавить файлы'}
                     <input
                       type="file"
                       multiple
@@ -279,7 +279,7 @@ export default function RequestPage() {
                     />
                   </label>
                   <p className="text-xs text-slate-400">
-                    {`\u0414\u043e ${REQUEST_MAX_FILES} \u0444\u0430\u0439\u043b\u043e\u0432, \u0434\u043e ${MAX_FILE_SIZE_LABEL} \u043a\u0430\u0436\u0434\u044b\u0439. \u041f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u044e\u0442\u0441\u044f \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u044b \u0438 \u0444\u043e\u0442\u043e.`}
+                    {`До ${REQUEST_MAX_FILES} файлов, до ${MAX_FILE_SIZE_LABEL} каждый. Поддерживаются документы и фото.`}
                   </p>
                 </div>
 
@@ -325,8 +325,8 @@ export default function RequestPage() {
               >
                 <Send className={`w-4 h-4 ${submitting ? 'animate-pulse' : ''}`} />
                 {submitting
-                  ? '\u041e\u0442\u043f\u0440\u0430\u0432\u043a\u0430...'
-                  : '\u041e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0437\u0430\u044f\u0432\u043a\u0443'}
+                  ? 'Отправка...'
+                  : 'Отправить заявку'}
               </button>
             </form>
           )}

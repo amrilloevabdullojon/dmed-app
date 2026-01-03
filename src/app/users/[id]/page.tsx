@@ -124,7 +124,7 @@ const ROLE_BADGE_CLASSES: Record<UserSummary['role'], string> = {
 }
 
 export default function UserProfilePage() {
-  const toast = useToast()
+  const { error: toastError } = useToast()
   const { data: session, status: authStatus } = useSession()
   useAuthRedirect(authStatus)
   const params = useParams<{ id: string }>()
@@ -164,11 +164,11 @@ export default function UserProfilePage() {
     } catch (err) {
       console.error('Failed to load profile:', err)
       setError('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u043f\u0440\u043e\u0444\u0438\u043b\u044c')
-      toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u043f\u0440\u043e\u0444\u0438\u043b\u044c')
+      toastError('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u043f\u0440\u043e\u0444\u0438\u043b\u044c')
     } finally {
       setLoading(false)
     }
-  }, [authStatus, params.id, toast])
+  }, [authStatus, params.id, toastError])
 
   useEffect(() => {
     loadProfile()

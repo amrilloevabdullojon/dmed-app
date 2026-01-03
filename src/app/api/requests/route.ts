@@ -15,8 +15,9 @@ import {
 import { saveLocalRequestUpload } from '@/lib/file-storage'
 import { FileStorageProvider, Prisma } from '@prisma/client'
 import { formatNewRequestMessage, sendTelegramMessage } from '@/lib/telegram'
-import { createHash } from 'crypto'
+import { createHash, randomUUID } from 'crypto'
 import { extname } from 'path'
+import { logger } from '@/lib/logger'
 
 const ALLOWED_REQUEST_EXTENSIONS = new Set(
   REQUEST_ALLOWED_FILE_EXTENSIONS.split(',')
@@ -52,10 +53,13 @@ const buildRequestIpHash = (identifier: string) =>
 
 export const GET = withValidation(
   async (_request, _session, { query }) => {
-    const { page, limit, status, search } = query
-    const pageValue = page ?? 1
-    const limitValue = limit ?? PAGE_SIZE
-    const where: Prisma.RequestWhereInput = {}
+    const requestId = randomUUID()
+    const startTime = Date.now()
+    try {
+      const { page, limit, status, search } = query
+      const pageValue = page ?? 1
+      const limitValue = limit ?? PAGE_SIZE
+      const where: Prisma.RequestWhereInput = {}
 
     if (status) {
       where.status = status
@@ -75,8 +79,10 @@ export const GET = withValidation(
       }
     }
 
-    const [requests, total] = await Promise.all([
-      prisma.request.findMany({
+      const findStart = Date.now()
+      let findMs = 0
+      let countMs = 0
+      const requestsPromise = prisma.request.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         skip: (pageValue - 1) * limitValue,
@@ -85,22 +91,59 @@ export const GET = withValidation(
           assignedTo: { select: { id: true, name: true, email: true } },
           _count: { select: { files: true } },
         },
-      }),
-      prisma.request.count({ where }),
-    ])
+      }).then((result) => {
+        findMs = Date.now() - findStart
+        return result
+      })
+      const countStart = Date.now()
+      const countPromise = prisma.request.count({ where }).then((result) => {
+        countMs = Date.now() - countStart
+        return result
+      })
 
-    return NextResponse.json({
-      requests: requests.map((request) => ({
-        ...request,
-        description: request.description ? request.description.slice(0, 240) : '',
-      })),
-      pagination: {
+      const [requests, total] = await Promise.all([requestsPromise, countPromise])
+      const totalDuration = Date.now() - startTime
+      const logMeta = {
+        requestId,
+        durationMs: totalDuration,
+        findMs,
+        countMs,
+        total,
         page: pageValue,
         limit: limitValue,
-        total,
-        totalPages: Math.ceil(total / limitValue),
-      },
-    })
+        status,
+        search: search?.trim() || undefined,
+      }
+
+      if (totalDuration > 1500) {
+        logger.warn('GET /api/requests', 'Slow request', logMeta)
+      } else {
+        logger.info('GET /api/requests', 'Request completed', logMeta)
+      }
+
+      return NextResponse.json({
+        requests: requests.map((request) => ({
+          ...request,
+          description: request.description ? request.description.slice(0, 240) : '',
+        })),
+        pagination: {
+          page: pageValue,
+          limit: limitValue,
+          total,
+          totalPages: Math.ceil(total / limitValue),
+        },
+      })
+    } catch (error) {
+      logger.error('GET /api/requests', error, { requestId, query })
+      return NextResponse.json(
+        {
+          error: 'Не удалось загрузить заявки.',
+          details: error instanceof Error ? error.message : String(error),
+          requestId,
+        },
+        { status: 500 }
+      )
+    }
   },
   { querySchema: requestQuerySchema, rateLimit: 'search' }
 )

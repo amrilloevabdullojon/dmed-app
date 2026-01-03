@@ -1,5 +1,7 @@
 type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
+import { getRequestContext } from '@/lib/request-context'
+
 interface LogEntry {
   level: LogLevel
   context: string
@@ -46,13 +48,21 @@ function createLogEntry(
     message = String(messageOrError)
   }
 
+  const requestContext = getRequestContext()
+  const mergedMeta = {
+    ...(meta || {}),
+    ...(requestContext?.requestId && !meta?.requestId
+      ? { requestId: requestContext.requestId }
+      : {}),
+  }
+
   return {
     level,
     context,
     message,
     timestamp: new Date().toISOString(),
     stack,
-    meta,
+    meta: Object.keys(mergedMeta).length > 0 ? mergedMeta : undefined,
   }
 }
 

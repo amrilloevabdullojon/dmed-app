@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'crypto'
 import { getServerSession, Session } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { logger } from '@/lib/logger'
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
+import { runWithRequestContext } from '@/lib/request-context'
 import type { Role } from '@prisma/client'
 import { z, ZodSchema, ZodError } from 'zod'
 
@@ -83,6 +85,15 @@ function parseQueryParams(url: URL): Record<string, string> {
   return params
 }
 
+function getRequestId(req: NextRequest): string {
+  return (
+    req.headers.get('x-request-id') ||
+    req.headers.get('x-correlation-id') ||
+    req.headers.get('x-amzn-trace-id') ||
+    randomUUID()
+  )
+}
+
 /**
  * Create a timeout promise
  */
@@ -124,105 +135,111 @@ export function withAuth<T>(
   options: HandlerOptions = {}
 ): (req: NextRequest) => Promise<NextResponse<T | { error: string }>> {
   return async (req: NextRequest) => {
-    const startTime = Date.now()
-    const context = `${req.method} ${req.nextUrl.pathname}`
-    const timeoutMs = options.timeout ?? 30000
+    const requestId = getRequestId(req)
+    const response = await runWithRequestContext(async () => {
+      const startTime = Date.now()
+      const context = `${req.method} ${req.nextUrl.pathname}`
+      const timeoutMs = options.timeout ?? 30000
 
-    try {
-      // Rate limiting
-      if (options.rateLimit) {
-        const config =
-          typeof options.rateLimit === 'string' ? RATE_LIMITS[options.rateLimit] : options.rateLimit
+      try {
+        // Rate limiting
+        if (options.rateLimit) {
+          const config =
+            typeof options.rateLimit === 'string' ? RATE_LIMITS[options.rateLimit] : options.rateLimit
 
-        const identifier = getClientIdentifier(req.headers)
-        const result = checkRateLimit(
-          `${identifier}:${req.nextUrl.pathname}`,
-          config.limit,
-          config.windowMs
-        )
+          const identifier = getClientIdentifier(req.headers)
+          const result = checkRateLimit(
+            `${identifier}:${req.nextUrl.pathname}`,
+            config.limit,
+            config.windowMs
+          )
 
-        if (!result.success) {
-          logger.warn(context, 'Rate limit exceeded', { identifier })
-          return NextResponse.json(
-            { error: 'Слишком много запросов. Попробуйте позже.' },
-            {
-              status: 429,
-              headers: {
-                'Retry-After': String(Math.ceil((result.reset - Date.now()) / 1000)),
-                'X-RateLimit-Remaining': String(result.remaining),
-                'X-RateLimit-Reset': String(result.reset),
-              },
-            }
-          ) as NextResponse<{ error: string }>
-        }
-      }
-
-      // Authentication check
-      if (!options.public) {
-        const session = (await getServerSession(authOptions)) as AuthenticatedSession | null
-
-        if (!session) {
-          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) as NextResponse<{
-            error: string
-          }>
+          if (!result.success) {
+            logger.warn(context, 'Rate limit exceeded', { identifier })
+            return NextResponse.json(
+              { error: 'Слишком много запросов. Попробуйте позже.' },
+              {
+                status: 429,
+                headers: {
+                  'Retry-After': String(Math.ceil((result.reset - Date.now()) / 1000)),
+                  'X-RateLimit-Remaining': String(result.remaining),
+                  'X-RateLimit-Reset': String(result.reset),
+                },
+              }
+            ) as NextResponse<{ error: string }>
+          }
         }
 
-        // Role check
-        if (options.minRole && !hasMinRole(session.user.role, options.minRole)) {
-          logger.warn(context, 'Insufficient permissions', {
-            userId: session.user.id,
-            userRole: session.user.role,
-            requiredRole: options.minRole,
-          })
-          return NextResponse.json(
-            { error: 'Недостаточно прав для выполнения операции' },
-            { status: 403 }
-          ) as NextResponse<{ error: string }>
+        // Authentication check
+        if (!options.public) {
+          const session = (await getServerSession(authOptions)) as AuthenticatedSession | null
+
+          if (!session) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) as NextResponse<{
+              error: string
+            }>
+          }
+
+          // Role check
+          if (options.minRole && !hasMinRole(session.user.role, options.minRole)) {
+            logger.warn(context, 'Insufficient permissions', {
+              userId: session.user.id,
+              userRole: session.user.role,
+              requiredRole: options.minRole,
+            })
+            return NextResponse.json(
+              { error: 'Недостаточно прав для выполнения операции' },
+              { status: 403 }
+            ) as NextResponse<{ error: string }>
+          }
+
+          // Execute handler with timeout
+          const handlerPromise = handler(req, session)
+          const response = await Promise.race([handlerPromise, createTimeout(timeoutMs)])
+
+          // Log response time
+          const duration = Date.now() - startTime
+          if (duration > 1000) {
+            logger.warn(context, `Slow request: ${duration}ms`, { duration })
+          } else {
+            logger.debug(context, `Request completed in ${duration}ms`, { duration })
+          }
+
+          return response
         }
 
-        // Execute handler with timeout
-        const handlerPromise = handler(req, session)
+        // Public endpoint - pass null session (handler should handle this)
+        const handlerPromise = handler(req, null as unknown as AuthenticatedSession)
         const response = await Promise.race([handlerPromise, createTimeout(timeoutMs)])
 
-        // Log response time
         const duration = Date.now() - startTime
         if (duration > 1000) {
           logger.warn(context, `Slow request: ${duration}ms`, { duration })
-        } else {
-          logger.debug(context, `Request completed in ${duration}ms`, { duration })
         }
 
         return response
-      }
+      } catch (error) {
+        const duration = Date.now() - startTime
 
-      // Public endpoint - pass null session (handler should handle this)
-      const handlerPromise = handler(req, null as unknown as AuthenticatedSession)
-      const response = await Promise.race([handlerPromise, createTimeout(timeoutMs)])
+        if (error instanceof Error && error.message === 'Request timeout') {
+          logger.error(context, `Request timeout after ${timeoutMs}ms`)
+          return NextResponse.json(
+            { error: 'Превышено время ожидания запроса' },
+            { status: 504 }
+          ) as NextResponse<{ error: string }>
+        }
 
-      const duration = Date.now() - startTime
-      if (duration > 1000) {
-        logger.warn(context, `Slow request: ${duration}ms`, { duration })
-      }
+        logger.error(context, error, { duration })
 
-      return response
-    } catch (error) {
-      const duration = Date.now() - startTime
-
-      if (error instanceof Error && error.message === 'Request timeout') {
-        logger.error(context, `Request timeout after ${timeoutMs}ms`)
         return NextResponse.json(
-          { error: 'Превышено время ожидания запроса' },
-          { status: 504 }
+          { error: 'Внутренняя ошибка сервера' },
+          { status: 500 }
         ) as NextResponse<{ error: string }>
       }
+    }, requestId)
 
-      logger.error(context, error, { duration })
-
-      return NextResponse.json(
-        { error: 'Внутренняя ошибка сервера' },
-        { status: 500 }
-      ) as NextResponse<{ error: string }>
-    }
+    response.headers.set('x-request-id', requestId)
+    return response
   }
 }
 
@@ -249,103 +266,116 @@ export function withValidation<T, TBody = unknown, TQuery = unknown>(
   options: HandlerOptions<TBody, TQuery> = {}
 ): (req: NextRequest) => Promise<NextResponse<T | { error: string }>> {
   return async (req: NextRequest) => {
-    const startTime = Date.now()
-    const logContext = `${req.method} ${req.nextUrl.pathname}`
-    const timeoutMs = options.timeout ?? 30000
+    const requestId = getRequestId(req)
+    const response = await runWithRequestContext(async () => {
+      const startTime = Date.now()
+      const logContext = `${req.method} ${req.nextUrl.pathname}`
+      const timeoutMs = options.timeout ?? 30000
 
-    try {
-      // Rate limiting
-      if (options.rateLimit) {
-        const config =
-          typeof options.rateLimit === 'string' ? RATE_LIMITS[options.rateLimit] : options.rateLimit
+      try {
+        // Rate limiting
+        if (options.rateLimit) {
+          const config =
+            typeof options.rateLimit === 'string' ? RATE_LIMITS[options.rateLimit] : options.rateLimit
 
-        const identifier = getClientIdentifier(req.headers)
-        const result = checkRateLimit(
-          `${identifier}:${req.nextUrl.pathname}`,
-          config.limit,
-          config.windowMs
-        )
+          const identifier = getClientIdentifier(req.headers)
+          const result = checkRateLimit(
+            `${identifier}:${req.nextUrl.pathname}`,
+            config.limit,
+            config.windowMs
+          )
 
-        if (!result.success) {
-          logger.warn(logContext, 'Rate limit exceeded', { identifier })
-          return NextResponse.json(
-            { error: 'Слишком много запросов. Попробуйте позже.' },
-            {
-              status: 429,
-              headers: {
-                'Retry-After': String(Math.ceil((result.reset - Date.now()) / 1000)),
-                'X-RateLimit-Remaining': String(result.remaining),
-                'X-RateLimit-Reset': String(result.reset),
-              },
-            }
-          ) as NextResponse<{ error: string }>
-        }
-      }
-
-      // Validate query params
-      let validatedQuery: TQuery = {} as TQuery
-      if (options.querySchema) {
-        const rawQuery = parseQueryParams(req.nextUrl)
-        const queryResult = options.querySchema.safeParse(rawQuery)
-        if (!queryResult.success) {
-          return NextResponse.json(
-            { error: `Некорректные параметры запроса: ${formatZodErrors(queryResult.error)}` },
-            { status: 400 }
-          ) as NextResponse<{ error: string }>
-        }
-        validatedQuery = queryResult.data
-      }
-
-      // Validate request body
-      let validatedBody: TBody = {} as TBody
-      if (options.bodySchema) {
-        try {
-          const rawBody = await req.json()
-          const bodyResult = options.bodySchema.safeParse(rawBody)
-          if (!bodyResult.success) {
+          if (!result.success) {
+            logger.warn(logContext, 'Rate limit exceeded', { identifier })
             return NextResponse.json(
-              { error: `Некорректные данные: ${formatZodErrors(bodyResult.error)}` },
+              { error: 'Слишком много запросов. Попробуйте позже.' },
+              {
+                status: 429,
+                headers: {
+                  'Retry-After': String(Math.ceil((result.reset - Date.now()) / 1000)),
+                  'X-RateLimit-Remaining': String(result.remaining),
+                  'X-RateLimit-Reset': String(result.reset),
+                },
+              }
+            ) as NextResponse<{ error: string }>
+          }
+        }
+
+        // Validate query params
+        let validatedQuery: TQuery = {} as TQuery
+        if (options.querySchema) {
+          const rawQuery = parseQueryParams(req.nextUrl)
+          const queryResult = options.querySchema.safeParse(rawQuery)
+          if (!queryResult.success) {
+            return NextResponse.json(
+              { error: `Некорректные параметры запроса: ${formatZodErrors(queryResult.error)}` },
               { status: 400 }
             ) as NextResponse<{ error: string }>
           }
-          validatedBody = bodyResult.data
-        } catch {
-          return NextResponse.json(
-            { error: 'Некорректный JSON в теле запроса' },
-            { status: 400 }
-          ) as NextResponse<{ error: string }>
-        }
-      }
-
-      const requestContext: RequestContext<TBody, TQuery> = {
-        body: validatedBody,
-        query: validatedQuery,
-      }
-
-      // Authentication check
-      if (!options.public) {
-        const session = (await getServerSession(authOptions)) as AuthenticatedSession | null
-
-        if (!session) {
-          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) as NextResponse<{
-            error: string
-          }>
+          validatedQuery = queryResult.data
         }
 
-        // Role check
-        if (options.minRole && !hasMinRole(session.user.role, options.minRole)) {
-          logger.warn(logContext, 'Insufficient permissions', {
-            userId: session.user.id,
-            userRole: session.user.role,
-            requiredRole: options.minRole,
-          })
-          return NextResponse.json(
-            { error: 'Недостаточно прав для выполнения операции' },
-            { status: 403 }
-          ) as NextResponse<{ error: string }>
+        // Validate request body
+        let validatedBody: TBody = {} as TBody
+        if (options.bodySchema) {
+          try {
+            const rawBody = await req.json()
+            const bodyResult = options.bodySchema.safeParse(rawBody)
+            if (!bodyResult.success) {
+              return NextResponse.json(
+                { error: `Некорректные данные: ${formatZodErrors(bodyResult.error)}` },
+                { status: 400 }
+              ) as NextResponse<{ error: string }>
+            }
+            validatedBody = bodyResult.data
+          } catch {
+            return NextResponse.json(
+              { error: 'Некорректный JSON в теле запроса' },
+              { status: 400 }
+            ) as NextResponse<{ error: string }>
+          }
         }
 
-        const handlerPromise = handler(req, session, requestContext)
+        const requestContext: RequestContext<TBody, TQuery> = {
+          body: validatedBody,
+          query: validatedQuery,
+        }
+
+        // Authentication check
+        if (!options.public) {
+          const session = (await getServerSession(authOptions)) as AuthenticatedSession | null
+
+          if (!session) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) as NextResponse<{
+              error: string
+            }>
+          }
+
+          // Role check
+          if (options.minRole && !hasMinRole(session.user.role, options.minRole)) {
+            logger.warn(logContext, 'Insufficient permissions', {
+              userId: session.user.id,
+              userRole: session.user.role,
+              requiredRole: options.minRole,
+            })
+            return NextResponse.json(
+              { error: 'Недостаточно прав для выполнения операции' },
+              { status: 403 }
+            ) as NextResponse<{ error: string }>
+          }
+
+          const handlerPromise = handler(req, session, requestContext)
+          const response = await Promise.race([handlerPromise, createTimeout(timeoutMs)])
+
+          const duration = Date.now() - startTime
+          if (duration > 1000) {
+            logger.warn(logContext, `Slow request: ${duration}ms`, { duration })
+          }
+
+          return response
+        }
+
+        const handlerPromise = handler(req, null as unknown as AuthenticatedSession, requestContext)
         const response = await Promise.race([handlerPromise, createTimeout(timeoutMs)])
 
         const duration = Date.now() - startTime
@@ -354,35 +384,28 @@ export function withValidation<T, TBody = unknown, TQuery = unknown>(
         }
 
         return response
-      }
+      } catch (error) {
+        const duration = Date.now() - startTime
 
-      const handlerPromise = handler(req, null as unknown as AuthenticatedSession, requestContext)
-      const response = await Promise.race([handlerPromise, createTimeout(timeoutMs)])
+        if (error instanceof Error && error.message === 'Request timeout') {
+          logger.error(logContext, `Request timeout after ${timeoutMs}ms`)
+          return NextResponse.json(
+            { error: 'Превышено время ожидания запроса' },
+            { status: 504 }
+          ) as NextResponse<{ error: string }>
+        }
 
-      const duration = Date.now() - startTime
-      if (duration > 1000) {
-        logger.warn(logContext, `Slow request: ${duration}ms`, { duration })
-      }
+        logger.error(logContext, error, { duration })
 
-      return response
-    } catch (error) {
-      const duration = Date.now() - startTime
-
-      if (error instanceof Error && error.message === 'Request timeout') {
-        logger.error(logContext, `Request timeout after ${timeoutMs}ms`)
         return NextResponse.json(
-          { error: 'Превышено время ожидания запроса' },
-          { status: 504 }
+          { error: 'Внутренняя ошибка сервера' },
+          { status: 500 }
         ) as NextResponse<{ error: string }>
       }
+    }, requestId)
 
-      logger.error(logContext, error, { duration })
-
-      return NextResponse.json(
-        { error: 'Внутренняя ошибка сервера' },
-        { status: 500 }
-      ) as NextResponse<{ error: string }>
-    }
+    response.headers.set('x-request-id', requestId)
+    return response
   }
 }
 
