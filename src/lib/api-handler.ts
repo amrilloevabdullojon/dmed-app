@@ -6,7 +6,7 @@ import { logger } from '@/lib/logger'
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
 import { runWithRequestContext } from '@/lib/request-context'
 import type { Role } from '@prisma/client'
-import { z, ZodSchema, ZodError } from 'zod'
+import { z, ZodError, ZodType, ZodTypeDef } from 'zod'
 
 /**
  * Extended session type with user role
@@ -32,10 +32,10 @@ interface HandlerOptions<TBody = unknown, TQuery = unknown> {
   public?: boolean
 
   /** Zod schema for request body validation */
-  bodySchema?: ZodSchema<TBody>
+  bodySchema?: ZodType<TBody, ZodTypeDef, unknown>
 
   /** Zod schema for query params validation */
-  querySchema?: ZodSchema<TQuery>
+  querySchema?: ZodType<TQuery, ZodTypeDef, unknown>
 
   /** Request timeout in milliseconds (default: 30000) */
   timeout?: number
