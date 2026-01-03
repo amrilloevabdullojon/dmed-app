@@ -10,6 +10,7 @@ import {
   X,
   Home,
   FileText,
+  Inbox,
   BarChart3,
   Settings,
   LogOut,
@@ -150,6 +151,10 @@ export function Header() {
             <Link href="/letters" className={navLinkClass('/letters')}>
               <FileText className="w-4 h-4" />
               {'\u041f\u0438\u0441\u044c\u043c\u0430'}
+            </Link>
+            <Link href="/requests" className={navLinkClass('/requests')}>
+              <Inbox className="w-4 h-4" />
+              {'\u0417\u0430\u044f\u0432\u043a\u0438'}
             </Link>
             <Link href="/reports" className={navLinkClass('/reports')}>
               <BarChart3 className="w-4 h-4" />
@@ -336,6 +341,16 @@ export function Header() {
           >
             <FileText className="w-5 h-5" />
             {'\u041f\u0438\u0441\u044c\u043c\u0430'}
+          </Link>
+
+          <Link
+            href="/requests"
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+              isActive('/requests') ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20' : 'text-slate-200/80 hover:bg-white/5'
+            }`}
+          >
+            <Inbox className="w-5 h-5" />
+            {'\u0417\u0430\u044f\u0432\u043a\u0438'}
           </Link>
 
           <Link

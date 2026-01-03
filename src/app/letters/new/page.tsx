@@ -19,7 +19,10 @@ import { useForm } from '@/hooks/useForm'
 import { createLetterSchema } from '@/lib/schemas'
 import { z, type ZodSchema } from 'zod'
 
-type CreateLetterFormValues = z.input<typeof createLetterSchema>
+type CreateLetterFormValues = Omit<z.input<typeof createLetterSchema>, 'date' | 'deadlineDate'> & {
+  date: string
+  deadlineDate: string
+}
 
 export default function NewLetterPage() {
   const { data: session, status } = useSession()

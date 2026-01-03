@@ -55,7 +55,7 @@ function parseSheetDate(value: string | null | undefined): Date | null {
     if (!isNaN(date.getTime())) return date
   }
 
-  // DD_¥?D¬Dø¥, D"D"/DoDo/D"D"D"D"
+  // Format DD/MM/YYYY
   const slashParts = strValue.split('/')
   if (slashParts.length === 3 && slashParts[0].length <= 2 && slashParts[1].length <= 2 && slashParts[2].length === 4) {
     const date = new Date(+slashParts[2], +slashParts[1] - 1, +slashParts[0])

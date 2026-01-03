@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const PUBLIC_PREFIXES = ['/login', '/u', '/portal']
+const PUBLIC_PATHS = ['/request']
 const PUBLIC_FILES = [
   '/favicon.ico',
   '/favicon.svg',
@@ -16,6 +17,7 @@ const hasSessionCookie = (request: NextRequest) =>
   request.cookies.has('__Secure-next-auth.session-token')
 
 const isPublicPath = (pathname: string) =>
+  PUBLIC_PATHS.includes(pathname) ||
   PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
   PUBLIC_FILES.includes(pathname) ||
   /\.[a-zA-Z0-9]+$/.test(pathname)

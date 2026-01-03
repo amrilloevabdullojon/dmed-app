@@ -1,6 +1,7 @@
 // Telegram Bot API интеграция
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
+const APP_URL = process.env.NEXTAUTH_URL || process.env.APP_URL || ""
 
 interface TelegramResponse {
   ok: boolean
@@ -63,6 +64,13 @@ export async function sendTelegramToMany(
 }
 
 // Уведомление о новом письме
+
+const escapeTelegramHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
 export function formatNewLetterMessage(letter: {
   number: string
   org: string
@@ -145,3 +153,50 @@ export function formatNewCommentMessage(data: {
 👤 ${data.author}:
 "${preview}"`
 }
+
+// ??????????? ? ????? ??????
+export function formatNewRequestMessage(data: {
+  id: string
+  organization: string
+  contactName: string
+  contactEmail: string
+  contactPhone: string
+  contactTelegram: string
+  description: string
+  filesCount?: number
+}): string {
+  const preview = data.description.length > 200
+    ? `${data.description.slice(0, 200)}...`
+    : data.description
+  const safePreview = escapeTelegramHtml(preview)
+  const safeOrg = escapeTelegramHtml(data.organization)
+  const safeName = escapeTelegramHtml(data.contactName)
+  const safeEmail = escapeTelegramHtml(data.contactEmail)
+  const safePhone = escapeTelegramHtml(data.contactPhone)
+  const safeTelegram = escapeTelegramHtml(data.contactTelegram)
+  const baseUrl = APP_URL ? APP_URL.replace(/\/$/, '') : ''
+  const link = baseUrl ? `${baseUrl}/requests/${data.id}` : `/requests/${data.id}`
+  const filesInfo = data.filesCount ? `
+
+Файлов: ${data.filesCount}` : ''
+
+  return `<b>Новая заявка</b>
+
+` +
+    `Организация: ${safeOrg}
+` +
+    `Контакт: ${safeName}
+` +
+    `Email: ${safeEmail}
+` +
+    `Телефон: ${safePhone}
+` +
+    `Telegram: ${safeTelegram}
+
+` +
+    `Описание: ${safePreview}${filesInfo}
+
+` +
+    `Открыть: <a href="${link}">${link}</a>`
+}
+

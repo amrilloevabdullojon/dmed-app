@@ -158,7 +158,7 @@ export default function LetterDetailPage() {
     },
     onError: (error) => {
       console.error(error)
-      toast.error('Failed to add comment')
+      toast.error('Не удалось добавить комментарий')
     },
   })
   const isCommentSubmitting = commentPending.size > 0
@@ -366,7 +366,7 @@ export default function LetterDetailPage() {
     const result = await addComment(optimisticComment)
     if (result) {
       setCommentText('')
-      toast.success('??????????? ????????')
+      toast.success('Комментарий добавлен')
     }
   }
   const toggleFavorite = async () => {

@@ -48,7 +48,7 @@ export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
   const { data, isLoading } = useLetter(letterId)
   const letter = letterId ? (data as Letter | null) : null
 
-  // ╨ù╨░╨║╤Ç╤ï╤é╨╕╨╡ ╨┐╨╛ Escape
+  // Close on Escape
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -178,7 +178,7 @@ export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
               {/* Answer */}
               {letter.answer && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-400 mb-2">╨₧╤é╨▓╨╡╤é</h4>
+                  <h4 className="text-sm font-medium text-gray-400 mb-2">Ответ</h4>
                   <p className="text-white whitespace-pre-wrap text-sm">{letter.answer}</p>
                 </div>
               )}
@@ -202,7 +202,7 @@ export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
               {/* Comment */}
               {letter.comment && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-400 mb-2">╨Ü╨╛╨╝╨╝╨╡╨╜╤é╨░╤Ç╨╕╨╣</h4>
+                  <h4 className="text-sm font-medium text-gray-400 mb-2">Комментарий</h4>
                   <p className="text-gray-300 whitespace-pre-wrap text-sm">{letter.comment}</p>
                 </div>
               )}

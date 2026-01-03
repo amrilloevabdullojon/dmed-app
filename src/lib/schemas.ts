@@ -73,6 +73,34 @@ export const bulkLetterSchema = z.object({
   ownerId: z.string().cuid().optional(),
 })
 
+
+// ==================== REQUEST ====================
+
+const requestStatuses = ['NEW', 'IN_REVIEW', 'DONE', 'SPAM'] as const
+
+export const requestStatusSchema = z.enum(requestStatuses)
+
+export const createRequestSchema = z.object({
+  organization: z.string().min(1, 'Организация обязательна').max(500),
+  contactName: z.string().min(1, 'Контактное лицо обязательно').max(200),
+  contactEmail: z.string().email('Укажите корректный email').max(320),
+  contactPhone: z.string().min(3, 'Укажите телефон').max(50),
+  contactTelegram: z.string().min(2, 'Укажите Telegram').max(100),
+  description: z.string().min(1, 'Опишите проблему').max(10000),
+})
+
+export const requestFiltersSchema = z.object({
+  status: requestStatusSchema.optional(),
+  search: z.string().max(200).optional(),
+})
+
+export const requestQuerySchema = paginationSchema.merge(requestFiltersSchema)
+
+export const updateRequestSchema = z.object({
+  status: requestStatusSchema.optional(),
+  assignedToId: z.string().cuid().nullable().optional(),
+})
+
 // ==================== COMMENT ====================
 
 export const createCommentSchema = z.object({
@@ -143,6 +171,11 @@ export type CreateLetterInput = z.infer<typeof createLetterSchema>
 export type UpdateLetterInput = z.infer<typeof updateLetterSchema>
 export type LetterFiltersInput = z.infer<typeof letterFiltersSchema>
 export type BulkLetterInput = z.infer<typeof bulkLetterSchema>
+
+export type CreateRequestInput = z.infer<typeof createRequestSchema>
+export type RequestFiltersInput = z.infer<typeof requestFiltersSchema>
+export type RequestQueryInput = z.infer<typeof requestQuerySchema>
+export type UpdateRequestInput = z.infer<typeof updateRequestSchema>
 export type CreateCommentInput = z.infer<typeof createCommentSchema>
 export type UpdateUserInput = z.infer<typeof updateUserSchema>
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>

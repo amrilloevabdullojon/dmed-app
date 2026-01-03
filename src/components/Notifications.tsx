@@ -152,7 +152,7 @@ export function Notifications() {
           })
         }}
         className="relative p-2 text-gray-400 hover:text-white transition"
-        aria-label="╨₧╤é╨║╤Ç╤ï╤é╤î ╤â╨▓╨╡╨┤╨╛╨╝╨╗╨╡╨╜╨╕╤Å"
+        aria-label="Открыть уведомления"
       >
         <Bell className="w-5 h-5" />
         {totalCount > 0 && (
@@ -168,20 +168,20 @@ export function Notifications() {
 
           <div className="absolute right-0 top-full mt-2 w-96 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 max-h-[70vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
-              <h3 className="text-white font-medium">╨ú╨▓╨╡╨┤╨╛╨╝╨╗╨╡╨╜╨╕╤Å</h3>
+              <h3 className="text-white font-medium">Уведомления</h3>
               <div className="flex items-center gap-2">
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllRead}
                     className="text-xs text-emerald-400 hover:text-emerald-300 transition"
                   >
-                    ╨ƒ╤Ç╨╛╤ç╨╕╤é╨░╤é╤î ╨▓╤ü╨╡
+                    Прочитать все
                   </button>
                 )}
                 <button
                   onClick={() => setIsOpen(false)}
                   className="p-1 text-gray-400 hover:text-white transition"
-                  aria-label="╨ù╨░╨║╤Ç╤ï╤é╤î"
+                  aria-label="Закрыть"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -191,7 +191,7 @@ export function Notifications() {
             <div className="max-h-64 overflow-y-auto">
               {userNotifications.length === 0 ? (
                 <div className="p-4 text-sm text-gray-500 border-b border-gray-700">
-                  ╨¥╨╡╤é ╨╜╨╛╨▓╤ï╤à ╤â╨▓╨╡╨┤╨╛╨╝╨╗╨╡╨╜╨╕╨╣
+                  Нет новых уведомлений
                 </div>
               ) : (
                 <div className="divide-y divide-gray-700 border-b border-gray-700">
@@ -232,18 +232,19 @@ export function Notifications() {
             <div className="flex border-b border-gray-700">
               <div className="flex-1 px-4 py-2 text-center border-r border-gray-700">
                 <div className="text-red-400 font-bold">{overdueCount}</div>
-                <div className="text-xs text-gray-500">╨ƒ╤Ç╨╛╤ü╤Ç╨╛╤ç╨╡╨╜╨╛</div>
+                <div className="text-xs text-gray-500">Просрочено</div>
               </div>
               <div className="flex-1 px-4 py-2 text-center">
                 <div className="text-yellow-400 font-bold">{urgentCount}</div>
-                <div className="text-xs text-gray-500">╨í╤Ç╨╛╤ç╨╜╤ï╤à</div>
+                <div className="text-xs text-gray-500">Срочных</div>
+              </div>
               </div>
             </div>
 
             <div ref={notificationsRef} className="overflow-y-auto flex-1">
               {notifications.length === 0 ? (
                 <div className="p-8 text-center text-gray-500">
-                  ╨¥╨╡╤é ╤â╨▓╨╡╨┤╨╛╨╝╨╗╨╡╨╜╨╕╨╣
+                  Нет уведомлений
                 </div>
               ) : (
                 <div className="relative" style={{ height: `${notificationsTotalSize}px` }}>
@@ -284,7 +285,7 @@ export function Notifications() {
                               }`}
                             >
                               {notif.type === 'overdue'
-                                ? `╨ƒ╤Ç╨╛╤ü╤Ç╨╛╤ç╨╡╨╜╨╛ ╨╜╨░ ${Math.abs(notif.daysLeft)} ${pluralizeDays(notif.daysLeft)}`
+                                ? `Просрочено на ${Math.abs(notif.daysLeft)} ${pluralizeDays(notif.daysLeft)}`
                                 : `${notif.daysLeft} ${pluralizeDays(notif.daysLeft)}`}
                             </span>
                           </div>
@@ -292,7 +293,7 @@ export function Notifications() {
                             {notif.letter.org}
                           </div>
                           <div className="text-xs text-gray-500">
-                            ╨ö╨╡╨┤╨╗╨░╨╣╨╜: {formatDate(notif.letter.deadlineDate)}
+                            Дедлайн: {formatDate(notif.letter.deadlineDate)}
                           </div>
                         </div>
                         <ChevronRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
@@ -307,7 +308,7 @@ export function Notifications() {
               onClick={() => setIsOpen(false)}
               className="block px-4 py-3 text-center text-sm text-emerald-400 hover:text-emerald-300 border-t border-gray-700 transition"
             >
-              ╨ƒ╨╛╨║╨░╨╖╨░╤é╤î ╨▓╤ü╨╡ ╨┐╤Ç╨╛╤ü╤Ç╨╛╤ç╨╡╨╜╨╜╤ï╨╡
+              Показать все просроченные
             </Link>
           </div>
         </>

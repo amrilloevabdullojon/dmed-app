@@ -12,7 +12,7 @@ import { useKeyboard } from '@/hooks/useKeyboard'
 import { useDebouncedCallback } from '@/hooks/useDebounce'
 import { usePagination } from '@/hooks/usePagination'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { useEffect, useState, useRef, useCallback, useMemo, Suspense } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo, Suspense, startTransition } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import type { LetterStatus } from '@prisma/client'
 import { STATUS_LABELS } from '@/lib/utils'
@@ -102,6 +102,16 @@ const FILTERS = [
 
 type ViewMode = 'cards' | 'table'
 type SortField = 'created' | 'deadline' | 'date' | 'number' | 'org' | 'status' | 'priority'
+
+const pluralizeLetters = (count: number) => {
+  const value = Math.abs(count) % 100
+  const lastDigit = value % 10
+
+  if (value > 10 && value < 20) return '\u043f\u0438\u0441\u0435\u043c'
+  if (lastDigit === 1) return '\u043f\u0438\u0441\u044c\u043c\u043e'
+  if (lastDigit > 1 && lastDigit < 5) return '\u043f\u0438\u0441\u044c\u043c\u0430'
+  return '\u043f\u0438\u0441\u0435\u043c'
+}
 
 function LettersPageContent() {
   const { data: session, status: authStatus } = useSession()
@@ -316,13 +326,15 @@ function LettersPageContent() {
       const data = await res.json()
       if (requestId !== lettersRequestIdRef.current) return
 
-      setLetters(data.letters || [])
-      setPagination(data.pagination)
-      setSelectedIds(new Set())
+      startTransition(() => {
+        setLetters(data.letters || [])
+        setPagination(data.pagination)
+        setSelectedIds((prev) => (prev.size ? new Set() : prev))
+      })
     } catch (error) {
       if (controller.signal.aborted) return
       console.error('Failed to load letters:', error)
-      toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u043f\u0438\u0441\u044c\u043c\u0430')
+      toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0441\u043f\u0438\u0441\u043e\u043a \u043f\u0438\u0441\u0435\u043c')
     } finally {
       if (requestId === lettersRequestIdRef.current) {
         setLoading(false)
@@ -394,7 +406,7 @@ function LettersPageContent() {
     }
   }, [session, loadUsers])
 
-  // Debounced search ? D,DD'D,DDD_D_D
+  // Debounced search
   useEffect(() => {
     if (!session) return
     if (search) setIsSearching(true)
@@ -429,17 +441,22 @@ function LettersPageContent() {
       const data = await res.json()
 
       if (data.success) {
-        toast.success(`\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e ${data.updated} \u043f\u0438\u0441\u0435\u043c`)
+        toast.success(
+          `\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e ${data.updated} ${pluralizeLetters(data.updated)}`
+        )
         setBulkAction(null)
         setBulkValue('')
         setSelectedIds(new Set())
         loadLetters()
       } else {
-        toast.error(data.error || '\u041e\u0448\u0438\u0431\u043a\u0430')
+        toast.error(
+          data.error ||
+            '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0432\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u044c \u043e\u043f\u0435\u0440\u0430\u0446\u0438\u044e'
+        )
       }
     } catch (error) {
       console.error('Bulk action error:', error)
-      toast.error('\u041e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u0438 \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u0438 \u043e\u043f\u0435\u0440\u0430\u0446\u0438\u0438')
+      toast.error('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0432\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u044c \u043e\u043f\u0435\u0440\u0430\u0446\u0438\u044e')
     } finally {
       setBulkLoading(false)
     }

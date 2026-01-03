@@ -7,12 +7,15 @@ import { Loader2 } from 'lucide-react'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 
 const PUBLIC_PREFIXES = ['/login', '/portal', '/u']
+const PUBLIC_PATHS = ['/request']
 
 export function AuthGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const { status } = useSession()
 
-  const isPublic = PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  const isPublic =
+    PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
+    PUBLIC_PATHS.includes(pathname)
   useAuthRedirect(isPublic ? 'authenticated' : status)
 
   if (isPublic) return <>{children}</>

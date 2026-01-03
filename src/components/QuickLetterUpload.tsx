@@ -244,7 +244,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
         })
 
         if (uploadRes.status === 413) {
-          toast.error('DDøD1D¯ ¥?D¯D,¥^D§D_D¬ DñD_D¯¥O¥^D_D1 (413)')
+          toast.error('Файл слишком большой (413)')
         } else if (!uploadRes.ok) {
           const uploadError = await uploadRes.json().catch(() => null)
           const uploadMessage = uploadError?.error || 'Failed to upload file'

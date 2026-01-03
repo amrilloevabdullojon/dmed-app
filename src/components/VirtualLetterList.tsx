@@ -46,7 +46,7 @@ export function VirtualLetterList({
 }: VirtualLetterListProps) {
   const parentRef = useRef<HTMLDivElement>(null)
 
-  // ╨á╨░╤ü╤ç╤æ╤é ╨║╨╛╨╗╨╕╤ç╨╡╤ü╤é╨▓╨░ ╨║╨╛╨╗╨╛╨╜╨╛╨║ ╨▓ ╨╖╨░╨▓╨╕╤ü╨╕╨╝╨╛╤ü╤é╨╕ ╨╛╤é ╤ê╨╕╤Ç╨╕╨╜╤ï
+  // Calculate column count based on width
   const getColumnCount = () => {
     if (typeof window === 'undefined') return 3
     if (window.innerWidth < 768) return 1
@@ -60,7 +60,7 @@ export function VirtualLetterList({
   const rowVirtualizer = useVirtualizer({
     count: rowCount,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 320, // ╨ƒ╤Ç╨╕╨╝╨╡╤Ç╨╜╨░╤Å ╨▓╤ï╤ü╨╛╤é╨░ ╨║╨░╤Ç╤é╨╛╤ç╨║╨╕
+    estimateSize: () => 320, // Approximate card height
     overscan: 3,
   })
 
@@ -99,7 +99,7 @@ export function VirtualLetterList({
                           ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30'
                           : 'bg-white/10 text-slate-300 opacity-0 group-hover:opacity-100'
                       }`}
-                      aria-label={`╨Æ╤ï╨▒╤Ç╨░╤é╤î ╨┐╨╕╤ü╤î╨╝╨╛ ${letter.number}`}
+                      aria-label={`Выбрать письмо ${letter.number}`}
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path
@@ -124,7 +124,7 @@ export function VirtualLetterList({
   )
 }
 
-// ╨Æ╨╕╤Ç╤é╤â╨░╨╗╨╕╨╖╨╛╨▓╨░╨╜╨╜╨░╤Å ╤é╨░╨▒╨╗╨╕╤å╨░
+// Virtualized table
 interface VirtualLetterTableProps {
   letters: Letter[]
   selectedIds: Set<string>
@@ -279,7 +279,7 @@ export function VirtualLetterTable({
                     className={`p-1 rounded ${
                       isSelected ? 'text-teal-300' : 'text-slate-400 hover:text-white'
                     }`}
-                    aria-label={`\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u043f\u0438\u0441\u044c\u043c\u043e ${letter.number}`}
+                    aria-label={`Выбрать письмо ${letter.number}`}
                   >
                     {isSelected ? (
                       <CheckSquare className="w-5 h-5" />

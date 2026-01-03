@@ -60,7 +60,7 @@ export function FileUpload({ letterId, files, onFilesChange }: FileUploadProps) 
       })
 
       if (res.status === 413) {
-        toast.error('DDøD1D¯ ¥?D¯D,¥^D§D_D¬ DñD_D¯¥O¥^D_D1 (413)')
+        toast.error('Файл слишком большой (413)')
         return
       }
 

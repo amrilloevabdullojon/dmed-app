@@ -82,6 +82,7 @@ model User {
   approvalsTarget AdminApproval[] @relation("AdminApprovalTarget")
   approvalsRequested AdminApproval[] @relation("AdminApprovalRequestedBy")
   approvalsApproved AdminApproval[] @relation("AdminApprovalApprovedBy")
+  requestsAssigned Request[]     @relation("RequestAssignee")
 }
 
 model UserProfile {
@@ -263,6 +264,53 @@ enum LetterStatus {
   CLARIFICATION // на уточнении
   READY         // готово
   DONE          // сделано
+}
+
+
+enum RequestStatus {
+  NEW
+  IN_REVIEW
+  DONE
+  SPAM
+}
+
+model Request {
+  id              String        @id @default(cuid())
+  organization    String
+  contactName     String
+  contactEmail    String
+  contactPhone    String
+  contactTelegram String
+  description     String        @db.Text
+  status          RequestStatus @default(NEW)
+  assignedToId    String?
+  assignedTo      User?         @relation("RequestAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  source          String?
+  ipHash          String?
+
+  files           RequestFile[]
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([status, createdAt])
+  @@index([assignedToId])
+}
+
+model RequestFile {
+  id              String              @id @default(cuid())
+  name            String
+  url             String
+  mimeType        String?
+  size            Int?
+  storageProvider FileStorageProvider @default(LOCAL)
+  storagePath     String?
+  requestId       String
+  request         Request             @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([requestId])
 }
 
 // ===== ФАЙЛЫ =====
