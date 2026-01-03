@@ -104,7 +104,7 @@ export function Header() {
   const isActive = (path: string) => pathname === path
 
   const navLinkClass = (path: string) =>
-    `flex items-center gap-2 px-3 py-2 rounded-lg transition whitespace-nowrap text-sm lg:text-base ${
+    `flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition whitespace-nowrap text-sm ${
       isActive(path)
         ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20'
         : 'text-slate-200/80 hover:bg-white/5 hover:text-white'
@@ -163,74 +163,68 @@ export function Header() {
             </Link>
 
             {isAdminRole && (
-              <>
-                <div className="relative">
-                  <button
-                    onClick={() => setSyncMenuOpen(!syncMenuOpen)}
-                    disabled={syncing}
-                    aria-haspopup="menu"
-                    aria-expanded={syncMenuOpen}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition whitespace-nowrap text-sm lg:text-base ${
-                      syncing ? 'opacity-50' : 'text-slate-200/80 hover:bg-white/5 hover:text-white'
-                    }`}
-                  >
-                    <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                    <span className="hidden lg:inline whitespace-nowrap">
-                      {syncing ? '\u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u044f...' : 'Google Sheets'}
-                    </span>
-                    <ChevronDown className={`w-4 h-4 transition ${syncMenuOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {syncMenuOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
+              <div className="relative">
+                <button
+                  onClick={() => setSyncMenuOpen(!syncMenuOpen)}
+                  disabled={syncing}
+                  aria-haspopup="menu"
+                  aria-expanded={syncMenuOpen}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition whitespace-nowrap text-sm ${
+                    syncing ? 'opacity-50' : 'text-slate-200/80 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <Settings className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                  <ChevronDown className={`w-3 h-3 transition ${syncMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {syncMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setSyncMenuOpen(false)}
+                    />
+                    <div className="absolute top-full right-0 mt-2 panel panel-glass rounded-xl shadow-xl z-50 min-w-48 animate-scaleIn origin-top-right">
+                      <Link
+                        href="/settings"
+                        className="w-full flex items-center gap-2 px-4 py-3 text-slate-200/80 hover:bg-white/5 hover:text-white transition rounded-t-lg"
                         onClick={() => setSyncMenuOpen(false)}
-                      />
-                      <div className="absolute top-full right-0 mt-2 panel panel-glass rounded-xl shadow-xl z-50 min-w-48 animate-scaleIn origin-top-right">
-                        <button
-                          onClick={() => handleSync('from_sheets')}
-                          disabled={syncing}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-slate-200/80 hover:bg-white/5 hover:text-white transition rounded-t-lg"
-                        >
-                          <span className="text-lg">*</span>
-                          {'\u0418\u043c\u043f\u043e\u0440\u0442 \u0438\u0437 Sheets'}
-                        </button>
-                        <button
-                          onClick={() => handleSync('to_sheets')}
-                          disabled={syncing}
-                          className="w-full flex items-center gap-2 px-4 py-3 text-slate-200/80 hover:bg-white/5 hover:text-white transition rounded-b-lg"
-                        >
-                          <span className="text-lg">*</span>
-                          {'\u042d\u043a\u0441\u043f\u043e\u0440\u0442 \u0432 Sheets'}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-                <Link href="/settings" className={navLinkClass('/settings')}>
-                  <Settings className="w-4 h-4" />
-                  <span className="hidden lg:inline">{'\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438'}</span>
-                </Link>
-              </>
+                      >
+                        <Settings className="w-4 h-4" />
+                        {'Настройки'}
+                      </Link>
+                      <div className="border-t border-white/10" />
+                      <button
+                        onClick={() => handleSync('from_sheets')}
+                        disabled={syncing}
+                        className="w-full flex items-center gap-2 px-4 py-3 text-slate-200/80 hover:bg-white/5 hover:text-white transition"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        {'Импорт из Sheets'}
+                      </button>
+                      <button
+                        onClick={() => handleSync('to_sheets')}
+                        disabled={syncing}
+                        className="w-full flex items-center gap-2 px-4 py-3 text-slate-200/80 hover:bg-white/5 hover:text-white transition rounded-b-lg"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        {'Экспорт в Sheets'}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
           </nav>
 
           {/* User Menu */}
-          <div className="hidden md:flex items-center gap-3">
-            <Link
-              href="/request"
-              className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium btn-primary"
-            >
-              {'Подать заявку'}
-            </Link>
+          <div className="hidden md:flex items-center gap-2">
             <ThemeToggle />
             {session?.user && (
               <>
                 <Notifications />
                 <Link
                   href="/profile"
-                  className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-full hover:bg-white/20 transition"
-                  title={'\u041f\u0440\u043e\u0444\u0438\u043b\u044c'}
+                  className="p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition"
+                  title={'Профиль'}
                 >
                   {session.user.image ? (
                     <Image
@@ -244,18 +238,14 @@ export function Header() {
                   ) : (
                     <User className="w-7 h-7 p-1 bg-white/10 rounded-full" />
                   )}
-                  <span className="text-sm text-slate-200 hidden lg:block max-w-[120px] truncate">
-                    {session.user.name || session.user.email?.split('@')[0]}
-                  </span>
                 </Link>
                 <button
                   onClick={() => signOut({ callbackUrl: '/login' })}
                   className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition"
-                  title="\u0412\u044b\u0439\u0442\u0438"
+                  title="Выйти"
                 >
                   <LogOut className="w-5 h-5" />
-            {'\u0412\u044b\u0439\u0442\u0438'}
-          </button>
+                </button>
               </>
             )}
           </div>
