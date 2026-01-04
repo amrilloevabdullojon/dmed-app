@@ -1,35 +1,37 @@
-import { google } from 'googleapis'
+﻿import { google } from 'googleapis'
 import { prisma } from './prisma'
 import { STATUS_LABELS, STATUS_FROM_LABEL, formatDate, addWorkingDays } from './utils'
 import type { LetterStatus } from '@prisma/client'
 
-// Колонки в Google Sheets (реальный порядок из таблицы)
+// ÐšÐ¾Ð»Ð¾Ð½ÐºÐ¸ Ð² Google Sheets (Ñ€ÐµÐ°Ð»ÑŒÐ½Ñ‹Ð¹ Ð¿Ð¾Ñ€ÑÐ´Ð¾Ðº Ð¸Ð· Ñ‚Ð°Ð±Ð»Ð¸Ñ†Ñ‹)
 const COLUMNS = {
-  NUM: 0,           // A - Номер письма
-  ORG: 1,           // B - Учреждение
-  DATE: 2,          // C - Дата
-  DEADLINE_DATE: 3, // D - Дата дедлайна
-  STATUS: 4,        // E - Статус дедлайна
-  FILE: 5,          // F - Файл
-  TYPE: 6,          // G - Тип запроса
-  CONTENT: 7,       // H - Содержание
-  JIRA_LINK: 8,     // I - Ссылка на Jira
-  ZORDOC: 9,        // J - Коментарии ZorDoc
-  ANSWER: 10,       // K - Ответ
-  SEND_STATUS: 11,  // L - Статус отправки Uzinfocom
-  IJRO_DATE: 12,    // M - Дата ответного письма в IJRO
-  COMMENT: 13,      // N - Комментарии Uzinfocom
-  OWNER: 14,        // O - Ответственный
-  CONTACTS: 15,     // P - Контакты
-  CLOSE_DATE: 16,   // Q - Дата закрытия
-  SHEET_ID: 17,     // R - ID
+  NUM: 0, // A - ÐÐ¾Ð¼ÐµÑ€ Ð¿Ð¸ÑÑŒÐ¼Ð°
+  ORG: 1, // B - Ð£Ñ‡Ñ€ÐµÐ¶Ð´ÐµÐ½Ð¸Ðµ
+  DATE: 2, // C - Ð”Ð°Ñ‚Ð°
+  DEADLINE_DATE: 3, // D - Ð”Ð°Ñ‚Ð° Ð´ÐµÐ´Ð»Ð°Ð¹Ð½Ð°
+  STATUS: 4, // E - Ð¡Ñ‚Ð°Ñ‚ÑƒÑ Ð´ÐµÐ´Ð»Ð°Ð¹Ð½Ð°
+  FILE: 5, // F - Ð¤Ð°Ð¹Ð»
+  TYPE: 6, // G - Ð¢Ð¸Ð¿ Ð·Ð°Ð¿Ñ€Ð¾ÑÐ°
+  CONTENT: 7, // H - Ð¡Ð¾Ð´ÐµÑ€Ð¶Ð°Ð½Ð¸Ðµ
+  JIRA_LINK: 8, // I - Ð¡ÑÑ‹Ð»ÐºÐ° Ð½Ð° Jira
+  ZORDOC: 9, // J - ÐšÐ¾Ð¼ÐµÐ½Ñ‚Ð°Ñ€Ð¸Ð¸ ZorDoc
+  ANSWER: 10, // K - ÐžÑ‚Ð²ÐµÑ‚
+  SEND_STATUS: 11, // L - Ð¡Ñ‚Ð°Ñ‚ÑƒÑ Ð¾Ñ‚Ð¿Ñ€Ð°Ð²ÐºÐ¸ Uzinfocom
+  IJRO_DATE: 12, // M - Ð”Ð°Ñ‚Ð° Ð¾Ñ‚Ð²ÐµÑ‚Ð½Ð¾Ð³Ð¾ Ð¿Ð¸ÑÑŒÐ¼Ð° Ð² IJRO
+  COMMENT: 13, // N - ÐšÐ¾Ð¼Ð¼ÐµÐ½Ñ‚Ð°Ñ€Ð¸Ð¸ Uzinfocom
+  OWNER: 14, // O - ÐžÑ‚Ð²ÐµÑ‚ÑÑ‚Ð²ÐµÐ½Ð½Ñ‹Ð¹
+  CONTACTS: 15, // P - ÐšÐ¾Ð½Ñ‚Ð°ÐºÑ‚Ñ‹
+  CLOSE_DATE: 16, // Q - Ð”Ð°Ñ‚Ð° Ð·Ð°ÐºÑ€Ñ‹Ñ‚Ð¸Ñ
+  SHEET_ID: 17, // R - ID
   SHEET_UPDATED_AT: 18, // S - UPDATED_AT
   SHEET_DELETED_AT: 19, // T - DELETED_AT
   SHEET_CONFLICT: 20, // U - CONFLICT
 }
 
+// ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ ÐºÐ»Ð¸ÐµÐ½Ñ‚ Google Sheets
+const TOTAL_COLUMNS = 21
+const TEMPLATE_ROW_INDEX = 1
 
-// Получить клиент Google Sheets
 async function getSheetsClient() {
   const auth = new google.auth.GoogleAuth({
     credentials: {
@@ -41,14 +43,111 @@ async function getSheetsClient() {
 
   return google.sheets({ version: 'v4', auth })
 }
+async function getSheetId(
+  sheets: Awaited<ReturnType<typeof getSheetsClient>>,
+  spreadsheetId: string,
+  sheetName: string
+) {
+  const sheetMeta = await sheets.spreadsheets.get({
+    spreadsheetId,
+    fields: 'sheets.properties',
+  })
+  const sheet = sheetMeta.data.sheets?.find((item) => item.properties?.title === sheetName)
+  return sheet?.properties?.sheetId ?? null
+}
 
-// Парсить дату из строки Google Sheets
+function escapeSheetString(value: string) {
+  return value.replace(/"/g, '""').replace(/\r?\n/g, ' ')
+}
+
+function buildFileCell(files: Array<{ id: string; name: string; url?: string | null }>) {
+  if (!files.length) return ''
+  const baseUrl = (process.env.NEXTAUTH_URL || process.env.APP_URL || '').replace(/\/$/, '')
+
+  const links = files.map((file) => {
+    const url =
+      baseUrl.length > 0
+        ? `${baseUrl}/api/files/${file.id}`
+        : file.url && file.url.startsWith('http')
+          ? file.url
+          : `/api/files/${file.id}`
+    const safeUrl = escapeSheetString(url)
+    const safeName = escapeSheetString(file.name)
+    return `HYPERLINK("${safeUrl}","${safeName}")`
+  })
+
+  if (links.length === 1) {
+    return `=${links[0]}`
+  }
+  return `=${links.join(' & CHAR(10) & ')}`
+}
+
+async function copyTemplateFormatting(
+  sheets: Awaited<ReturnType<typeof getSheetsClient>>,
+  spreadsheetId: string,
+  sheetId: number,
+  startRow: number,
+  rowCount: number
+) {
+  const startRowIndex = startRow - 1
+  const endRowIndex = startRowIndex + rowCount
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [
+        {
+          copyPaste: {
+            source: {
+              sheetId,
+              startRowIndex: TEMPLATE_ROW_INDEX,
+              endRowIndex: TEMPLATE_ROW_INDEX + 1,
+              startColumnIndex: 0,
+              endColumnIndex: TOTAL_COLUMNS,
+            },
+            destination: {
+              sheetId,
+              startRowIndex,
+              endRowIndex,
+              startColumnIndex: 0,
+              endColumnIndex: TOTAL_COLUMNS,
+            },
+            pasteType: 'PASTE_FORMAT',
+            pasteOrientation: 'NORMAL',
+          },
+        },
+        {
+          copyPaste: {
+            source: {
+              sheetId,
+              startRowIndex: TEMPLATE_ROW_INDEX,
+              endRowIndex: TEMPLATE_ROW_INDEX + 1,
+              startColumnIndex: 0,
+              endColumnIndex: TOTAL_COLUMNS,
+            },
+            destination: {
+              sheetId,
+              startRowIndex,
+              endRowIndex,
+              startColumnIndex: 0,
+              endColumnIndex: TOTAL_COLUMNS,
+            },
+            pasteType: 'PASTE_DATA_VALIDATION',
+            pasteOrientation: 'NORMAL',
+          },
+        },
+      ],
+    },
+  })
+}
+
+// ÐŸÐ°Ñ€ÑÐ¸Ñ‚ÑŒ Ð´Ð°Ñ‚Ñƒ Ð¸Ð· ÑÑ‚Ñ€Ð¾ÐºÐ¸ Google Sheets
 function parseSheetDate(value: string | null | undefined): Date | null {
   if (!value || String(value).trim() === '') return null
 
   const strValue = String(value).trim()
 
-  // Формат ДД.ММ.ГГГГ
+  // Ð¤Ð¾Ñ€Ð¼Ð°Ñ‚ Ð”Ð”.ÐœÐœ.Ð“Ð“Ð“Ð“
   const parts = strValue.split('.')
   if (parts.length === 3 && parts[0].length <= 2 && parts[1].length <= 2 && parts[2].length === 4) {
     const date = new Date(+parts[2], +parts[1] - 1, +parts[0])
@@ -57,29 +156,33 @@ function parseSheetDate(value: string | null | undefined): Date | null {
 
   // Format DD/MM/YYYY
   const slashParts = strValue.split('/')
-  if (slashParts.length === 3 && slashParts[0].length <= 2 && slashParts[1].length <= 2 && slashParts[2].length === 4) {
+  if (
+    slashParts.length === 3 &&
+    slashParts[0].length <= 2 &&
+    slashParts[1].length <= 2 &&
+    slashParts[2].length === 4
+  ) {
     const date = new Date(+slashParts[2], +slashParts[1] - 1, +slashParts[0])
     if (!isNaN(date.getTime())) return date
   }
 
-  // Формат ГГГГ-ММ-ДД
+  // Ð¤Ð¾Ñ€Ð¼Ð°Ñ‚ Ð“Ð“Ð“Ð“-ÐœÐœ-Ð”Ð”
   const isoParts = strValue.split('-')
   if (isoParts.length === 3 && isoParts[0].length === 4) {
     const date = new Date(+isoParts[0], +isoParts[1] - 1, +isoParts[2])
     if (!isNaN(date.getTime())) return date
   }
 
-  // Попробовать стандартный парсинг
+  // ÐŸÐ¾Ð¿Ñ€Ð¾Ð±Ð¾Ð²Ð°Ñ‚ÑŒ ÑÑ‚Ð°Ð½Ð´Ð°Ñ€Ñ‚Ð½Ñ‹Ð¹ Ð¿Ð°Ñ€ÑÐ¸Ð½Ð³
   const d = new Date(strValue)
   return isNaN(d.getTime()) ? null : d
 }
 
-// Форматировать дату для Google Sheets
+// Ð¤Ð¾Ñ€Ð¼Ð°Ñ‚Ð¸Ñ€Ð¾Ð²Ð°Ñ‚ÑŒ Ð´Ð°Ñ‚Ñƒ Ð´Ð»Ñ Google Sheets
 function formatSheetDate(date: Date | null): string {
   if (!date) return ''
   return formatDate(date)
 }
-
 
 // Format datetime for Google Sheets
 function formatSheetDateTime(date: Date | null): string {
@@ -87,7 +190,7 @@ function formatSheetDateTime(date: Date | null): string {
   return date.toISOString()
 }
 
-// ===== СИНХРОНИЗАЦИЯ В GOOGLE SHEETS =====
+// ===== Ð¡Ð˜ÐÐ¥Ð ÐžÐÐ˜Ð—ÐÐ¦Ð˜Ð¯ Ð’ GOOGLE SHEETS =====
 
 export async function syncToGoogleSheets() {
   const sheets = await getSheetsClient()
@@ -143,13 +246,13 @@ export async function syncToGoogleSheets() {
     const newRowLetterIds: string[] = []
     const syncedLetterIds: string[] = []
 
-    const buildRow = (letter: typeof letters[number]) => [
+    const buildRow = (letter: (typeof letters)[number]) => [
       letter.number,
       letter.org,
       formatSheetDate(letter.date),
-      formatSheetDate(letter.deadlineDate),
+      '',
       STATUS_LABELS[letter.status],
-      letter.files.map((f) => f.name).join('\n'),
+      buildFileCell(letter.files),
       letter.type || '',
       letter.content || '',
       letter.jiraLink || '',
@@ -175,8 +278,12 @@ export async function syncToGoogleSheets() {
       if (rowNum && rowNum >= 2 && rowNum <= maxRowNum) {
         if (shouldSync) {
           updates.push({
-            range: `${sheetName}!A${rowNum}:U${rowNum}`,
-            values: [row],
+            range: `${sheetName}!A${rowNum}:C${rowNum}`,
+            values: [row.slice(0, COLUMNS.DEADLINE_DATE)],
+          })
+          updates.push({
+            range: `${sheetName}!E${rowNum}:U${rowNum}`,
+            values: [row.slice(COLUMNS.STATUS)],
           })
           syncedLetterIds.push(letter.id)
         }
@@ -206,6 +313,10 @@ export async function syncToGoogleSheets() {
           values: newRows,
         },
       })
+      const sheetId = await getSheetId(sheets, spreadsheetId, sheetName)
+      if (sheetId !== null) {
+        await copyTemplateFormatting(sheets, spreadsheetId, sheetId, nextRowNum, newRows.length)
+      }
     }
 
     const syncedAt = new Date()
@@ -251,7 +362,7 @@ export async function syncToGoogleSheets() {
     throw error
   }
 }
-// ===== ИМПОРТ ИЗ GOOGLE SHEETS =====
+// ===== Ð˜ÐœÐŸÐžÐ Ð¢ Ð˜Ð— GOOGLE SHEETS =====
 
 export async function importFromGoogleSheets() {
   const sheets = await getSheetsClient()
@@ -293,12 +404,21 @@ export async function importFromGoogleSheets() {
     const updates: { range: string; values: (string | number)[][] }[] = []
     const conflictRows: number[] = []
     const updatedRows = new Set<number>()
+    const pushRowUpdate = (rowNum: number, rowValues: (string | number)[]) => {
+      updates.push({
+        range: `${sheetName}!A${rowNum}:C${rowNum}`,
+        values: [rowValues.slice(0, COLUMNS.DEADLINE_DATE)],
+      })
+      updates.push({
+        range: `${sheetName}!E${rowNum}:U${rowNum}`,
+        values: [rowValues.slice(COLUMNS.STATUS)],
+      })
+    }
 
     const normalizeRow = (values: (string | number | null | undefined)[], length: number) =>
       Array.from({ length }, (_, idx) => String(values[idx] ?? '').trim())
 
-    const normalizeOwnerValue = (value: string) =>
-      value.replace(/\s+/g, ' ').trim().toLowerCase()
+    const normalizeOwnerValue = (value: string) => value.replace(/\s+/g, ' ').trim().toLowerCase()
 
     const isEmailValue = (value: string) => value.includes('@')
 
@@ -395,41 +515,46 @@ export async function importFromGoogleSheets() {
       if (!number) {
         if (sheetIdRaw) {
           // Ensure sheet has the latest data when number is missing
-          const existingById = await prisma.letter.findUnique({ where: { id: sheetIdRaw }, include: { owner: true, files: true } })
+          const existingById = await prisma.letter.findUnique({
+            where: { id: sheetIdRaw },
+            include: { owner: true, files: true },
+          })
           if (existingById) {
-            updates.push({
-              range: `${sheetName}!A${rowNum}:U${rowNum}`,
-              values: [[
-                existingById.number,
-                existingById.org,
-                formatSheetDate(existingById.date),
-                formatSheetDate(existingById.deadlineDate),
-                STATUS_LABELS[existingById.status],
-                existingById.files.map((f) => f.name).join('\n'),
-                existingById.type || '',
-                existingById.content || '',
-                existingById.jiraLink || '',
-                existingById.zordoc || '',
-                existingById.answer || '',
-                existingById.sendStatus || '',
-                formatSheetDate(existingById.ijroDate),
-                existingById.comment || '',
-                existingById.owner?.email || existingById.owner?.name || '',
-                existingById.contacts || '',
-                formatSheetDate(existingById.closeDate),
-                existingById.id,
-                formatSheetDateTime(existingById.updatedAt),
-                formatSheetDateTime(existingById.deletedAt),
-                '',
-              ]],
-            })
+            pushRowUpdate(rowNum, [
+              existingById.number,
+              existingById.org,
+              formatSheetDate(existingById.date),
+              '',
+              STATUS_LABELS[existingById.status],
+              buildFileCell(existingById.files),
+              existingById.type || '',
+              existingById.content || '',
+              existingById.jiraLink || '',
+              existingById.zordoc || '',
+              existingById.answer || '',
+              existingById.sendStatus || '',
+              formatSheetDate(existingById.ijroDate),
+              existingById.comment || '',
+              existingById.owner?.email || existingById.owner?.name || '',
+              existingById.contacts || '',
+              formatSheetDate(existingById.closeDate),
+              existingById.id,
+              formatSheetDateTime(existingById.updatedAt),
+              formatSheetDateTime(existingById.deletedAt),
+              '',
+            ])
             updatedRows.add(rowNum)
           }
         }
         continue
       }
 
-      const statusLabel = String(row[COLUMNS.STATUS] || '\u043d\u0435 \u0440\u0430\u0441\u0441\u043c\u043e\u0442\u0440\u0435\u043d').toLowerCase().trim()
+      const statusLabel = String(
+        row[COLUMNS.STATUS] ||
+          '\u043d\u0435 \u0440\u0430\u0441\u0441\u043c\u043e\u0442\u0440\u0435\u043d'
+      )
+        .toLowerCase()
+        .trim()
       const status = STATUS_FROM_LABEL[statusLabel] || 'NOT_REVIEWED'
 
       let ownerId: string | null = null
@@ -450,10 +575,16 @@ export async function importFromGoogleSheets() {
 
       let existing: any = null
       if (sheetIdRaw) {
-        existing = await prisma.letter.findUnique({ where: { id: sheetIdRaw }, include: { owner: true, files: true } })
+        existing = await prisma.letter.findUnique({
+          where: { id: sheetIdRaw },
+          include: { owner: true, files: true },
+        })
       }
       if (!existing && number) {
-        existing = await prisma.letter.findFirst({ where: { number, deletedAt: null }, include: { owner: true, files: true } })
+        existing = await prisma.letter.findFirst({
+          where: { number, deletedAt: null },
+          include: { owner: true, files: true },
+        })
       }
 
       const sheetData = {
@@ -480,9 +611,9 @@ export async function importFromGoogleSheets() {
         letter?.number || '',
         letter?.org || '',
         formatSheetDate(letter?.date || null),
-        formatSheetDate(letter?.deadlineDate || null),
+        '',
         letter?.status ? STATUS_LABELS[letter.status as LetterStatus] : '',
-        letter?.files?.map((f: { name: string }) => f.name).join('\n') || '',
+        buildFileCell(letter?.files || []),
         letter?.type || '',
         letter?.content || '',
         letter?.jiraLink || '',
@@ -506,10 +637,7 @@ export async function importFromGoogleSheets() {
           include: { owner: true, files: true },
         })
         imported++
-        updates.push({
-          range: `${sheetName}!A${rowNum}:U${rowNum}`,
-          values: [buildRowFromLetter(created, '')],
-        })
+        pushRowUpdate(rowNum, buildRowFromLetter(created, ''))
         updatedRows.add(rowNum)
         continue
       }
@@ -520,19 +648,13 @@ export async function importFromGoogleSheets() {
           data: { deletedAt: sheetDeletedAt },
         })
         imported++
-        updates.push({
-          range: `${sheetName}!A${rowNum}:U${rowNum}`,
-          values: [buildRowFromLetter({ ...existing, deletedAt: sheetDeletedAt }, '')],
-        })
+        pushRowUpdate(rowNum, buildRowFromLetter({ ...existing, deletedAt: sheetDeletedAt }, ''))
         updatedRows.add(rowNum)
         continue
       }
 
       if (existing.deletedAt && !sheetDeletedAt) {
-        updates.push({
-          range: `${sheetName}!A${rowNum}:U${rowNum}`,
-          values: [buildRowFromLetter(existing, '')],
-        })
+        pushRowUpdate(rowNum, buildRowFromLetter(existing, ''))
         updatedRows.add(rowNum)
         continue
       }
@@ -540,9 +662,14 @@ export async function importFromGoogleSheets() {
       const existingUpdatedAt = existing.updatedAt
 
       const sheetRowValues = normalizeRow(row, 17)
+      sheetRowValues[COLUMNS.DEADLINE_DATE] = ''
       const dbRowValues = normalizeRow(buildRowFromLetter(existing), 17)
+      dbRowValues[COLUMNS.DEADLINE_DATE] = ''
+      dbRowValues[COLUMNS.FILE] = (existing.files || []).map((file) => file.name).join('\n')
       const hasSheetChanges = JSON.stringify(sheetRowValues) !== JSON.stringify(dbRowValues)
-      const dbChangedSinceSync = !!(existing.lastSyncedAt && existingUpdatedAt > existing.lastSyncedAt)
+      const dbChangedSinceSync = !!(
+        existing.lastSyncedAt && existingUpdatedAt > existing.lastSyncedAt
+      )
       const sheetIsNewer = !!(sheetUpdatedAt && sheetUpdatedAt > existingUpdatedAt)
       const hasConflict = hasSheetChanges && dbChangedSinceSync
       const conflictMark = hasConflict ? 'CONFLICT' : ''
@@ -558,22 +685,13 @@ export async function importFromGoogleSheets() {
         })
         existing = updated
         imported++
-        updates.push({
-          range: `${sheetName}!A${rowNum}:U${rowNum}`,
-          values: [buildRowFromLetter(updated, conflictMark)],
-        })
+        pushRowUpdate(rowNum, buildRowFromLetter(updated, conflictMark))
         updatedRows.add(rowNum)
       } else if (hasSheetChanges && dbChangedSinceSync) {
-        updates.push({
-          range: `${sheetName}!A${rowNum}:U${rowNum}`,
-          values: [buildRowFromLetter(existing, conflictMark)],
-        })
+        pushRowUpdate(rowNum, buildRowFromLetter(existing, conflictMark))
         updatedRows.add(rowNum)
       } else if (!sheetIdRaw || !row[COLUMNS.SHEET_UPDATED_AT]) {
-        updates.push({
-          range: `${sheetName}!A${rowNum}:U${rowNum}`,
-          values: [buildRowFromLetter(existing, conflictMark)],
-        })
+        pushRowUpdate(rowNum, buildRowFromLetter(existing, conflictMark))
         updatedRows.add(rowNum)
       }
 
@@ -631,4 +749,3 @@ export async function importFromGoogleSheets() {
     throw error
   }
 }
-
