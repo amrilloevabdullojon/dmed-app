@@ -10,7 +10,8 @@
       "Bash(git -C \"C:\\Users\\1234\\Documents\\Projects\\dmed-app\" log --oneline --all -- \"*/requests/*\")",
       "Bash(git -C \"C:\\Users\\1234\\Documents\\Projects\\dmed-app\" log --oneline -20)",
       "Bash(node:*)",
-      "Bash(xxd:*)"
+      "Bash(xxd:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }
