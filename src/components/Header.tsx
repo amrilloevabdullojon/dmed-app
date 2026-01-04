@@ -17,11 +17,13 @@ import {
   RefreshCw,
   User,
   ChevronDown,
+  Plus,
 } from 'lucide-react'
 import { Notifications } from './Notifications'
 import { ThemeToggle } from './ThemeToggle'
 import { MobileBottomNav } from './MobileBottomNav'
 import { useToast } from '@/components/Toast'
+import { GlobalSearch, SearchButton } from './GlobalSearch'
 
 export function Header() {
   const { data: session } = useSession()
@@ -30,6 +32,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [syncMenuOpen, setSyncMenuOpen] = useState(false)
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false)
   const isAdminRole = session?.user.role === 'ADMIN' || session?.user.role === 'SUPERADMIN'
   const roleLabel =
     session?.user.role === 'SUPERADMIN'
@@ -58,9 +61,10 @@ export function Header() {
   const handleSync = async (direction: 'to_sheets' | 'from_sheets') => {
     if (syncing) return
 
-    const confirmMsg = direction === 'to_sheets'
-      ? '\u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0434\u0430\u043d\u043d\u044b\u0435 \u0441 Google Sheets?\n\n\u0412\u041d\u0418\u041c\u0410\u041d\u0418\u0415: \u0431\u0443\u0434\u0443\u0442 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u044b \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u043d\u044b\u0435 \u0437\u0430\u043f\u0438\u0441\u0438.'
-      : '\u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0434\u0430\u043d\u043d\u044b\u0435 \u0438\u0437 Google Sheets?\n\n\u0411\u0443\u0434\u0443\u0442 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u044b \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u043d\u044b\u0435 \u0437\u0430\u043f\u0438\u0441\u0438.'
+    const confirmMsg =
+      direction === 'to_sheets'
+        ? '\u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0434\u0430\u043d\u043d\u044b\u0435 \u0441 Google Sheets?\n\n\u0412\u041d\u0418\u041c\u0410\u041d\u0418\u0415: \u0431\u0443\u0434\u0443\u0442 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u044b \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u043d\u044b\u0435 \u0437\u0430\u043f\u0438\u0441\u0438.'
+        : '\u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0434\u0430\u043d\u043d\u044b\u0435 \u0438\u0437 Google Sheets?\n\n\u0411\u0443\u0434\u0443\u0442 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u044b \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u043d\u044b\u0435 \u0437\u0430\u043f\u0438\u0441\u0438.'
 
     if (!confirm(confirmMsg)) return
 
@@ -86,16 +90,25 @@ export function Header() {
         const count = data.rowsAffected || data.imported || 0
         const conflicts = Array.isArray(data.conflicts) ? data.conflicts.length : 0
         if (conflicts > 0) {
-          toast.warning(`\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e ${count} \u0437\u0430\u043f\u0438\u0441\u0435\u0439. \u041a\u043e\u043d\u0444\u043b\u0438\u043a\u0442\u044b: ${conflicts}.`, { id: toastId })
+          toast.warning(
+            `\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e ${count} \u0437\u0430\u043f\u0438\u0441\u0435\u0439. \u041a\u043e\u043d\u0444\u043b\u0438\u043a\u0442\u044b: ${conflicts}.`,
+            { id: toastId }
+          )
         } else {
-          toast.success(`\u0413\u043e\u0442\u043e\u0432\u043e! \u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e ${count} \u0437\u0430\u043f\u0438\u0441\u0435\u0439`, { id: toastId })
+          toast.success(
+            `\u0413\u043e\u0442\u043e\u0432\u043e! \u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e ${count} \u0437\u0430\u043f\u0438\u0441\u0435\u0439`,
+            { id: toastId }
+          )
         }
         setTimeout(() => window.location.reload(), 1500)
       } else {
         toast.error(`\u041e\u0448\u0438\u0431\u043a\u0430: ${data.error}`, { id: toastId })
       }
     } catch (error) {
-      toast.error('\u041e\u0448\u0438\u0431\u043a\u0430 \u0441\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u0438', { id: toastId })
+      toast.error(
+        '\u041e\u0448\u0438\u0431\u043a\u0430 \u0441\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u0438',
+        { id: toastId }
+      )
     } finally {
       setSyncing(false)
     }
@@ -111,54 +124,45 @@ export function Header() {
     }`
 
   return (
-    <header className="app-header sticky top-0 z-[120] relative backdrop-blur">
+    <header className="app-header relative sticky top-0 z-[120] backdrop-blur">
       {/* Christmas lights */}
-      <div className="absolute top-0 left-0 right-0 hidden sm:flex justify-around pointer-events-none overflow-hidden">
+      <div className="pointer-events-none absolute left-0 right-0 top-0 hidden justify-around overflow-hidden sm:flex">
         {Array.from({ length: 15 }).map((_, i) => (
-          <span
-            key={i}
-            className={`text-xs animate-twinkle twinkle-delay-${i}`}
-          >
+          <span key={i} className={`animate-twinkle text-xs twinkle-delay-${i}`}>
             {['🔴', '🟢', '🟡', '🔵'][i % 4]}
           </span>
         ))}
       </div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-14 sm:h-16">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-14 items-center justify-between sm:h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 shrink-0">
-            <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-lg shadow-teal-500/30">
-              <Image
-                src="/logo-mark.svg"
-                alt="DMED"
-                fill
-                className="object-contain"
-                priority
-              />
+          <Link href="/" className="flex shrink-0 items-center gap-3">
+            <div className="relative h-9 w-9 overflow-hidden rounded-xl shadow-lg shadow-teal-500/30 sm:h-10 sm:w-10">
+              <Image src="/logo-mark.svg" alt="DMED" fill className="object-contain" priority />
             </div>
-            <div className="leading-tight hidden sm:block">
+            <div className="hidden leading-tight sm:block">
               <span className="text-lg font-semibold text-white">DMED Letters</span>
-              <span className="block text-xs text-amber-300/80 tracking-wide">Document Flow</span>
+              <span className="block text-xs tracking-wide text-amber-300/80">Document Flow</span>
             </div>
             <span className="text-sm font-semibold text-white sm:hidden">DMED</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden items-center gap-1 md:flex">
             <Link href="/" className={navLinkClass('/')}>
-              <Home className="w-4 h-4" />
+              <Home className="h-4 w-4" />
               {'\u0413\u043b\u0430\u0432\u043d\u0430\u044f'}
             </Link>
             <Link href="/letters" className={navLinkClass('/letters')}>
-              <FileText className="w-4 h-4" />
+              <FileText className="h-4 w-4" />
               {'\u041f\u0438\u0441\u044c\u043c\u0430'}
             </Link>
             <Link href="/requests" className={navLinkClass('/requests')}>
-              <Inbox className="w-4 h-4" />
+              <Inbox className="h-4 w-4" />
               {'\u0417\u0430\u044f\u0432\u043a\u0438'}
             </Link>
             <Link href="/reports" className={navLinkClass('/reports')}>
-              <BarChart3 className="w-4 h-4" />
+              <BarChart3 className="h-4 w-4" />
               {'\u041e\u0442\u0447\u0435\u0442\u044b'}
             </Link>
 
@@ -169,43 +173,42 @@ export function Header() {
                   disabled={syncing}
                   aria-haspopup="menu"
                   aria-expanded={syncMenuOpen}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition whitespace-nowrap text-sm ${
+                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm transition ${
                     syncing ? 'opacity-50' : 'text-slate-200/80 hover:bg-white/5 hover:text-white'
                   }`}
                 >
-                  <Settings className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                  <ChevronDown className={`w-3 h-3 transition ${syncMenuOpen ? 'rotate-180' : ''}`} />
+                  <Settings className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+                  <ChevronDown
+                    className={`h-3 w-3 transition ${syncMenuOpen ? 'rotate-180' : ''}`}
+                  />
                 </button>
                 {syncMenuOpen && (
                   <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setSyncMenuOpen(false)}
-                    />
-                    <div className="absolute top-full right-0 mt-2 panel panel-glass rounded-xl shadow-xl z-50 min-w-48 animate-scaleIn origin-top-right">
+                    <div className="fixed inset-0 z-40" onClick={() => setSyncMenuOpen(false)} />
+                    <div className="panel panel-glass animate-scaleIn absolute right-0 top-full z-50 mt-2 min-w-48 origin-top-right rounded-xl shadow-xl">
                       <Link
                         href="/settings"
-                        className="w-full flex items-center gap-2 px-4 py-3 text-slate-200/80 hover:bg-white/5 hover:text-white transition rounded-t-lg"
+                        className="flex w-full items-center gap-2 rounded-t-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 hover:text-white"
                         onClick={() => setSyncMenuOpen(false)}
                       >
-                        <Settings className="w-4 h-4" />
+                        <Settings className="h-4 w-4" />
                         {'Настройки'}
                       </Link>
                       <div className="border-t border-white/10" />
                       <button
                         onClick={() => handleSync('from_sheets')}
                         disabled={syncing}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-slate-200/80 hover:bg-white/5 hover:text-white transition"
+                        className="flex w-full items-center gap-2 px-4 py-3 text-slate-200/80 transition hover:bg-white/5 hover:text-white"
                       >
-                        <RefreshCw className="w-4 h-4" />
+                        <RefreshCw className="h-4 w-4" />
                         {'Импорт из Sheets'}
                       </button>
                       <button
                         onClick={() => handleSync('to_sheets')}
                         disabled={syncing}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-slate-200/80 hover:bg-white/5 hover:text-white transition rounded-b-lg"
+                        className="flex w-full items-center gap-2 rounded-b-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 hover:text-white"
                       >
-                        <RefreshCw className="w-4 h-4" />
+                        <RefreshCw className="h-4 w-4" />
                         {'Экспорт в Sheets'}
                       </button>
                     </div>
@@ -216,14 +219,49 @@ export function Header() {
           </nav>
 
           {/* User Menu */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden items-center gap-2 md:flex">
+            {/* Quick Create Button */}
+            <div className="relative">
+              <button
+                onClick={() => setQuickCreateOpen(!quickCreateOpen)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500 text-white shadow-lg shadow-teal-500/30 transition hover:bg-teal-400"
+                title="Создать"
+              >
+                <Plus className={`h-5 w-5 transition ${quickCreateOpen ? 'rotate-45' : ''}`} />
+              </button>
+              {quickCreateOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setQuickCreateOpen(false)} />
+                  <div className="panel panel-glass animate-scaleIn absolute right-0 top-full z-50 mt-2 min-w-48 origin-top-right rounded-xl shadow-xl">
+                    <Link
+                      href="/letters/new"
+                      className="flex w-full items-center gap-2 rounded-t-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 hover:text-white"
+                      onClick={() => setQuickCreateOpen(false)}
+                    >
+                      <FileText className="h-4 w-4 text-blue-400" />
+                      {'Новое письмо'}
+                    </Link>
+                    <div className="border-t border-white/10" />
+                    <Link
+                      href="/request"
+                      className="flex w-full items-center gap-2 rounded-b-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 hover:text-white"
+                      onClick={() => setQuickCreateOpen(false)}
+                    >
+                      <Inbox className="h-4 w-4 text-emerald-400" />
+                      {'Подать заявку'}
+                    </Link>
+                  </div>
+                </>
+              )}
+            </div>
+            <SearchButton />
             <ThemeToggle />
             {session?.user && (
               <>
                 <Notifications />
                 <Link
                   href="/profile"
-                  className="p-1.5 bg-white/10 rounded-full hover:bg-white/20 transition"
+                  className="rounded-full bg-white/10 p-1.5 transition hover:bg-white/20"
                   title={'Профиль'}
                 >
                   {session.user.image ? (
@@ -232,40 +270,40 @@ export function Header() {
                       alt={session.user.name || session.user.email || 'User'}
                       width={28}
                       height={28}
-                      className="w-7 h-7 rounded-full"
+                      className="h-7 w-7 rounded-full"
                       unoptimized
                     />
                   ) : (
-                    <User className="w-7 h-7 p-1 bg-white/10 rounded-full" />
+                    <User className="h-7 w-7 rounded-full bg-white/10 p-1" />
                   )}
                 </Link>
                 <button
                   onClick={() => signOut({ callbackUrl: '/login' })}
-                  className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition"
+                  className="rounded-lg p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"
                   title="Выйти"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="h-5 w-5" />
                 </button>
               </>
             )}
           </div>
 
           {/* Mobile right section */}
-          <div className="flex md:hidden items-center gap-2">
+          <div className="flex items-center gap-2 md:hidden">
             <ThemeToggle />
             {session?.user && <Notifications />}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label={mobileMenuOpen ? '\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u043c\u0435\u043d\u044e' : '\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043c\u0435\u043d\u044e'}
+              aria-label={
+                mobileMenuOpen
+                  ? '\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u043c\u0435\u043d\u044e'
+                  : '\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043c\u0435\u043d\u044e'
+              }
               aria-expanded={mobileMenuOpen}
               aria-controls="mobile-menu"
-              className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition"
+              className="rounded-lg p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"
             >
-              {mobileMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
         </div>
@@ -273,25 +311,25 @@ export function Header() {
 
       {/* Mobile menu overlay */}
       {mobileMenuOpen && (
-      <div
-        className="fixed inset-0 mobile-overlay z-[110] md:hidden"
-        onClick={() => setMobileMenuOpen(false)}
-      />
+        <div
+          className="mobile-overlay fixed inset-0 z-[110] md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
       )}
 
       {/* Mobile menu */}
       <div
         id="mobile-menu"
-        className={`fixed top-14 sm:top-16 right-0 bottom-0 w-[85vw] max-w-[320px] mobile-menu z-[120] transform transition-transform duration-300 md:hidden overflow-y-auto ${
+        className={`mobile-menu fixed bottom-0 right-0 top-14 z-[120] w-[85vw] max-w-[320px] transform overflow-y-auto transition-transform duration-300 sm:top-16 md:hidden ${
           mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <nav className="flex flex-col p-4 gap-1">
+        <nav className="flex flex-col gap-1 p-4">
           <Link
             href="/request"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+            className={`flex items-center gap-3 rounded-lg px-4 py-3 transition ${
               isActive('/request')
-                ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20'
+                ? 'border border-teal-400/20 bg-teal-400/15 text-teal-200'
                 : 'text-slate-200/80 hover:bg-white/5'
             }`}
           >
@@ -299,32 +337,30 @@ export function Header() {
           </Link>
           {/* User info */}
           {session?.user && (
-            <div className="flex items-center gap-3 p-3 mb-4 bg-white/10 rounded-lg">
+            <div className="mb-4 flex items-center gap-3 rounded-lg bg-white/10 p-3">
               {session.user.image ? (
                 <Image
                   src={session.user.image}
                   alt={session.user.name || session.user.email || 'User'}
                   width={40}
                   height={40}
-                  className="w-10 h-10 rounded-full"
+                  className="h-10 w-10 rounded-full"
                   unoptimized
                 />
               ) : (
-                <User className="w-10 h-10 p-2 bg-white/10 rounded-full" />
+                <User className="h-10 w-10 rounded-full bg-white/10 p-2" />
               )}
-              <div className="flex-1 min-w-0">
-                <p className="text-white font-medium truncate">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium text-white">
                   {session.user.name || session.user.email?.split('@')[0]}
                 </p>
-                <p className="text-xs text-slate-400 truncate">
-                  {roleLabel}
-                </p>
+                <p className="truncate text-xs text-slate-400">{roleLabel}</p>
               </div>
               <Link
                 href="/profile"
-                className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white/10 text-teal-200 hover:bg-teal-500/20 transition text-xs"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-white/10 px-2.5 py-1.5 text-xs text-teal-200 transition hover:bg-teal-500/20"
               >
-                <User className="w-3.5 h-3.5" />
+                <User className="h-3.5 w-3.5" />
                 {'\u041f\u0440\u043e\u0444\u0438\u043b\u044c'}
               </Link>
             </div>
@@ -332,41 +368,49 @@ export function Header() {
 
           <Link
             href="/"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-              isActive('/') ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20' : 'text-slate-200/80 hover:bg-white/5'
+            className={`flex items-center gap-3 rounded-lg px-4 py-3 transition ${
+              isActive('/')
+                ? 'border border-teal-400/20 bg-teal-400/15 text-teal-200'
+                : 'text-slate-200/80 hover:bg-white/5'
             }`}
           >
-            <Home className="w-5 h-5" />
+            <Home className="h-5 w-5" />
             {'\u0413\u043b\u0430\u0432\u043d\u0430\u044f'}
           </Link>
 
           <Link
             href="/letters"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-              isActive('/letters') ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20' : 'text-slate-200/80 hover:bg-white/5'
+            className={`flex items-center gap-3 rounded-lg px-4 py-3 transition ${
+              isActive('/letters')
+                ? 'border border-teal-400/20 bg-teal-400/15 text-teal-200'
+                : 'text-slate-200/80 hover:bg-white/5'
             }`}
           >
-            <FileText className="w-5 h-5" />
+            <FileText className="h-5 w-5" />
             {'\u041f\u0438\u0441\u044c\u043c\u0430'}
           </Link>
 
           <Link
             href="/requests"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-              isActive('/requests') ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20' : 'text-slate-200/80 hover:bg-white/5'
+            className={`flex items-center gap-3 rounded-lg px-4 py-3 transition ${
+              isActive('/requests')
+                ? 'border border-teal-400/20 bg-teal-400/15 text-teal-200'
+                : 'text-slate-200/80 hover:bg-white/5'
             }`}
           >
-            <Inbox className="w-5 h-5" />
+            <Inbox className="h-5 w-5" />
             {'\u0417\u0430\u044f\u0432\u043a\u0438'}
           </Link>
 
           <Link
             href="/reports"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-              isActive('/reports') ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20' : 'text-slate-200/80 hover:bg-white/5'
+            className={`flex items-center gap-3 rounded-lg px-4 py-3 transition ${
+              isActive('/reports')
+                ? 'border border-teal-400/20 bg-teal-400/15 text-teal-200'
+                : 'text-slate-200/80 hover:bg-white/5'
             }`}
           >
-            <BarChart3 className="w-5 h-5" />
+            <BarChart3 className="h-5 w-5" />
             {'\u041e\u0442\u0447\u0435\u0442\u044b'}
           </Link>
 
@@ -377,7 +421,7 @@ export function Header() {
               <button
                 onClick={() => handleSync('from_sheets')}
                 disabled={syncing}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-200/80 hover:bg-white/5 transition disabled:opacity-50"
+                className="flex items-center gap-3 rounded-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 disabled:opacity-50"
               >
                 <span className="text-lg">*</span>
                 {'\u0418\u043c\u043f\u043e\u0440\u0442 \u0438\u0437 Sheets'}
@@ -386,7 +430,7 @@ export function Header() {
               <button
                 onClick={() => handleSync('to_sheets')}
                 disabled={syncing}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-200/80 hover:bg-white/5 transition disabled:opacity-50"
+                className="flex items-center gap-3 rounded-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 disabled:opacity-50"
               >
                 <span className="text-lg">*</span>
                 {'\u042d\u043a\u0441\u043f\u043e\u0440\u0442 \u0432 Sheets'}
@@ -394,11 +438,13 @@ export function Header() {
 
               <Link
                 href="/settings"
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                  isActive('/settings') ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20' : 'text-slate-200/80 hover:bg-white/5'
+                className={`flex items-center gap-3 rounded-lg px-4 py-3 transition ${
+                  isActive('/settings')
+                    ? 'border border-teal-400/20 bg-teal-400/15 text-teal-200'
+                    : 'text-slate-200/80 hover:bg-white/5'
                 }`}
               >
-                <Settings className="w-5 h-5" />
+                <Settings className="h-5 w-5" />
                 {'\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438'}
               </Link>
             </>
@@ -408,14 +454,15 @@ export function Header() {
 
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition"
+            className="flex items-center gap-3 rounded-lg px-4 py-3 text-red-400 transition hover:bg-red-500/10"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="h-5 w-5" />
             Выйти
           </button>
         </nav>
       </div>
       <MobileBottomNav isAdmin={isAdminRole} hidden={mobileMenuOpen} />
+      <GlobalSearch />
     </header>
   )
 }
