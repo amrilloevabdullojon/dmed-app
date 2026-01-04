@@ -167,6 +167,10 @@ export default function LetterDetailPage() {
   const [portalLink, setPortalLink] = useState('')
   const [portalLoading, setPortalLoading] = useState(false)
 
+  useEffect(() => {
+    document.body.style.overflow = ''
+  }, [])
+
   const loadLetter = useCallback(async () => {
     try {
       const res = await fetch(`/api/letters/${params.id}`)
