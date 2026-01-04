@@ -1,5 +1,4 @@
 import type { Role } from '@prisma/client'
-import { prisma } from '@/lib/prisma'
 
 export type Permission =
   | 'MANAGE_USERS'
@@ -52,61 +51,12 @@ const CACHE_TTL = 60000 // 1 минута
  */
 async function loadPermissions(): Promise<Record<Role, Permission[]>> {
   const now = Date.now()
-
-  // Проверяем кэш
   if (permissionsCache && now - cacheTimestamp < CACHE_TTL) {
     return permissionsCache
   }
-
-  try {
-    // Загружаем все настроенные разрешения из БД
-    const dbPermissions = await prisma.rolePermission.findMany()
-
-    // Формируем матрицу разрешений
-    const roles: Role[] = ['SUPERADMIN', 'ADMIN', 'MANAGER', 'AUDITOR', 'EMPLOYEE', 'VIEWER']
-    const permissions: Record<Role, Permission[]> = {} as Record<Role, Permission[]>
-
-    for (const role of roles) {
-      // SUPERADMIN всегда имеет все разрешения
-      if (role === 'SUPERADMIN') {
-        permissions[role] = [...DEFAULT_ROLE_PERMISSIONS.SUPERADMIN]
-        continue
-      }
-
-      const rolePermissions: Permission[] = []
-
-      for (const permission of DEFAULT_ROLE_PERMISSIONS.SUPERADMIN) {
-        // Ищем настройку в БД
-        const dbEntry = dbPermissions.find(
-          (p) => p.role === role && p.permission === permission
-        )
-
-        if (dbEntry !== undefined) {
-          // Используем значение из БД
-          if (dbEntry.enabled) {
-            rolePermissions.push(permission as Permission)
-          }
-        } else {
-          // Используем значение по умолчанию
-          if (DEFAULT_ROLE_PERMISSIONS[role].includes(permission as Permission)) {
-            rolePermissions.push(permission as Permission)
-          }
-        }
-      }
-
-      permissions[role] = rolePermissions
-    }
-
-    // Обновляем кэш
-    permissionsCache = permissions
-    cacheTimestamp = now
-
-    return permissions
-  } catch (error) {
-    console.error('Error loading permissions from DB:', error)
-    // Возвращаем дефолтные разрешения при ошибке
-    return DEFAULT_ROLE_PERMISSIONS
-  }
+  permissionsCache = DEFAULT_ROLE_PERMISSIONS
+  cacheTimestamp = now
+  return DEFAULT_ROLE_PERMISSIONS
 }
 
 /**
@@ -169,7 +119,9 @@ export const getRolePermissions = (role: Role | null | undefined): Permission[] 
 /**
  * Получить все разрешения для роли (асинхронная версия)
  */
-export const getRolePermissionsAsync = async (role: Role | null | undefined): Promise<Permission[]> => {
+export const getRolePermissionsAsync = async (
+  role: Role | null | undefined
+): Promise<Permission[]> => {
   if (!role) return []
 
   const permissions = await loadPermissions()

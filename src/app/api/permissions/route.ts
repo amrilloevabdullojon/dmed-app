@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 import type { Role } from '@prisma/client'
 
 // Все доступные разрешения
-export const ALL_PERMISSIONS = [
+const ALL_PERMISSIONS = [
   'MANAGE_USERS',
   'VIEW_AUDIT',
   'VIEW_REPORTS',
@@ -17,10 +17,10 @@ export const ALL_PERMISSIONS = [
   'SYNC_SHEETS',
 ] as const
 
-export type Permission = (typeof ALL_PERMISSIONS)[number]
+type Permission = (typeof ALL_PERMISSIONS)[number]
 
 // Описания разрешений
-export const PERMISSION_LABELS: Record<Permission, string> = {
+const PERMISSION_LABELS: Record<Permission, string> = {
   MANAGE_USERS: 'Управление пользователями',
   VIEW_AUDIT: 'Просмотр аудита',
   VIEW_REPORTS: 'Просмотр отчётов',
@@ -70,16 +70,17 @@ export async function GET() {
 
     // Формируем матрицу разрешений
     const roles: Role[] = ['SUPERADMIN', 'ADMIN', 'MANAGER', 'AUDITOR', 'EMPLOYEE', 'VIEWER']
-    const permissions: Record<Role, Record<Permission, boolean>> = {} as Record<Role, Record<Permission, boolean>>
+    const permissions: Record<Role, Record<Permission, boolean>> = {} as Record<
+      Role,
+      Record<Permission, boolean>
+    >
 
     for (const role of roles) {
       permissions[role] = {} as Record<Permission, boolean>
 
       for (const permission of ALL_PERMISSIONS) {
         // Ищем настройку в БД
-        const dbEntry = dbPermissions.find(
-          (p) => p.role === role && p.permission === permission
-        )
+        const dbEntry = dbPermissions.find((p) => p.role === role && p.permission === permission)
 
         if (dbEntry !== undefined) {
           // Используем значение из БД
@@ -98,10 +99,7 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Error fetching permissions:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch permissions' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch permissions' }, { status: 500 })
   }
 }
 
@@ -126,18 +124,12 @@ export async function PUT(request: Request) {
     }
 
     if (!role || !permission || typeof enabled !== 'boolean') {
-      return NextResponse.json(
-        { error: 'Invalid request body' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
 
     // Нельзя менять разрешения SUPERADMIN - они всегда полные
     if (role === 'SUPERADMIN') {
-      return NextResponse.json(
-        { error: 'Cannot modify SUPERADMIN permissions' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Cannot modify SUPERADMIN permissions' }, { status: 400 })
     }
 
     // Получаем текущее значение
@@ -145,7 +137,8 @@ export async function PUT(request: Request) {
       where: { role_permission: { role, permission } },
     })
 
-    const oldValue = currentPermission?.enabled ?? DEFAULT_PERMISSIONS[role].includes(permission as Permission)
+    const oldValue =
+      currentPermission?.enabled ?? DEFAULT_PERMISSIONS[role].includes(permission as Permission)
 
     // Обновляем или создаём запись
     await prisma.rolePermission.upsert({
@@ -168,10 +161,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error updating permission:', error)
-    return NextResponse.json(
-      { error: 'Failed to update permission' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to update permission' }, { status: 500 })
   }
 }
 
@@ -191,10 +181,7 @@ export async function POST(request: Request) {
     const { role } = body as { role?: Role }
 
     if (role === 'SUPERADMIN') {
-      return NextResponse.json(
-        { error: 'Cannot reset SUPERADMIN permissions' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Cannot reset SUPERADMIN permissions' }, { status: 400 })
     }
 
     if (role) {
@@ -210,9 +197,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error resetting permissions:', error)
-    return NextResponse.json(
-      { error: 'Failed to reset permissions' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to reset permissions' }, { status: 500 })
   }
 }
