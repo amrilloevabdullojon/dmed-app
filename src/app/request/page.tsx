@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import Script from 'next/script'
+import Image from 'next/image'
 import { Header } from '@/components/Header'
 import { useToast } from '@/components/Toast'
 import {
@@ -10,9 +11,26 @@ import {
   REQUEST_ALLOWED_FILE_EXTENSIONS,
   REQUEST_MAX_FILES,
 } from '@/lib/constants'
-import { Paperclip, Send, Trash2 } from 'lucide-react'
+import {
+  Paperclip,
+  Send,
+  Trash2,
+  Building2,
+  User,
+  Phone,
+  Mail,
+  MessageCircle,
+  FileText,
+  Upload,
+  Check,
+  ChevronRight,
+  ChevronLeft,
+  AlertCircle,
+  Sparkles,
+} from 'lucide-react'
 
 interface RequestFormState {
+  requestType: string
   organization: string
   contactName: string
   contactEmail: string
@@ -33,6 +51,7 @@ declare global {
 }
 
 const initialForm: RequestFormState = {
+  requestType: '',
   organization: '',
   contactName: '',
   contactEmail: '',
@@ -41,21 +60,149 @@ const initialForm: RequestFormState = {
   description: '',
 }
 
+const REQUEST_TYPES = [
+  { value: 'consultation', label: 'Консультация', icon: MessageCircle, color: 'text-blue-400' },
+  { value: 'support', label: 'Техподдержка', icon: FileText, color: 'text-amber-400' },
+  { value: 'partnership', label: 'Сотрудничество', icon: Building2, color: 'text-emerald-400' },
+  { value: 'other', label: 'Другое', icon: Sparkles, color: 'text-purple-400' },
+]
+
+const DRAFT_KEY = 'request_form_draft'
+
 const formatFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+const formatPhone = (value: string) => {
+  const digits = value.replace(/\D/g, '')
+  if (digits.length === 0) return ''
+  if (digits.length <= 3) return `+${digits}`
+  if (digits.length <= 5) return `+${digits.slice(0, 3)} ${digits.slice(3)}`
+  if (digits.length <= 8) return `+${digits.slice(0, 3)} ${digits.slice(3, 5)} ${digits.slice(5)}`
+  if (digits.length <= 10)
+    return `+${digits.slice(0, 3)} ${digits.slice(3, 5)} ${digits.slice(5, 8)} ${digits.slice(8)}`
+  return `+${digits.slice(0, 3)} ${digits.slice(3, 5)} ${digits.slice(5, 8)} ${digits.slice(8, 10)} ${digits.slice(10, 12)}`
+}
+
+const isImageFile = (file: File) => file.type.startsWith('image/')
+
+interface ValidationErrors {
+  requestType?: string
+  organization?: string
+  contactName?: string
+  contactEmail?: string
+  contactPhone?: string
+  contactTelegram?: string
+  description?: string
+}
+
+const validateStep = (step: number, form: RequestFormState): ValidationErrors => {
+  const errors: ValidationErrors = {}
+
+  if (step === 1) {
+    if (!form.requestType) errors.requestType = 'Выберите тип заявки'
+    if (!form.organization.trim()) errors.organization = 'Введите название организации'
+  }
+
+  if (step === 2) {
+    if (!form.contactName.trim()) errors.contactName = 'Введите имя контактного лица'
+    if (!form.contactEmail.trim()) {
+      errors.contactEmail = 'Введите email'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contactEmail)) {
+      errors.contactEmail = 'Неверный формат email'
+    }
+    const phoneDigits = form.contactPhone.replace(/\D/g, '')
+    if (!phoneDigits) {
+      errors.contactPhone = 'Введите номер телефона'
+    } else if (phoneDigits.length < 12) {
+      errors.contactPhone = 'Номер слишком короткий'
+    }
+    if (!form.contactTelegram.trim()) {
+      errors.contactTelegram = 'Введите Telegram'
+    } else if (!form.contactTelegram.startsWith('@') && !form.contactTelegram.startsWith('+')) {
+      errors.contactTelegram = 'Начните с @ или +'
+    }
+  }
+
+  if (step === 3) {
+    if (!form.description.trim()) {
+      errors.description = 'Опишите вашу проблему'
+    } else if (form.description.trim().length < 20) {
+      errors.description = 'Слишком короткое описание (минимум 20 символов)'
+    }
+  }
+
+  return errors
+}
+
 export default function RequestPage() {
   const toast = useToast()
   const [form, setForm] = useState<RequestFormState>(initialForm)
   const [files, setFiles] = useState<File[]>([])
+  const [filePreviews, setFilePreviews] = useState<Record<number, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [honeypot, setHoneypot] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
+  const [step, setStep] = useState(1)
+  const [errors, setErrors] = useState<ValidationErrors>({})
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [isDragging, setIsDragging] = useState(false)
+  const [draftRestored, setDraftRestored] = useState(false)
+  const dropZoneRef = useRef<HTMLDivElement>(null)
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+
+  const TOTAL_STEPS = 4
+
+  // Load draft from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(DRAFT_KEY)
+    if (saved) {
+      try {
+        const draft = JSON.parse(saved)
+        if (draft.form) {
+          setForm(draft.form)
+          setDraftRestored(true)
+          setTimeout(() => setDraftRestored(false), 3000)
+        }
+      } catch {
+        // Ignore invalid JSON
+      }
+    }
+  }, [])
+
+  // Save draft to localStorage
+  useEffect(() => {
+    const hasData = Object.values(form).some((v) => v.trim() !== '')
+    if (hasData && !submitted) {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ form, savedAt: Date.now() }))
+    }
+  }, [form, submitted])
+
+  // Clear draft on successful submit
+  useEffect(() => {
+    if (submitted) {
+      localStorage.removeItem(DRAFT_KEY)
+    }
+  }, [submitted])
+
+  // Generate image previews
+  useEffect(() => {
+    const newPreviews: Record<number, string> = {}
+    files.forEach((file, index) => {
+      if (isImageFile(file)) {
+        const url = URL.createObjectURL(file)
+        newPreviews[index] = url
+      }
+    })
+    setFilePreviews(newPreviews)
+
+    return () => {
+      Object.values(newPreviews).forEach((url) => URL.revokeObjectURL(url))
+    }
+  }, [files])
 
   useEffect(() => {
     if (!turnstileSiteKey) return
@@ -71,48 +218,105 @@ export default function RequestPage() {
     }
   }, [turnstileSiteKey])
 
-  const handleChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  // Validate on form change
+  useEffect(() => {
+    const newErrors = validateStep(step, form)
+    setErrors(newErrors)
+  }, [form, step])
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target
-    setForm((prev) => ({ ...prev, [name]: value }))
+
+    if (name === 'contactPhone') {
+      setForm((prev) => ({ ...prev, [name]: formatPhone(value) }))
+    } else if (name === 'contactTelegram') {
+      // Auto-add @ if user starts typing without it
+      const formatted =
+        value.startsWith('@') || value.startsWith('+') || value === '' ? value : `@${value}`
+      setForm((prev) => ({ ...prev, [name]: formatted }))
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }))
+    }
+  }
+
+  const handleBlur = (field: string) => {
+    setTouched((prev) => ({ ...prev, [field]: true }))
   }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(event.target.files || [])
-    if (selected.length === 0) return
-
-    const nextFiles: File[] = []
-    for (const file of selected) {
-      if (file.size > MAX_FILE_SIZE) {
-        toast.error(
-          `Файл слишком большой. Максимум ${MAX_FILE_SIZE_LABEL}.`
-        )
-        continue
-      }
-      nextFiles.push(file)
-    }
-
-    const combined = [...files, ...nextFiles]
-    if (combined.length > REQUEST_MAX_FILES) {
-      toast.warning(
-        `Максимум ${REQUEST_MAX_FILES} файлов. Лишние файлы не будут добавлены.`
-      )
-    }
-
-    setFiles(combined.slice(0, REQUEST_MAX_FILES))
+    addFiles(selected)
     event.target.value = ''
   }
+
+  const addFiles = useCallback(
+    (selected: File[]) => {
+      if (selected.length === 0) return
+
+      const nextFiles: File[] = []
+      for (const file of selected) {
+        if (file.size > MAX_FILE_SIZE) {
+          toast.error(`Файл "${file.name}" слишком большой. Максимум ${MAX_FILE_SIZE_LABEL}.`)
+          continue
+        }
+        nextFiles.push(file)
+      }
+
+      const combined = [...files, ...nextFiles]
+      if (combined.length > REQUEST_MAX_FILES) {
+        toast.warning(`Максимум ${REQUEST_MAX_FILES} файлов. Лишние файлы не будут добавлены.`)
+      }
+
+      setFiles(combined.slice(0, REQUEST_MAX_FILES))
+    },
+    [files, toast]
+  )
 
   const removeFile = (index: number) => {
     setFiles((prev) => prev.filter((_, idx) => idx !== index))
   }
+
+  // Drag and drop handlers
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
+      setIsDragging(false)
+    }
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }, [])
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsDragging(false)
+
+      const droppedFiles = Array.from(e.dataTransfer.files)
+      addFiles(droppedFiles)
+    },
+    [addFiles]
+  )
 
   const resetForm = () => {
     setForm(initialForm)
     setFiles([])
     setSubmitted(false)
     setTurnstileToken('')
+    setStep(1)
+    setTouched({})
+    setErrors({})
+    localStorage.removeItem(DRAFT_KEY)
     if (typeof window !== 'undefined' && window.turnstile?.reset) {
       try {
         window.turnstile.reset()
@@ -120,6 +324,36 @@ export default function RequestPage() {
         // Ignore Turnstile reset errors in the UI.
       }
     }
+  }
+
+  const canProceed = () => {
+    const stepErrors = validateStep(step, form)
+    return Object.keys(stepErrors).length === 0
+  }
+
+  const nextStep = () => {
+    // Mark all fields in current step as touched
+    if (step === 1) {
+      setTouched((prev) => ({ ...prev, requestType: true, organization: true }))
+    } else if (step === 2) {
+      setTouched((prev) => ({
+        ...prev,
+        contactName: true,
+        contactEmail: true,
+        contactPhone: true,
+        contactTelegram: true,
+      }))
+    } else if (step === 3) {
+      setTouched((prev) => ({ ...prev, description: true }))
+    }
+
+    if (canProceed() && step < TOTAL_STEPS) {
+      setStep(step + 1)
+    }
+  }
+
+  const prevStep = () => {
+    if (step > 1) setStep(step - 1)
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -132,7 +366,7 @@ export default function RequestPage() {
     }
 
     if (!turnstileToken) {
-      toast.error('Please complete the captcha.')
+      toast.error('Пожалуйста, пройдите проверку captcha.')
       return
     }
 
@@ -141,6 +375,7 @@ export default function RequestPage() {
 
     try {
       const formData = new FormData()
+      formData.append('requestType', form.requestType)
       formData.append('organization', form.organization)
       formData.append('contactName', form.contactName)
       formData.append('contactEmail', form.contactEmail)
@@ -166,22 +401,14 @@ export default function RequestPage() {
       }
 
       if (Array.isArray(data.filesFailed) && data.filesFailed.length > 0) {
-        toast.warning(
-          'Часть файлов не загрузилась. Заявка все равно создана.'
-        )
+        toast.warning('Часть файлов не загрузилась. Заявка все равно создана.')
       }
 
-      toast.success(
-        'Заявка отправлена. Мы свяжемся с вами в ближайшее время.',
-        { id: toastId }
-      )
+      toast.success('Заявка отправлена!', { id: toastId })
       setSubmitted(true)
     } catch (error) {
       console.error('Request submit failed:', error)
-      toast.error(
-        'Не удалось отправить заявку. Попробуйте еще раз.',
-        { id: toastId }
-      )
+      toast.error('Не удалось отправить заявку. Попробуйте еще раз.', { id: toastId })
     } finally {
       setSubmitting(false)
       setTurnstileToken('')
@@ -195,8 +422,85 @@ export default function RequestPage() {
     }
   }
 
+  const renderStepIndicator = () => (
+    <div className="mb-8 flex items-center justify-center gap-2">
+      {[1, 2, 3, 4].map((s) => (
+        <div key={s} className="flex items-center">
+          <button
+            type="button"
+            onClick={() => s < step && setStep(s)}
+            disabled={s > step}
+            className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-all ${
+              s === step
+                ? 'scale-110 bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                : s < step
+                  ? 'cursor-pointer bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                  : 'bg-gray-700 text-gray-500'
+            }`}
+          >
+            {s < step ? <Check className="h-5 w-5" /> : s}
+          </button>
+          {s < 4 && (
+            <div
+              className={`mx-1 h-0.5 w-8 sm:w-12 ${s < step ? 'bg-emerald-500/50' : 'bg-gray-700'}`}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  )
+
+  const renderStepTitle = () => {
+    const titles = ['Тип заявки', 'Контакты', 'Описание', 'Файлы и отправка']
+    return (
+      <div className="mb-6 text-center">
+        <h2 className="text-lg font-medium text-white">{titles[step - 1]}</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          Шаг {step} из {TOTAL_STEPS}
+        </p>
+      </div>
+    )
+  }
+
+  const renderField = (
+    name: keyof ValidationErrors,
+    label: string,
+    icon: React.ReactNode,
+    inputProps: React.InputHTMLAttributes<HTMLInputElement>
+  ) => {
+    const hasError = touched[name] && errors[name]
+    return (
+      <div>
+        <label className="mb-2 block text-sm font-medium text-gray-300">{label}</label>
+        <div className="relative">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{icon}</div>
+          <input
+            {...inputProps}
+            name={name}
+            value={form[name]}
+            onChange={handleChange}
+            onBlur={() => handleBlur(name)}
+            className={`w-full rounded-lg border bg-gray-700 py-2.5 pl-10 pr-4 text-white placeholder-gray-400 transition focus:outline-none ${
+              hasError
+                ? 'border-red-500 focus:border-red-500'
+                : 'border-gray-600 focus:border-emerald-500'
+            }`}
+          />
+          {hasError && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400">
+              <AlertCircle className="h-4 w-4" />
+            </div>
+          )}
+        </div>
+        {hasError && (
+          <p className="mt-1.5 flex items-center gap-1 text-sm text-red-400">{errors[name]}</p>
+        )}
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen app-shell bg-gray-900">
+    <div className="app-shell min-h-screen bg-gray-900">
       {turnstileSiteKey && (
         <Script
           src="https://challenges.cloudflare.com/turnstile/v0/api.js"
@@ -207,213 +511,315 @@ export default function RequestPage() {
       )}
       <Header />
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <main className="mx-auto max-w-2xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="panel panel-glass rounded-2xl p-6 sm:p-8">
-          <div className="mb-6">
-            <h1 className="text-2xl sm:text-3xl font-semibold text-white">
-              {'Подать заявку'}
-            </h1>
-            <p className="text-sm text-slate-300/80 mt-2">
-              {'Отправьте заявку через форму, и она сразу попадет в нашу систему.'}
+          <div className="mb-6 text-center">
+            <h1 className="text-2xl font-semibold text-white sm:text-3xl">{'Подать заявку'}</h1>
+            <p className="mt-2 text-sm text-slate-300/80">
+              {'Заполните форму, и мы свяжемся с вами'}
             </p>
+            {draftRestored && (
+              <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-500/20 px-3 py-1.5 text-sm text-blue-300">
+                <Check className="h-4 w-4" />
+                Черновик восстановлен
+              </div>
+            )}
           </div>
 
           {submitted ? (
-            <div className="space-y-4">
-              <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-emerald-200">
-                {'Спасибо! Заявка принята.'}
+            <div className="py-8 text-center">
+              <div className="animate-scaleIn mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20">
+                <Check className="h-10 w-10 text-emerald-400" />
               </div>
+              <h2 className="mb-2 text-2xl font-semibold text-white">Заявка отправлена!</h2>
+              <p className="mb-6 text-slate-300">Спасибо! Мы свяжемся с вами в ближайшее время.</p>
               <button
                 type="button"
                 onClick={resetForm}
-                className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/20 transition"
+                className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-5 py-2.5 text-sm text-white transition hover:bg-white/20"
               >
-                {'Отправить еще одну'}
+                Отправить еще одну заявку
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  {'Организация *'}
-                </label>
-                <input
-                  type="text"
-                  name="organization"
-                  required
-                  value={form.organization}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500"
-                  placeholder="Наименование организации"
-                />
-              </div>
+            <form onSubmit={handleSubmit}>
+              {renderStepIndicator()}
+              {renderStepTitle()}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    {'Контактное лицо *'}
-                  </label>
-                  <input
-                    type="text"
-                    name="contactName"
-                    required
-                    value={form.contactName}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500"
-                    placeholder="Кому отвечать"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    {'Телефон *'}
-                  </label>
-                  <input
-                    type="tel"
-                    name="contactPhone"
-                    required
-                    value={form.contactPhone}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500"
-                    placeholder="+998 90 000 00 00"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    {'Email *'}
-                  </label>
-                  <input
-                    type="email"
-                    name="contactEmail"
-                    required
-                    value={form.contactEmail}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500"
-                    placeholder="name@example.com"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    {'Telegram *'}
-                  </label>
-                  <input
-                    type="text"
-                    name="contactTelegram"
-                    required
-                    value={form.contactTelegram}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500"
-                    placeholder="@username"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  {'Содержание проблемы *'}
-                </label>
-                <textarea
-                  name="description"
-                  required
-                  value={form.description}
-                  onChange={handleChange}
-                  rows={6}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500 resize-none"
-                  placeholder="Опишите, что нужно сделать, какой результат ожидается."
-                />
-              </div>
-
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-300">
-                  {'Вложения'}
-                </label>
-                <div className="flex flex-col gap-3">
-                  <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 border border-dashed border-gray-500 rounded-lg text-sm text-gray-200 hover:border-emerald-500 hover:text-white cursor-pointer">
-                    <Paperclip className="w-4 h-4" />
-                    {'Добавить файлы'}
-                    <input
-                      type="file"
-                      multiple
-                      accept={REQUEST_ALLOWED_FILE_EXTENSIONS}
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
-                  </label>
-                  <p className="text-xs text-slate-400">
-                    {`До ${REQUEST_MAX_FILES} файлов, до ${MAX_FILE_SIZE_LABEL} каждый. Поддерживаются документы и фото.`}
-                  </p>
-                </div>
-
-                {files.length > 0 && (
-                  <div className="space-y-2">
-                    {files.map((file, index) => (
-                      <div
-                        key={`${file.name}-${index}`}
-                        className="flex items-center justify-between gap-3 px-3 py-2 bg-gray-800/60 border border-gray-700 rounded-lg"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-sm text-white truncate">{file.name}</p>
-                          <p className="text-xs text-slate-400">{formatFileSize(file.size)}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => removeFile(index)}
-                          className="text-slate-400 hover:text-red-400 transition"
-                          aria-label="Remove file"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+              {/* Step 1: Request Type */}
+              {step === 1 && (
+                <div className="animate-fadeIn space-y-6">
+                  <div>
+                    <label className="mb-3 block text-sm font-medium text-gray-300">
+                      Тип обращения *
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {REQUEST_TYPES.map((type) => {
+                        const Icon = type.icon
+                        const isSelected = form.requestType === type.value
+                        return (
+                          <button
+                            key={type.value}
+                            type="button"
+                            onClick={() => {
+                              setForm((prev) => ({ ...prev, requestType: type.value }))
+                              setTouched((prev) => ({ ...prev, requestType: true }))
+                            }}
+                            className={`rounded-xl border-2 p-4 text-left transition-all ${
+                              isSelected
+                                ? 'border-emerald-500 bg-emerald-500/10'
+                                : 'border-gray-600 bg-gray-700/50 hover:border-gray-500'
+                            }`}
+                          >
+                            <Icon
+                              className={`mb-2 h-6 w-6 ${isSelected ? 'text-emerald-400' : type.color}`}
+                            />
+                            <p
+                              className={`font-medium ${isSelected ? 'text-emerald-300' : 'text-white'}`}
+                            >
+                              {type.label}
+                            </p>
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {touched.requestType && errors.requestType && (
+                      <p className="mt-2 text-sm text-red-400">{errors.requestType}</p>
+                    )}
                   </div>
+
+                  {renderField('organization', 'Организация *', <Building2 className="h-4 w-4" />, {
+                    type: 'text',
+                    required: true,
+                    placeholder: 'Наименование организации',
+                  })}
+                </div>
+              )}
+
+              {/* Step 2: Contacts */}
+              {step === 2 && (
+                <div className="animate-fadeIn space-y-5">
+                  {renderField('contactName', 'Контактное лицо *', <User className="h-4 w-4" />, {
+                    type: 'text',
+                    required: true,
+                    placeholder: 'Ваше имя',
+                  })}
+
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    {renderField('contactPhone', 'Телефон *', <Phone className="h-4 w-4" />, {
+                      type: 'tel',
+                      required: true,
+                      placeholder: '+998 90 000 00 00',
+                    })}
+
+                    {renderField('contactEmail', 'Email *', <Mail className="h-4 w-4" />, {
+                      type: 'email',
+                      required: true,
+                      placeholder: 'name@example.com',
+                    })}
+                  </div>
+
+                  {renderField(
+                    'contactTelegram',
+                    'Telegram *',
+                    <MessageCircle className="h-4 w-4" />,
+                    {
+                      type: 'text',
+                      required: true,
+                      placeholder: '@username',
+                    }
+                  )}
+                </div>
+              )}
+
+              {/* Step 3: Description */}
+              {step === 3 && (
+                <div className="animate-fadeIn space-y-5">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-300">
+                      Содержание проблемы *
+                    </label>
+                    <div className="relative">
+                      <textarea
+                        name="description"
+                        required
+                        value={form.description}
+                        onChange={handleChange}
+                        onBlur={() => handleBlur('description')}
+                        rows={6}
+                        className={`w-full resize-none rounded-lg border bg-gray-700 px-4 py-3 text-white placeholder-gray-400 transition focus:outline-none ${
+                          touched.description && errors.description
+                            ? 'border-red-500 focus:border-red-500'
+                            : 'border-gray-600 focus:border-emerald-500'
+                        }`}
+                        placeholder="Опишите подробно, что нужно сделать и какой результат ожидается..."
+                      />
+                      <div className="absolute bottom-3 right-3 text-xs text-gray-500">
+                        {form.description.length} / 20 мин.
+                      </div>
+                    </div>
+                    {touched.description && errors.description && (
+                      <p className="mt-1.5 text-sm text-red-400">{errors.description}</p>
+                    )}
+                  </div>
+
+                  <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-4">
+                    <p className="text-sm text-blue-300">
+                      <strong>Совет:</strong> Чем подробнее описание, тем быстрее мы сможем помочь.
+                      Укажите контекст, ожидаемый результат и сроки если есть.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Files & Submit */}
+              {step === 4 && (
+                <div className="animate-fadeIn space-y-6">
+                  <div>
+                    <label className="mb-3 block text-sm font-medium text-gray-300">
+                      Вложения (необязательно)
+                    </label>
+
+                    <div
+                      ref={dropZoneRef}
+                      onDragEnter={handleDragEnter}
+                      onDragLeave={handleDragLeave}
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                      className={`relative rounded-xl border-2 border-dashed p-8 text-center transition-all ${
+                        isDragging
+                          ? 'border-emerald-500 bg-emerald-500/10'
+                          : 'border-gray-600 hover:border-gray-500'
+                      }`}
+                    >
+                      <input
+                        type="file"
+                        multiple
+                        accept={REQUEST_ALLOWED_FILE_EXTENSIONS}
+                        onChange={handleFileChange}
+                        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                      />
+                      <Upload
+                        className={`mx-auto mb-3 h-10 w-10 ${isDragging ? 'text-emerald-400' : 'text-gray-500'}`}
+                      />
+                      <p className="mb-1 font-medium text-white">
+                        {isDragging ? 'Отпустите файлы' : 'Перетащите файлы сюда'}
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        или <span className="text-emerald-400">выберите</span> на компьютере
+                      </p>
+                      <p className="mt-2 text-xs text-gray-500">
+                        До {REQUEST_MAX_FILES} файлов, до {MAX_FILE_SIZE_LABEL} каждый
+                      </p>
+                    </div>
+
+                    {files.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        {files.map((file, index) => (
+                          <div
+                            key={`${file.name}-${index}`}
+                            className="group flex items-center gap-3 rounded-lg border border-gray-700 bg-gray-800/60 px-3 py-2"
+                          >
+                            {filePreviews[index] ? (
+                              <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-gray-700">
+                                <Image
+                                  src={filePreviews[index]}
+                                  alt={file.name}
+                                  width={40}
+                                  height={40}
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gray-700">
+                                <Paperclip className="h-5 w-5 text-gray-400" />
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm text-white">{file.name}</p>
+                              <p className="text-xs text-slate-400">{formatFileSize(file.size)}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeFile(index)}
+                              className="rounded-lg p-1.5 text-slate-400 opacity-0 transition hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
+                              aria-label="Удалить файл"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <input
+                    type="text"
+                    name="website"
+                    value={honeypot}
+                    onChange={(event) => setHoneypot(event.target.value)}
+                    className="hidden"
+                    tabIndex={-1}
+                    autoComplete="off"
+                  />
+
+                  {turnstileSiteKey ? (
+                    <div className="flex justify-center">
+                      <div
+                        className="cf-turnstile"
+                        data-sitekey={turnstileSiteKey}
+                        data-callback="onTurnstileSuccess"
+                        data-expired-callback="onTurnstileExpired"
+                        data-error-callback="onTurnstileError"
+                        data-response-field="false"
+                        data-theme="dark"
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-center text-xs text-amber-300">
+                      Turnstile is not configured.
+                    </p>
+                  )}
+                  <input type="hidden" name="cf-turnstile-response" value={turnstileToken} />
+                </div>
+              )}
+
+              {/* Navigation buttons */}
+              <div className="mt-8 flex items-center justify-between border-t border-gray-700 pt-6">
+                {step > 1 ? (
+                  <button
+                    type="button"
+                    onClick={prevStep}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-gray-300 transition hover:text-white"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Назад
+                  </button>
+                ) : (
+                  <div />
+                )}
+
+                {step < TOTAL_STEPS ? (
+                  <button
+                    type="button"
+                    onClick={nextStep}
+                    disabled={!canProceed()}
+                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-2.5 text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Далее
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-2.5 text-white transition hover:bg-emerald-500 disabled:opacity-60"
+                  >
+                    <Send className={`h-4 w-4 ${submitting ? 'animate-pulse' : ''}`} />
+                    {submitting ? 'Отправка...' : 'Отправить заявку'}
+                  </button>
                 )}
               </div>
-
-              <input
-                type="text"
-                name="website"
-                value={honeypot}
-                onChange={(event) => setHoneypot(event.target.value)}
-                className="hidden"
-                tabIndex={-1}
-                autoComplete="off"
-              />
-
-              {turnstileSiteKey ? (
-                <div className="flex justify-start">
-                  <div
-                    className="cf-turnstile"
-                    data-sitekey={turnstileSiteKey}
-                    data-callback="onTurnstileSuccess"
-                    data-expired-callback="onTurnstileExpired"
-                    data-error-callback="onTurnstileError"
-                    data-response-field="false"
-                    data-theme="auto"
-                  />
-                </div>
-              ) : (
-                <p className="text-xs text-amber-300">
-                  Turnstile is not configured.
-                </p>
-              )}
-              <input
-                type="hidden"
-                name="cf-turnstile-response"
-                value={turnstileToken}
-              />
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition disabled:opacity-60"
-              >
-                <Send className={`w-4 h-4 ${submitting ? 'animate-pulse' : ''}`} />
-                {submitting
-                  ? 'Отправка...'
-                  : 'Отправить заявку'}
-              </button>
             </form>
           )}
         </div>
