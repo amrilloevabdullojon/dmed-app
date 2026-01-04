@@ -251,7 +251,7 @@ export function FileUpload({ letterId, files, onFilesChange }: FileUploadProps) 
                 key={file.id}
                 className="group flex items-center justify-between gap-3 rounded-lg bg-gray-700/50 px-4 py-3"
               >
-                <div className="flex min-w-0 items-center gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
                   <FileIcon className="h-5 w-5 flex-shrink-0 text-gray-400" />
                   <div className="min-w-0">
                     <button
@@ -261,6 +261,7 @@ export function FileUpload({ letterId, files, onFilesChange }: FileUploadProps) 
                           : window.open(`/api/files/${file.id}`, '_blank')
                       }
                       className="block truncate text-left text-white transition hover:text-emerald-400"
+                      title={file.name}
                     >
                       {file.name}
                     </button>

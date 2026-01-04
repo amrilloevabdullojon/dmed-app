@@ -74,6 +74,8 @@ export function FilePreviewModal({ file, files, onClose, onNavigate }: FilePrevi
   }, [currentIndex, files, hasNext, onNavigate])
 
   useEffect(() => {
+    if (!file) return
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose()
@@ -95,7 +97,7 @@ export function FilePreviewModal({ file, files, onClose, onNavigate }: FilePrevi
       window.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = ''
     }
-  }, [onClose, handlePrev, handleNext])
+  }, [file, onClose, handlePrev, handleNext])
 
   useEffect(() => {
     if (file) {
