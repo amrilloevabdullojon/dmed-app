@@ -30,6 +30,7 @@ const COLUMNS = {
 
 const TOTAL_COLUMNS = 21
 const TEMPLATE_ROW_INDEX = 1
+const FORMULA_SEPARATOR = process.env.GOOGLE_SHEET_FORMULA_SEPARATOR || ';'
 
 /**
  * ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ ÐºÐ»Ð¸ÐµÐ½Ñ‚ Google Sheets
@@ -75,13 +76,54 @@ function buildFileCell(files: Array<{ id: string; name: string; url?: string | n
           : `/api/files/${file.id}`
     const safeUrl = escapeSheetString(url)
     const safeName = escapeSheetString(file.name)
-    return `HYPERLINK("${safeUrl}","${safeName}")`
+    return `HYPERLINK("${safeUrl}"${FORMULA_SEPARATOR}"${safeName}")`
   })
 
   if (links.length === 1) {
     return `=${links[0]}`
   }
   return `=${links.join(' & CHAR(10) & ')}`
+}
+
+function buildOwnerValidationRule(values: string[]) {
+  return {
+    condition: {
+      type: 'ONE_OF_LIST',
+      values: values.map((value) => ({ userEnteredValue: value })),
+    },
+    strict: true,
+    showCustomUi: true,
+  }
+}
+
+async function applyOwnerValidation(
+  sheets: Awaited<ReturnType<typeof getSheetsClient>>,
+  spreadsheetId: string,
+  sheetId: number,
+  lastRowNum: number,
+  values: string[]
+) {
+  if (!values.length || lastRowNum < 2) return
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [
+        {
+          setDataValidation: {
+            range: {
+              sheetId,
+              startRowIndex: 1,
+              endRowIndex: lastRowNum,
+              startColumnIndex: COLUMNS.OWNER,
+              endColumnIndex: COLUMNS.OWNER + 1,
+            },
+            rule: buildOwnerValidationRule(values),
+          },
+        },
+      ],
+    },
+  })
 }
 
 async function copyTemplateFormatting(
@@ -253,6 +295,7 @@ export async function processPendingChanges(batchSize = 50): Promise<SyncResult>
 
     const idToRowMap = new Map<string, number>()
     const existingIds = existingRows.data.values || []
+    const existingRowCount = existingIds.length
     existingIds.forEach((row, index) => {
       if (row[0]) {
         idToRowMap.set(row[0], index + 2) // +2 Ð¿Ð¾Ñ‚Ð¾Ð¼Ñƒ Ñ‡Ñ‚Ð¾ Ð½Ð°Ñ‡Ð¸Ð½Ð°ÐµÐ¼ Ñ ÑÑ‚Ñ€Ð¾ÐºÐ¸ 2
@@ -267,6 +310,7 @@ export async function processPendingChanges(batchSize = 50): Promise<SyncResult>
     const updatedLetterIds: string[] = []
 
     const appendRows: string[][] = []
+    let appendedStartRow: number | null = null
     const syncedIds: string[] = []
     const letterIdsToUpdate: { letterId: string; sheetRowNum: number }[] = []
 
@@ -347,6 +391,7 @@ export async function processPendingChanges(batchSize = 50): Promise<SyncResult>
         const match = updatedRange.match(/!A(\d+):/)
         if (match) {
           const startRow = parseInt(match[1], 10)
+          appendedStartRow = startRow
           if (sheetId !== null) {
             await copyTemplateFormatting(
               sheets,
@@ -368,6 +413,23 @@ export async function processPendingChanges(batchSize = 50): Promise<SyncResult>
           }
         }
       }
+    }
+
+    const lastRowNum =
+      appendedStartRow && appendRows.length > 0
+        ? Math.max(existingRowCount + 1, appendedStartRow + appendRows.length - 1)
+        : existingRowCount + 1
+
+    if (sheetId !== null && (updateRequests.length > 0 || appendRows.length > 0)) {
+      const users = await prisma.user.findMany({ select: { name: true, email: true } })
+      const ownerOptions = Array.from(
+        new Set(
+          users
+            .map((user) => (user.name || user.email || '').trim())
+            .filter((value) => value.length > 0)
+        )
+      ).sort((a, b) => a.localeCompare(b))
+      await applyOwnerValidation(sheets, spreadsheetId, sheetId, lastRowNum, ownerOptions)
     }
 
     // ÐžÐ±Ð½Ð¾Ð²Ð»ÑÐµÐ¼ lastSyncedAt Ð´Ð»Ñ Ð¾Ð±Ð½Ð¾Ð²Ð»Ñ‘Ð½Ð½Ñ‹Ñ… Ð¿Ð¸ÑÐµÐ¼

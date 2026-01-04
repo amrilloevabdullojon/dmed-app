@@ -31,6 +31,7 @@ const COLUMNS = {
 // ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ ÐºÐ»Ð¸ÐµÐ½Ñ‚ Google Sheets
 const TOTAL_COLUMNS = 21
 const TEMPLATE_ROW_INDEX = 1
+const FORMULA_SEPARATOR = process.env.GOOGLE_SHEET_FORMULA_SEPARATOR || ';'
 
 async function getSheetsClient() {
   const auth = new google.auth.GoogleAuth({
@@ -73,13 +74,54 @@ function buildFileCell(files: Array<{ id: string; name: string; url?: string | n
           : `/api/files/${file.id}`
     const safeUrl = escapeSheetString(url)
     const safeName = escapeSheetString(file.name)
-    return `HYPERLINK("${safeUrl}","${safeName}")`
+    return `HYPERLINK("${safeUrl}"${FORMULA_SEPARATOR}"${safeName}")`
   })
 
   if (links.length === 1) {
     return `=${links[0]}`
   }
   return `=${links.join(' & CHAR(10) & ')}`
+}
+
+function buildOwnerValidationRule(values: string[]) {
+  return {
+    condition: {
+      type: 'ONE_OF_LIST',
+      values: values.map((value) => ({ userEnteredValue: value })),
+    },
+    strict: true,
+    showCustomUi: true,
+  }
+}
+
+async function applyOwnerValidation(
+  sheets: Awaited<ReturnType<typeof getSheetsClient>>,
+  spreadsheetId: string,
+  sheetId: number,
+  lastRowNum: number,
+  values: string[]
+) {
+  if (!values.length || lastRowNum < 2) return
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [
+        {
+          setDataValidation: {
+            range: {
+              sheetId,
+              startRowIndex: 1,
+              endRowIndex: lastRowNum,
+              startColumnIndex: COLUMNS.OWNER,
+              endColumnIndex: COLUMNS.OWNER + 1,
+            },
+            rule: buildOwnerValidationRule(values),
+          },
+        },
+      ],
+    },
+  })
 }
 
 async function copyTemplateFormatting(
@@ -222,14 +264,28 @@ export async function syncToGoogleSheets() {
       })
     }
 
-    const letters = await prisma.letter.findMany({
-      where: { deletedAt: null },
-      include: {
-        owner: true,
-        files: true,
-      },
-      orderBy: { createdAt: 'asc' },
-    })
+    const sheetId = await getSheetId(sheets, spreadsheetId, sheetName)
+
+    const [letters, users] = await Promise.all([
+      prisma.letter.findMany({
+        where: { deletedAt: null },
+        include: {
+          owner: true,
+          files: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+      prisma.user.findMany({
+        select: { name: true, email: true },
+      }),
+    ])
+    const ownerOptions = Array.from(
+      new Set(
+        users
+          .map((user) => (user.name || user.email || '').trim())
+          .filter((value) => value.length > 0)
+      )
+    ).sort((a, b) => a.localeCompare(b))
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
@@ -294,6 +350,8 @@ export async function syncToGoogleSheets() {
       }
     }
 
+    const lastRowNum = newRows.length > 0 ? nextRowNum + newRows.length - 1 : maxRowNum
+
     if (updates.length > 0) {
       await sheets.spreadsheets.values.batchUpdate({
         spreadsheetId,
@@ -313,10 +371,13 @@ export async function syncToGoogleSheets() {
           values: newRows,
         },
       })
-      const sheetId = await getSheetId(sheets, spreadsheetId, sheetName)
       if (sheetId !== null) {
         await copyTemplateFormatting(sheets, spreadsheetId, sheetId, nextRowNum, newRows.length)
       }
+    }
+
+    if (sheetId !== null) {
+      await applyOwnerValidation(sheets, spreadsheetId, sheetId, lastRowNum, ownerOptions)
     }
 
     const syncedAt = new Date()
