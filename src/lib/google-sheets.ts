@@ -665,7 +665,9 @@ export async function importFromGoogleSheets() {
       sheetRowValues[COLUMNS.DEADLINE_DATE] = ''
       const dbRowValues = normalizeRow(buildRowFromLetter(existing), 17)
       dbRowValues[COLUMNS.DEADLINE_DATE] = ''
-      dbRowValues[COLUMNS.FILE] = (existing.files || []).map((file) => file.name).join('\n')
+      dbRowValues[COLUMNS.FILE] = (existing.files || [])
+        .map((file: { name: string }) => file.name)
+        .join('\n')
       const hasSheetChanges = JSON.stringify(sheetRowValues) !== JSON.stringify(dbRowValues)
       const dbChangedSinceSync = !!(
         existing.lastSyncedAt && existingUpdatedAt > existing.lastSyncedAt
