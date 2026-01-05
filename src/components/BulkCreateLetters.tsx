@@ -26,6 +26,7 @@ import {
 import { useToast } from '@/components/Toast'
 import { LETTER_TYPES } from '@/lib/constants'
 import { formatDateForInput, calculateDeadline } from '@/lib/parseLetterFilename'
+import { recommendLetterType } from '@/lib/recommendLetterType'
 
 interface LetterRow {
   id: string
@@ -69,7 +70,9 @@ interface ParseResult {
   error?: string
 }
 
-const parsePdfContent = async (file: File): Promise<{ data: ParsedPdfData | null; error?: string }> => {
+const parsePdfContent = async (
+  file: File
+): Promise<{ data: ParsedPdfData | null; error?: string }> => {
   try {
     const formData = new FormData()
     formData.append('file', file)
@@ -90,7 +93,6 @@ const parsePdfContent = async (file: File): Promise<{ data: ParsedPdfData | null
     return { data: null, error: err instanceof Error ? err.message : 'Неизвестная ошибка' }
   }
 }
-
 
 interface CreatedLetter {
   id: string
@@ -121,98 +123,111 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
   const [uploadingFiles, setUploadingFiles] = useState(false)
 
   // Парсинг PDF через API
-  const handleFiles = useCallback(async (files: FileList | File[]) => {
-    const pdfFiles = Array.from(files).filter(
-      (f) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
-    )
+  const handleFiles = useCallback(
+    async (files: FileList | File[]) => {
+      const pdfFiles = Array.from(files).filter(
+        (f) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
+      )
 
-    if (pdfFiles.length === 0) {
-      toast.error('Выберите PDF файлы')
-      return
-    }
+      if (pdfFiles.length === 0) {
+        toast.error('Выберите PDF файлы')
+        return
+      }
 
-    // Создаём строки для каждого файла
-    const newRows: LetterRow[] = pdfFiles.map((file) => ({
-      ...createEmptyRow(),
-      file,
-      parsing: true,
-    }))
+      // Создаём строки для каждого файла
+      const newRows: LetterRow[] = pdfFiles.map((file) => ({
+        ...createEmptyRow(),
+        file,
+        parsing: true,
+      }))
 
-    // Если первая строка пустая - заменяем, иначе добавляем
-    setRows((prev) => {
-      const firstRowEmpty = prev.length === 1 && !prev[0].number && !prev[0].org && !prev[0].file
-      return firstRowEmpty ? newRows : [...prev, ...newRows]
-    })
-
-    // Парсим каждый файл параллельно с использованием Promise.allSettled
-    const toastId = toast.loading(`Анализ ${pdfFiles.length} PDF с помощью AI...`)
-
-    const settledResults = await Promise.allSettled(
-      newRows.map(async (row): Promise<ParseResult> => {
-        if (!row.file) return { id: row.id, data: null }
-        const result = await parsePdfContent(row.file)
-        return { id: row.id, data: result.data, error: result.error }
+      // Если первая строка пустая - заменяем, иначе добавляем
+      setRows((prev) => {
+        const firstRowEmpty = prev.length === 1 && !prev[0].number && !prev[0].org && !prev[0].file
+        return firstRowEmpty ? newRows : [...prev, ...newRows]
       })
-    )
 
-    // Преобразуем результаты allSettled в единый формат
-    const results: ParseResult[] = settledResults.map((result, index) => {
-      if (result.status === 'fulfilled') {
-        return result.value
-      }
-      // Если промис отклонён, возвращаем ошибку
-      return {
-        id: newRows[index].id,
-        data: null,
-        error: result.reason instanceof Error ? result.reason.message : 'Ошибка обработки',
-      }
-    })
+      // Парсим каждый файл параллельно с использованием Promise.allSettled
+      const toastId = toast.loading(`Анализ ${pdfFiles.length} PDF с помощью AI...`)
 
-    // Обновляем строки с распознанными данными
-    setRows((prev) =>
-      prev.map((row) => {
-        const result = results.find((r) => r.id === row.id)
-        if (!result || !result.data) {
-          return { ...row, parsing: false }
+      const settledResults = await Promise.allSettled(
+        newRows.map(async (row): Promise<ParseResult> => {
+          if (!row.file) return { id: row.id, data: null }
+          const result = await parsePdfContent(row.file)
+          return { id: row.id, data: result.data, error: result.error }
+        })
+      )
+
+      // Преобразуем результаты allSettled в единый формат
+      const results: ParseResult[] = settledResults.map((result, index) => {
+        if (result.status === 'fulfilled') {
+          return result.value
         }
-
-        const data = result.data
-        let deadlineDate = ''
-
-        if (data.deadline) {
-          deadlineDate = formatDateForInput(new Date(data.deadline))
-        } else if (data.date) {
-          deadlineDate = formatDateForInput(calculateDeadline(new Date(data.date), 7))
-        }
-
+        // Если промис отклонён, возвращаем ошибку
         return {
-          ...row,
-          number: data.number || '',
-          org: data.organization || '',
-          date: data.date ? formatDateForInput(new Date(data.date)) : row.date,
-          deadlineDate,
-          content: data.content || '',
-          parsing: false,
-          parsedByAI: true,
+          id: newRows[index].id,
+          data: null,
+          error: result.reason instanceof Error ? result.reason.message : 'Ошибка обработки',
         }
       })
-    )
 
-    const successCount = results.filter((r) => r.data).length
-    const errorCount = results.filter((r) => r.error).length
+      // Обновляем строки с распознанными данными
+      setRows((prev) =>
+        prev.map((row) => {
+          const result = results.find((r) => r.id === row.id)
+          if (!result || !result.data) {
+            return { ...row, parsing: false }
+          }
 
-    if (successCount === pdfFiles.length) {
-      toast.success(`Все ${pdfFiles.length} PDF успешно распознаны`, { id: toastId })
-    } else if (successCount > 0) {
-      const message = errorCount > 0
-        ? `Распознано ${successCount} из ${pdfFiles.length} PDF. Ошибок: ${errorCount}`
-        : `Распознано ${successCount} из ${pdfFiles.length} PDF`
-      toast.warning(message, { id: toastId })
-    } else {
-      const firstError = results.find((r) => r.error)?.error
-      toast.error(`Не удалось распознать PDF файлы${firstError ? `: ${firstError}` : ''}`, { id: toastId })
-    }
-  }, [toast])
+          const data = result.data
+          let deadlineDate = ''
+
+          if (data.deadline) {
+            deadlineDate = formatDateForInput(new Date(data.deadline))
+          } else if (data.date) {
+            deadlineDate = formatDateForInput(calculateDeadline(new Date(data.date), 7))
+          }
+
+          const recommendedType = recommendLetterType({
+            content: data.content,
+            organization: data.organization,
+            filename: row.file?.name,
+          })
+
+          return {
+            ...row,
+            number: data.number || '',
+            org: data.organization || '',
+            date: data.date ? formatDateForInput(new Date(data.date)) : row.date,
+            deadlineDate,
+            type: row.type || recommendedType,
+            content: data.content || '',
+            parsing: false,
+            parsedByAI: true,
+          }
+        })
+      )
+
+      const successCount = results.filter((r) => r.data).length
+      const errorCount = results.filter((r) => r.error).length
+
+      if (successCount === pdfFiles.length) {
+        toast.success(`Все ${pdfFiles.length} PDF успешно распознаны`, { id: toastId })
+      } else if (successCount > 0) {
+        const message =
+          errorCount > 0
+            ? `Распознано ${successCount} из ${pdfFiles.length} PDF. Ошибок: ${errorCount}`
+            : `Распознано ${successCount} из ${pdfFiles.length} PDF`
+        toast.warning(message, { id: toastId })
+      } else {
+        const firstError = results.find((r) => r.error)?.error
+        toast.error(`Не удалось распознать PDF файлы${firstError ? `: ${firstError}` : ''}`, {
+          id: toastId,
+        })
+      }
+    },
+    [toast]
+  )
 
   // Drag & Drop
   const handleDrop = useCallback(

@@ -27,6 +27,7 @@ import {
   formatDateForInput,
 } from '@/lib/parseLetterFilename'
 import { LETTER_TYPES } from '@/lib/constants'
+import { recommendLetterType } from '@/lib/recommendLetterType'
 
 interface ParsedPdfData {
   number: string | null
@@ -79,106 +80,136 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
    */
   const parsePdfContent = useCallback(
     async (f: File): Promise<{ data: ParsedPdfData; meta: ParseMeta } | null> => {
-    try {
-      const formData = new FormData()
-      formData.append('file', f)
+      try {
+        const formData = new FormData()
+        formData.append('file', f)
 
-      const res = await fetch('/api/parse-pdf', {
-        method: 'POST',
-        body: formData,
-      })
+        const res = await fetch('/api/parse-pdf', {
+          method: 'POST',
+          body: formData,
+        })
 
-      if (!res.ok) {
-        const err = await res.json()
-        console.error('PDF parse error:', err)
+        if (!res.ok) {
+          const err = await res.json()
+          console.error('PDF parse error:', err)
+          return null
+        }
+
+        const result = await res.json()
+        return { data: result.data, meta: result.meta }
+      } catch (error) {
+        console.error('Failed to parse PDF:', error)
         return null
       }
+    },
+    []
+  )
 
-      const result = await res.json()
-      return { data: result.data, meta: result.meta }
-    } catch (error) {
-      console.error('Failed to parse PDF:', error)
-      return null
-    }
-  }, [])
+  const handleFile = useCallback(
+    async (f: File) => {
+      setFile(f)
+      setParsing(true)
+      setParseSource(null)
 
-  const handleFile = useCallback(async (f: File) => {
-    setFile(f)
-    setParsing(true)
-    setParseSource(null)
+      const isPdf = f.name.toLowerCase().endsWith('.pdf')
 
-    const isPdf = f.name.toLowerCase().endsWith('.pdf')
+      // Сначала пробуем распарсить содержимое PDF
+      if (isPdf) {
+        toast.loading('Анализ PDF с помощью AI...', { id: 'parsing' })
 
-    // Сначала пробуем распарсить содержимое PDF
-    if (isPdf) {
-      toast.loading('Анализ PDF с помощью AI...', { id: 'parsing' })
+        const result = await parsePdfContent(f)
 
-      const result = await parsePdfContent(f)
+        if (result?.data) {
+          const { data, meta } = result
 
-      if (result?.data) {
-        const { data, meta } = result
+          // Определяем источник данных
+          if (meta.extractedFrom?.ai) {
+            setParseSource('ai')
+          } else if (meta.extractedFrom?.pdf) {
+            setParseSource('pdf')
+          } else if (meta.extractedFrom?.filename) {
+            setParseSource('filename')
+          }
 
-        // Определяем источник данных
-        if (meta.extractedFrom?.ai) {
-          setParseSource('ai')
-        } else if (meta.extractedFrom?.pdf) {
-          setParseSource('pdf')
-        } else if (meta.extractedFrom?.filename) {
-          setParseSource('filename')
+          if (data.number) setNumber(data.number)
+          if (data.organization) setOrg(data.organization)
+          if (data.date) {
+            const dateObj = new Date(data.date)
+            setDate(formatDateForInput(dateObj))
+          }
+          if (data.deadline) {
+            const deadlineObj = new Date(data.deadline)
+            setDeadlineDate(formatDateForInput(deadlineObj))
+          } else if (data.date) {
+            const dateObj = new Date(data.date)
+            // +7 рабочих дней
+            setDeadlineDate(formatDateForInput(calculateDeadline(dateObj, 7)))
+          }
+          if (data.content) setContent(data.content)
+          if (data.contentRussian) setContentRussian(data.contentRussian)
+          if (data.region || data.district) {
+            setRegion([data.region, data.district].filter(Boolean).join(', '))
+          }
+          const recommendedType = recommendLetterType({
+            content: data.content,
+            contentRussian: data.contentRussian,
+            organization: data.organization,
+            filename: f.name,
+          })
+          if (recommendedType) {
+            setType((prev) => prev || recommendedType)
+          }
+
+          const sourceText = meta.extractedFrom?.ai
+            ? 'AI'
+            : meta.extractedFrom?.pdf
+              ? 'PDF'
+              : 'имени файла'
+          toast.success(`Данные извлечены из ${sourceText}`, { id: 'parsing' })
+          setParsing(false)
+          return
         }
-
-        if (data.number) setNumber(data.number)
-        if (data.organization) setOrg(data.organization)
-        if (data.date) {
-          const dateObj = new Date(data.date)
-          setDate(formatDateForInput(dateObj))
-        }
-        if (data.deadline) {
-          const deadlineObj = new Date(data.deadline)
-          setDeadlineDate(formatDateForInput(deadlineObj))
-        } else if (data.date) {
-          const dateObj = new Date(data.date)
-          // +7 рабочих дней
-          setDeadlineDate(formatDateForInput(calculateDeadline(dateObj, 7)))
-        }
-        if (data.content) setContent(data.content)
-        if (data.contentRussian) setContentRussian(data.contentRussian)
-        if (data.region || data.district) {
-          setRegion([data.region, data.district].filter(Boolean).join(', '))
-        }
-
-        const sourceText = meta.extractedFrom?.ai ? 'AI' : meta.extractedFrom?.pdf ? 'PDF' : 'имени файла'
-        toast.success(`Данные извлечены из ${sourceText}`, { id: 'parsing' })
-        setParsing(false)
-        return
       }
-    }
 
-    // Fallback: парсим имя файла
-    const result = parseLetterFilename(f.name)
+      // Fallback: парсим имя файла
+      const result = parseLetterFilename(f.name)
 
-    if (result.isValid) {
-      setParseSource('filename')
-      setNumber(result.number)
-      setDate(formatDateForInput(result.date))
-      // +7 рабочих дней
-      setDeadlineDate(formatDateForInput(calculateDeadline(result.date, 7)))
-      setContent(result.content)
-      setOrg(guessOrganization(result.content))
-      toast.success('Данные распознаны из имени файла', { id: 'parsing' })
-    } else {
-      toast.error('Не удалось распознать данные. Заполните вручную.', { id: 'parsing' })
-    }
+      if (result.isValid) {
+        setParseSource('filename')
+        setNumber(result.number)
+        setDate(formatDateForInput(result.date))
+        // +7 рабочих дней
+        setDeadlineDate(formatDateForInput(calculateDeadline(result.date, 7)))
+        setContent(result.content)
+        const guessedOrg = guessOrganization(result.content)
+        setOrg(guessedOrg)
+        const recommendedType = recommendLetterType({
+          content: result.content,
+          organization: guessedOrg,
+          filename: f.name,
+        })
+        if (recommendedType) {
+          setType((prev) => prev || recommendedType)
+        }
+        toast.success('Данные распознаны из имени файла', { id: 'parsing' })
+      } else {
+        toast.error('Не удалось распознать данные. Заполните вручную.', { id: 'parsing' })
+      }
 
-    setParsing(false)
-  }, [parsePdfContent, toast])
+      setParsing(false)
+    },
+    [parsePdfContent, toast]
+  )
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setDragOver(false)
-    const f = e.dataTransfer.files?.[0]
-    if (f) handleFile(f)
-  }, [handleFile])
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      setDragOver(false)
+      const f = e.dataTransfer.files?.[0]
+      if (f) handleFile(f)
+    },
+    [handleFile]
+  )
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -281,31 +312,27 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
   }
 
   return (
-    <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-      <div className="flex items-center justify-between mb-4">
+    <div className="rounded-xl border border-gray-700 bg-gray-800 p-6">
+      <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-yellow-400" />
+          <Sparkles className="h-5 w-5 text-yellow-400" />
           <h3 className="text-lg font-semibold text-white">Быстрое создание письма</h3>
         </div>
         {onClose && (
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white"
-            aria-label="Закрыть"
-          >
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="text-gray-400 hover:text-white" aria-label="Закрыть">
+            <X className="h-5 w-5" />
           </button>
         )}
       </div>
 
-      <p className="text-sm text-gray-400 mb-4">
+      <p className="mb-4 text-sm text-gray-400">
         Перетащите PDF файл письма. Gemini AI автоматически извлечёт данные и переведёт на русский.
       </p>
 
       {!file ? (
         // Drop zone
         <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition cursor-pointer ${
+          className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition ${
             dragOver
               ? 'border-emerald-500 bg-emerald-500/10'
               : 'border-gray-600 hover:border-gray-500'
@@ -323,57 +350,55 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
             accept=".pdf,.doc,.docx"
             onChange={handleFileSelect}
           />
-          <Upload className="w-10 h-10 text-gray-500 mx-auto mb-3" />
+          <Upload className="mx-auto mb-3 h-10 w-10 text-gray-500" />
           <p className="text-gray-300">
             Перетащите файл сюда или <span className="text-emerald-400">выберите</span>
           </p>
-          <p className="text-xs text-gray-500 mt-2">PDF, DOC, DOCX</p>
+          <p className="mt-2 text-xs text-gray-500">PDF, DOC, DOCX</p>
         </div>
       ) : (
         // Form
         <div className="space-y-4">
           {/* File info */}
-          <div className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg">
-            <FileText className="w-8 h-8 text-emerald-400" />
-            <div className="flex-1 min-w-0">
-              <p className="text-white font-medium truncate">{file.name}</p>
-              <p className="text-xs text-gray-400">
-                {(file.size / 1024).toFixed(1)} KB
-              </p>
+          <div className="flex items-center gap-3 rounded-lg bg-gray-700/50 p-3">
+            <FileText className="h-8 w-8 text-emerald-400" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-medium text-white">{file.name}</p>
+              <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(1)} KB</p>
             </div>
             {parsing ? (
-              <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin text-blue-400" />
             ) : parseSource === 'ai' ? (
               <div className="flex items-center gap-1 text-purple-400">
-                <Bot className="w-4 h-4" />
+                <Bot className="h-4 w-4" />
                 <span className="text-xs">AI</span>
               </div>
             ) : parseSource === 'pdf' ? (
               <div className="flex items-center gap-1 text-emerald-400">
-                <Scan className="w-4 h-4" />
+                <Scan className="h-4 w-4" />
                 <span className="text-xs">PDF</span>
               </div>
             ) : parseSource === 'filename' ? (
               <div className="flex items-center gap-1 text-yellow-400">
-                <FileCode className="w-4 h-4" />
+                <FileCode className="h-4 w-4" />
                 <span className="text-xs">имя</span>
               </div>
             ) : (
-              <AlertTriangle className="w-5 h-5 text-yellow-400" />
+              <AlertTriangle className="h-5 w-5 text-yellow-400" />
             )}
             <button
               onClick={reset}
               className="p-1 text-gray-400 hover:text-red-400"
               aria-label="Сбросить файл"
             >
-              <X className="w-4 h-4" />
+              <X className="h-4 w-4" />
             </button>
           </div>
 
           {/* AI info */}
           {parseSource === 'ai' && (
-            <div className="p-3 bg-purple-500/20 border border-purple-500/30 rounded-lg text-purple-400 text-sm flex items-center gap-2">
-              <Bot className="w-4 h-4" />
+            <div className="flex items-center gap-2 rounded-lg border border-purple-500/30 bg-purple-500/20 p-3 text-sm text-purple-400">
+              <Bot className="h-4 w-4" />
               Данные извлечены и переведены с помощью AI
             </div>
           )}
@@ -381,8 +406,8 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
           {/* Form fields */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="flex items-center gap-2 text-sm text-gray-400 mb-1">
-                <Hash className="w-4 h-4" />
+              <label className="mb-1 flex items-center gap-2 text-sm text-gray-400">
+                <Hash className="h-4 w-4" />
                 Номер письма *
               </label>
               <input
@@ -390,14 +415,14 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
                 value={number}
                 aria-label="????? ??????"
                 onChange={(e) => setNumber(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
                 placeholder="7941"
               />
             </div>
 
             <div>
-              <label className="flex items-center gap-2 text-sm text-gray-400 mb-1">
-                <Building2 className="w-4 h-4" />
+              <label className="mb-1 flex items-center gap-2 text-sm text-gray-400">
+                <Building2 className="h-4 w-4" />
                 Организация *
               </label>
               <input
@@ -405,14 +430,14 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
                 value={org}
                 aria-label="???????????"
                 onChange={(e) => setOrg(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
                 placeholder="3-son oilaviy poliklinika"
               />
             </div>
 
             <div>
-              <label className="flex items-center gap-2 text-sm text-gray-400 mb-1">
-                <Calendar className="w-4 h-4" />
+              <label className="mb-1 flex items-center gap-2 text-sm text-gray-400">
+                <Calendar className="h-4 w-4" />
                 Дата письма *
               </label>
               <input
@@ -427,13 +452,13 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
                     setDeadlineDate(formatDateForInput(calculateDeadline(newDate, 7)))
                   }
                 }}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="flex items-center gap-2 text-sm text-gray-400 mb-1">
-                <Clock className="w-4 h-4" />
+              <label className="mb-1 flex items-center gap-2 text-sm text-gray-400">
+                <Clock className="h-4 w-4" />
                 Дедлайн
               </label>
               <input
@@ -441,25 +466,25 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
                 value={deadlineDate}
                 aria-label="???????"
                 onChange={(e) => setDeadlineDate(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
               />
             </div>
           </div>
 
-
-
           <div>
-            <label className="flex items-center gap-2 text-sm text-gray-400 mb-1">
-              <FileText className="w-4 h-4" />
+            <label className="mb-1 flex items-center gap-2 text-sm text-gray-400">
+              <FileText className="h-4 w-4" />
               {'\u0422\u0438\u043f \u0437\u0430\u043f\u0440\u043e\u0441\u0430'}
             </label>
             <select
               value={type}
               aria-label="???"
               onChange={(e) => setType(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+              className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
             >
-              <option value="">{'\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0442\u0438\u043f'}</option>
+              <option value="">
+                {'\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0442\u0438\u043f'}
+              </option>
               {LETTER_TYPES.filter((item) => item.value !== 'all').map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}
@@ -471,42 +496,43 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
           {region && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                  <label className="flex items-center gap-2 text-sm text-gray-400 mb-1">
-                    <MapPin className="w-4 h-4" />
-                    Регион
-                  </label>
-                  <input
-                    type="text"
-                    value={region}
-                    aria-label="??????"
-                    onChange={(e) => setRegion(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-</div>
+                <label className="mb-1 flex items-center gap-2 text-sm text-gray-400">
+                  <MapPin className="h-4 w-4" />
+                  Регион
+                </label>
+                <input
+                  type="text"
+                  value={region}
+                  aria-label="??????"
+                  onChange={(e) => setRegion(e.target.value)}
+                  className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+                />
+              </div>
+            </div>
           )}
 
           <div>
-            <label className="flex items-center gap-2 text-sm text-gray-400 mb-1">
-              <FileText className="w-4 h-4" />
-              {'\u041a\u0440\u0430\u0442\u043a\u043e\u0435 \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u043d\u0438\u0435'}
+            <label className="mb-1 flex items-center gap-2 text-sm text-gray-400">
+              <FileText className="h-4 w-4" />
+              {
+                '\u041a\u0440\u0430\u0442\u043a\u043e\u0435 \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u043d\u0438\u0435'
+              }
             </label>
             <textarea
               value={content}
               aria-label="??????????"
               onChange={(e) => setContent(e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-emerald-500 resize-none"
-              placeholder={'\u041e\u043f\u0438\u0448\u0438\u0442\u0435 \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u043d\u0438\u0435 \u043f\u0438\u0441\u044c\u043c\u0430...'}
+              className="w-full resize-none rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
+              placeholder={
+                '\u041e\u043f\u0438\u0448\u0438\u0442\u0435 \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u043d\u0438\u0435 \u043f\u0438\u0441\u044c\u043c\u0430...'
+              }
             />
           </div>
 
-
           <div className="rounded-lg border border-gray-600/60 bg-gray-900/40 p-4">
-            <h4 className="text-sm font-semibold text-white mb-3">
-              {'Данные заявителя'}
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h4 className="mb-3 text-sm font-semibold text-white">{'Данные заявителя'}</h4>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className="text-xs text-gray-400">{'Имя'}</label>
                 <input
@@ -514,7 +540,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
                   value={applicantName}
                   aria-label="??? ?????????"
                   onChange={(e) => setApplicantName(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                  className="mt-1 w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
                   placeholder={'Имя заявителя'}
                 />
               </div>
@@ -525,7 +551,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
                   value={applicantEmail}
                   aria-label="Email ?????????"
                   onChange={(e) => setApplicantEmail(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                  className="mt-1 w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
                   placeholder="email@example.com"
                 />
               </div>
@@ -536,7 +562,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
                   value={applicantPhone}
                   aria-label="??????? ?????????"
                   onChange={(e) => setApplicantPhone(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                  className="mt-1 w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
                   placeholder="+998901234567"
                 />
               </div>
@@ -547,7 +573,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
                   value={applicantTelegramChatId}
                   aria-label="Telegram chat id ?????????"
                   onChange={(e) => setApplicantTelegramChatId(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                  className="mt-1 w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
                   placeholder="123456789"
                 />
               </div>
@@ -557,11 +583,11 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
           {/* Russian translation */}
           {contentRussian && (
             <div>
-              <label className="flex items-center gap-2 text-sm text-gray-400 mb-1">
-                <Bot className="w-4 h-4 text-purple-400" />
+              <label className="mb-1 flex items-center gap-2 text-sm text-gray-400">
+                <Bot className="h-4 w-4 text-purple-400" />
                 Перевод на русский
               </label>
-              <div className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-gray-300 text-sm max-h-32 overflow-y-auto">
+              <div className="max-h-32 w-full overflow-y-auto rounded-lg border border-gray-600 bg-gray-700/50 px-3 py-2 text-sm text-gray-300">
                 {contentRussian}
               </div>
             </div>
@@ -572,16 +598,16 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
             <button
               onClick={handleCreate}
               disabled={creating || parsing || !number || !org || !date}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-gray-600"
             >
               {creating ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Создание...
                 </>
               ) : (
                 <>
-                  <Check className="w-4 h-4" />
+                  <Check className="h-4 w-4" />
                   Создать письмо
                 </>
               )}
@@ -589,7 +615,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
             <button
               onClick={reset}
               disabled={creating}
-              className="px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition"
+              className="rounded-lg bg-gray-700 px-4 py-2.5 text-white transition hover:bg-gray-600"
             >
               Сбросить
             </button>
