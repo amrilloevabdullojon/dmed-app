@@ -4,6 +4,9 @@ const genai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 })
 
+const MAX_AI_RETRIES = 2
+const AI_RETRY_BASE_DELAY_MS = 600
+
 export interface ExtractedLetterData {
   number: string | null
   date: string | null
@@ -33,35 +36,73 @@ Rules:
 - If a field is missing, use null.
 - Output JSON only.`
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const isRateLimitError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false
+  const err = error as {
+    status?: number
+    code?: number
+    message?: string
+    error?: { code?: number; status?: string; message?: string }
+  }
+  if (err.status === 429 || err.code === 429 || err.error?.code === 429) return true
+  const message = [err.message, err.error?.status, err.error?.message].filter(Boolean).join(' ')
+  return /RESOURCE_EXHAUSTED|429/i.test(message)
+}
+
+const withRetry = async <T>(label: string, action: () => Promise<T>): Promise<T> => {
+  let lastError: unknown
+  for (let attempt = 0; attempt <= MAX_AI_RETRIES; attempt += 1) {
+    try {
+      return await action()
+    } catch (error) {
+      lastError = error
+      if (!isRateLimitError(error) || attempt === MAX_AI_RETRIES) {
+        throw error
+      }
+      const jitter = Math.floor(Math.random() * 200)
+      const delay = AI_RETRY_BASE_DELAY_MS * 2 ** attempt + jitter
+      console.warn(`[AI] rate limited, retrying ${label} in ${delay}ms`)
+      await sleep(delay)
+    }
+  }
+  throw lastError
+}
+
 /**
  * Извлекает данные из PDF напрямую с помощью Gemini Vision
  */
-export async function extractLetterDataFromPdf(pdfBase64: string): Promise<ExtractedLetterData | null> {
+export async function extractLetterDataFromPdf(
+  pdfBase64: string
+): Promise<ExtractedLetterData | null> {
   if (!process.env.GEMINI_API_KEY) {
     console.warn('GEMINI_API_KEY not configured')
     return null
   }
 
   try {
-    const response = await genai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            {
-              inlineData: {
-                mimeType: 'application/pdf',
-                data: pdfBase64,
+    const response = await withRetry('extractLetterDataFromPdf', () =>
+      genai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                inlineData: {
+                  mimeType: 'application/pdf',
+                  data: pdfBase64,
+                },
               },
-            },
-            {
-              text: EXTRACTION_PROMPT,
-            },
-          ],
-        },
-      ],
-    })
+              {
+                text: EXTRACTION_PROMPT,
+              },
+            ],
+          },
+        ],
+      })
+    )
 
     const content = response.text
     if (!content) return null
@@ -91,17 +132,21 @@ export async function extractLetterDataFromPdf(pdfBase64: string): Promise<Extra
 /**
  * Извлекает данные из текста письма с помощью Gemini AI (legacy)
  */
-export async function extractLetterDataWithAI(pdfText: string): Promise<ExtractedLetterData | null> {
+export async function extractLetterDataWithAI(
+  pdfText: string
+): Promise<ExtractedLetterData | null> {
   if (!process.env.GEMINI_API_KEY) {
     console.warn('GEMINI_API_KEY not configured')
     return null
   }
 
   try {
-    const response = await genai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: EXTRACTION_PROMPT + '\n\nТекст письма:\n' + pdfText.substring(0, 4000),
-    })
+    const response = await withRetry('extractLetterDataWithAI', () =>
+      genai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: EXTRACTION_PROMPT + '\n\nТекст письма:\n' + pdfText.substring(0, 4000),
+      })
+    )
 
     const content = response.text
     if (!content) return null
@@ -126,12 +171,14 @@ export async function translateToRussian(text: string): Promise<string | null> {
   if (!process.env.GEMINI_API_KEY) return null
 
   try {
-    const response = await genai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: `Translate to Russian. Return only the translation:
+    const response = await withRetry('translateToRussian', () =>
+      genai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: `Translate to Russian. Return only the translation:
 
-${text}`,
-    })
+  ${text}`,
+      })
+    )
     return response.text || null
   } catch (error) {
     console.error('Translation error:', error)
@@ -146,12 +193,14 @@ export async function summarizeLetter(text: string): Promise<string | null> {
   if (!process.env.GEMINI_API_KEY) return null
 
   try {
-    const response = await genai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: `Summarize in Russian (1-2 sentences):
+    const response = await withRetry('summarizeLetter', () =>
+      genai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: `Summarize in Russian (1-2 sentences):
 
-${text}`,
-    })
+  ${text}`,
+      })
+    )
     return response.text || null
   } catch (error) {
     console.error('Summarize error:', error)
