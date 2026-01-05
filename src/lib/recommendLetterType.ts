@@ -7,6 +7,8 @@ interface RecommendTypeInput {
   filename?: string | null
 }
 
+type LetterTypeOption = { value: string; label?: string }
+
 const STOP_WORDS = new Set([
   'и',
   'в',
@@ -54,7 +56,9 @@ export function recommendLetterType(input: RecommendTypeInput): string {
   let bestType = ''
   let bestScore = 0
 
-  for (const type of LETTER_TYPES) {
+  const letterTypes = LETTER_TYPES as ReadonlyArray<LetterTypeOption>
+
+  for (const type of letterTypes) {
     if (type.value === 'all') continue
 
     const label = type.label || type.value
