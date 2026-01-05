@@ -31,7 +31,7 @@ const normalizeText = (value: string) => value.toLowerCase().replace(/ё/g, 'е'
 
 const tokenize = (value: string) =>
   normalizeText(value)
-    .split(/[^\p{L}0-9]+/u)
+    .split(/[^A-Za-z0-9\u0400-\u04FF]+/)
     .filter(Boolean)
 
 const buildTypeTokens = (label: string) =>
