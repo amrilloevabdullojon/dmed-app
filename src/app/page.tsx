@@ -44,7 +44,18 @@ interface Stats {
   overdue: number
   completed: number
   urgent: number
-  byStatus: Record<string, number>
+  byStatus: Record<LetterStatus, number>
+}
+
+interface StatsResponse {
+  summary: {
+    total: number
+    overdue: number
+    urgent: number
+    done: number
+    inProgress: number
+  }
+  byStatus: Record<LetterStatus, number>
 }
 
 interface Request {
@@ -76,47 +87,36 @@ export default function HomePage() {
     setLoading(true)
     try {
       // Загрузить все данные параллельно
-      const [allRes, urgentRes, overdueRes, requestsRes] = await Promise.all([
-        fetch('/api/letters?limit=1000'),
+      const [statsRes, recentRes, urgentRes, overdueRes, requestsRes] = await Promise.all([
+        fetch('/api/stats'),
+        fetch('/api/letters?limit=5&sortBy=created&sortOrder=desc'),
         fetch('/api/letters?filter=urgent&limit=5'),
         fetch('/api/letters?filter=overdue&limit=5'),
         fetch('/api/requests?limit=5&status=NEW,IN_REVIEW'),
       ])
 
-      const [allData, urgentData, overdueData, requestsData] = await Promise.all([
-        allRes.json(),
-        urgentRes.json(),
-        overdueRes.json(),
-        requestsRes.json(),
+      const [statsData, recentData, urgentData, overdueData, requestsData] = await Promise.all([
+        statsRes.ok ? (statsRes.json() as Promise<StatsResponse>) : Promise.resolve(null),
+        recentRes.ok ? (recentRes.json() as Promise<{ letters: Letter[] }>) : Promise.resolve(null),
+        urgentRes.json() as Promise<{ letters: Letter[] }>,
+        overdueRes.json() as Promise<{ letters: Letter[] }>,
+        requestsRes.json() as Promise<{ requests: Request[] }>,
       ])
 
-      const letters = allData.letters || []
-      const now = new Date()
+      if (statsData?.summary) {
+        setStats({
+          total: statsData.summary.total,
+          active: statsData.summary.inProgress,
+          overdue: statsData.summary.overdue,
+          completed: statsData.summary.done,
+          urgent: statsData.summary.urgent,
+          byStatus: statsData.byStatus,
+        })
+      } else {
+        setStats(null)
+      }
 
-      // Подсчёт статистики
-      const byStatus: Record<string, number> = {}
-      letters.forEach((l: Letter) => {
-        byStatus[l.status] = (byStatus[l.status] || 0) + 1
-      })
-
-      setStats({
-        total: letters.length,
-        active: letters.filter((l: Letter) => !['READY', 'DONE'].includes(l.status)).length,
-        overdue: letters.filter((l: Letter) => {
-          const deadline = new Date(l.deadlineDate)
-          return deadline < now && !['READY', 'DONE'].includes(l.status)
-        }).length,
-        completed: letters.filter((l: Letter) => ['READY', 'DONE'].includes(l.status)).length,
-        urgent: letters.filter((l: Letter) => {
-          const deadline = new Date(l.deadlineDate)
-          const diff = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-          return diff >= 0 && diff <= 3 && !['READY', 'DONE'].includes(l.status)
-        }).length,
-        byStatus,
-      })
-
-      // Последние 5 писем
-      setRecentLetters(letters.slice(0, 5))
+      setRecentLetters(recentData?.letters || [])
       setUrgentLetters(urgentData.letters || [])
       setOverdueLetters(overdueData.letters || [])
       setRecentRequests(requestsData.requests || [])
@@ -253,7 +253,7 @@ export default function HomePage() {
                     { key: 'READY', label: 'Готово', color: 'bg-emerald-400' },
                     { key: 'DONE', label: 'Выполнено', color: 'bg-teal-400' },
                   ].map(({ key, label, color }) => {
-                    const count = stats.byStatus[key] || 0
+                    const count = stats.byStatus[key as LetterStatus] || 0
                     const percent = stats.total ? Math.round((count / stats.total) * 100) : 0
                     return (
                       <Link key={key} href={`/letters?status=${key}`} className="group block">
