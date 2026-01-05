@@ -508,6 +508,7 @@ function LettersPageContent() {
         title: '\Н\а\з\н\а\ч\и\т\ь \и\с\п\о\л\н\и\т\е\л\я?',
         message: `\Н\а\з\н\а\ч\и\т\ь ${selectedIds.size} \п\и\с\е\м: ${ownerLabel}?`,
         confirmText: '\П\р\и\м\е\н\и\т\ь',
+        variant: 'info',
         onConfirm: runBulkAction,
       })
       return
