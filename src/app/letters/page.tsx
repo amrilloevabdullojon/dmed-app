@@ -421,7 +421,7 @@ function LettersPageContent() {
         const res = await fetch(`/api/letters/${letterId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: newStatus }),
+          body: JSON.stringify({ field: 'status', value: newStatus }),
         })
 
         if (res.ok) {
