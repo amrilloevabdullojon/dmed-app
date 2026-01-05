@@ -158,7 +158,7 @@ function KanbanColumn({
 
   return (
     <div
-      className={`flex min-w-[280px] flex-col rounded-xl border transition-colors ${
+      className={`flex w-64 min-w-[240px] flex-none flex-col rounded-xl border transition-colors ${
         isDragOver ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-white/10 bg-white/5'
       }`}
       onDragOver={handleDragOver}
@@ -166,7 +166,7 @@ function KanbanColumn({
       onDrop={handleDrop}
     >
       {/* Header */}
-      <div className={`rounded-t-xl border-b ${colors.border} ${colors.bg} px-4 py-3`}>
+      <div className={`rounded-t-xl border-b ${colors.border} ${colors.bg} px-3 py-2`}>
         <div className="flex items-center justify-between">
           <h3 className={`text-sm font-semibold ${colors.text}`}>{STATUS_LABELS[status]}</h3>
           <span
@@ -178,7 +178,7 @@ function KanbanColumn({
       </div>
 
       {/* Cards */}
-      <div className="flex-1 space-y-2 overflow-y-auto p-3" style={{ maxHeight: '70vh' }}>
+      <div className="flex-1 space-y-2 overflow-y-auto p-2" style={{ maxHeight: '70vh' }}>
         {letters.length === 0 ? (
           <div className="py-8 text-center text-sm text-gray-500">Нет писем</div>
         ) : (
