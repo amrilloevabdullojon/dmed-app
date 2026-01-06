@@ -24,7 +24,12 @@ export async function GET() {
       take: 30,
       include: {
         letter: {
-          select: { id: true, number: true, org: true },
+          select: {
+            id: true,
+            number: true,
+            org: true,
+            owner: { select: { id: true, name: true, email: true } },
+          },
         },
       },
     })

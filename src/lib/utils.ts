@@ -44,7 +44,7 @@ export function isDoneStatus(status: LetterStatus): boolean {
 }
 
 // Форматирование даты
-function parseDateValue(value: Date | string | null | undefined): Date | null {
+export function parseDateValue(value: Date | string | null | undefined): Date | null {
   if (!value) return null
   if (value instanceof Date) return value
   const trimmed = value.trim()

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
-import { addWorkingDays, sanitizeInput } from '@/lib/utils'
+import { addWorkingDays, parseDateValue, sanitizeInput } from '@/lib/utils'
 import { buildApplicantPortalLink, sendMultiChannelNotification } from '@/lib/notifications'
 import { logger } from '@/lib/logger.server'
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
@@ -20,11 +20,15 @@ import type { LetterSummary, PaginationMeta } from '@/types/dto'
 const createLetterSchema = z.object({
   number: z.string().min(1, 'Номер письма обязателен').max(50),
   org: z.string().min(1, 'Организация обязательна').max(500),
-  date: z.string().transform((val) => new Date(val)),
+  date: z
+    .string()
+    .refine((val) => parseDateValue(val), { message: 'Invalid date' })
+    .transform((val) => parseDateValue(val) as Date),
   deadlineDate: z
     .string()
     .optional()
-    .transform((val) => (val ? new Date(val) : null)),
+    .refine((val) => !val || parseDateValue(val), { message: 'Invalid deadline date' })
+    .transform((val) => (val ? (parseDateValue(val) as Date) : null)),
   type: z.string().optional(),
   content: z.string().max(10000).optional(),
   comment: z.string().max(5000).optional(),
