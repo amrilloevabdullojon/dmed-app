@@ -135,11 +135,6 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return csrfError
     }
 
-    const csrfError = csrfGuard(request)
-    if (csrfError) {
-      return csrfError
-    }
-
     const body = await request.json()
     const { field, value } = body
 
