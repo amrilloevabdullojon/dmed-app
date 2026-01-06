@@ -75,7 +75,7 @@ const getLogger = () => {
 
   try {
     // eslint-disable-next-line no-eval
-    cachedLogger = (eval('require')('./logger') as { logger: LoggerLike }).logger
+    cachedLogger = (eval('require')('./logger.server') as { logger: LoggerLike }).logger
   } catch {
     cachedLogger = null
   }

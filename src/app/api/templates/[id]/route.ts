@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { csrfGuard } from '@/lib/security'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 // GET /api/templates/[id] - получить шаблон
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

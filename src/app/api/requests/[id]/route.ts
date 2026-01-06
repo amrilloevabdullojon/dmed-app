@@ -3,8 +3,8 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { idParamSchema, updateRequestSchema } from '@/lib/schemas'
-import { logger } from '@/lib/logger'
-import { hasPermission } from '@/lib/permissions'
+import { logger } from '@/lib/logger.server'
+import { requirePermission } from '@/lib/permission-guard'
 import { formatRequestStatusChangeMessage, sendTelegramMessage } from '@/lib/telegram'
 import { csrfGuard } from '@/lib/security'
 import type { Prisma } from '@prisma/client'
@@ -18,8 +18,9 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!hasPermission(session.user.role, 'VIEW_REQUESTS')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const permissionError = requirePermission(session.user.role, 'VIEW_REQUESTS')
+    if (permissionError) {
+      return permissionError
     }
 
     const paramResult = idParamSchema.safeParse(params)
@@ -65,8 +66,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return csrfError
     }
 
-    if (!hasPermission(session.user.role, 'MANAGE_REQUESTS')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const permissionError = requirePermission(session.user.role, 'MANAGE_REQUESTS')
+    if (permissionError) {
+      return permissionError
     }
 
     const paramResult = idParamSchema.safeParse(params)
@@ -248,8 +250,9 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
     }
 
     // Только админы могут удалять заявки
-    if (!hasPermission(session.user.role, 'MANAGE_REQUESTS')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const permissionError = requirePermission(session.user.role, 'MANAGE_REQUESTS')
+    if (permissionError) {
+      return permissionError
     }
 
     const paramResult = idParamSchema.safeParse(params)

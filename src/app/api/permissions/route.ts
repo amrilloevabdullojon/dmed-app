@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import type { Role } from '@prisma/client'
 import { csrfGuard } from '@/lib/security'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 // Все доступные разрешения
 const ALL_PERMISSIONS = [

@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer'
 import { sendTelegramMessage } from '@/lib/telegram'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 const SMTP_HOST = process.env.SMTP_HOST
 const SMTP_PORT = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined

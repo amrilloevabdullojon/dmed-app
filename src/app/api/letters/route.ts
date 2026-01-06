@@ -4,13 +4,13 @@ import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { addWorkingDays, sanitizeInput } from '@/lib/utils'
 import { buildApplicantPortalLink, sendMultiChannelNotification } from '@/lib/notifications'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
 import { withValidation } from '@/lib/api-handler'
 import { letterFiltersSchema, paginationSchema } from '@/lib/schemas'
 import { LetterService } from '@/services/letter.service'
 import { PAGE_SIZE, PORTAL_TOKEN_EXPIRY_DAYS, DEFAULT_DEADLINE_WORKING_DAYS } from '@/lib/constants'
-import { hasPermission } from '@/lib/permissions'
+import { requirePermission } from '@/lib/permission-guard'
 import { csrfGuard } from '@/lib/security'
 import { z } from 'zod'
 import { randomUUID } from 'crypto'
@@ -79,8 +79,9 @@ const resolveAutoOwnerId = async () => {
 // GET /api/letters - получить все письма
 export const GET = withValidation<LettersListResponse, unknown, LettersQueryInput>(
   async (_request, session, { query }) => {
-    if (!hasPermission(session.user.role, 'VIEW_LETTERS')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const permissionError = requirePermission(session.user.role, 'VIEW_LETTERS')
+    if (permissionError) {
+      return permissionError
     }
 
     const { page, limit, ...filters } = query
@@ -121,8 +122,9 @@ export async function POST(request: NextRequest) {
       return csrfError
     }
 
-    if (!hasPermission(session.user.role, 'MANAGE_LETTERS')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const permissionError = requirePermission(session.user.role, 'MANAGE_LETTERS')
+    if (permissionError) {
+      return permissionError
     }
 
     const body = await request.json()

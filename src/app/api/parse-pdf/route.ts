@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { calculateDeadline } from '@/lib/parsePdfLetter'
 import { extractLetterDataFromPdf, translateToRussian } from '@/lib/ai'
 import { csrfGuard } from '@/lib/security'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 export async function POST(request: NextRequest) {
   try {

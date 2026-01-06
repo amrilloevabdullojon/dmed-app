@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { hasPermission } from '@/lib/permissions'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 // GET /api/users/[id]/audit - audit log for a user
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {

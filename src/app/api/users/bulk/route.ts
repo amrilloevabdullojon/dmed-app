@@ -3,9 +3,9 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { z } from 'zod'
-import { hasPermission } from '@/lib/permissions'
+import { requirePermission } from '@/lib/permission-guard'
 import { csrfGuard } from '@/lib/security'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 const bulkSchema = z.object({
   ids: z.array(z.string()).min(1),
@@ -25,8 +25,9 @@ export async function POST(request: NextRequest) {
       return csrfError
     }
 
-    if (!hasPermission(session.user.role, 'MANAGE_USERS')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const permissionError = requirePermission(session.user.role, 'MANAGE_USERS')
+    if (permissionError) {
+      return permissionError
     }
     const isSuperAdmin = session.user.role === 'SUPERADMIN'
 

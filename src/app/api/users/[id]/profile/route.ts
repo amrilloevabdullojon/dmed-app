@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { hasPermission } from '@/lib/permissions'
 import { resolveProfileAssetUrl } from '@/lib/profile-assets'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 const emptyProfile = {
   bio: null,

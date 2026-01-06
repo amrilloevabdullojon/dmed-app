@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { hasPermission } from '@/lib/permissions'
-import { logger } from '@/lib/logger'
+import { requirePermission } from '@/lib/permission-guard'
+import { logger } from '@/lib/logger.server'
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -11,8 +11,9 @@ export async function GET(request: NextRequest) {
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  if (!hasPermission(session.user.role, 'VIEW_LETTERS')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const permissionError = requirePermission(session.user.role, 'VIEW_LETTERS')
+  if (permissionError) {
+    return permissionError
   }
 
   const { searchParams } = new URL(request.url)

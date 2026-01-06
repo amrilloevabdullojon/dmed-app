@@ -6,7 +6,7 @@ import { deleteDriveFile, extractDriveFileId, getDriveFileStream } from '@/lib/g
 import { deleteLocalFile, getLocalFileAbsolutePath } from '@/lib/file-storage'
 import { hasPermission } from '@/lib/permissions'
 import { csrfGuard } from '@/lib/security'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 import { FileStorageProvider, FileStatus } from '@prisma/client'
 import { createReadStream, existsSync } from 'fs'
 import { Readable } from 'stream'

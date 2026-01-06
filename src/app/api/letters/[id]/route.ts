@@ -7,8 +7,9 @@ import type { LetterStatus } from '@prisma/client'
 import { sendTelegramMessage, formatStatusChangeMessage } from '@/lib/telegram'
 import { sendMultiChannelNotification } from '@/lib/notifications'
 import { hasPermission } from '@/lib/permissions'
+import { requirePermission } from '@/lib/permission-guard'
 import { csrfGuard } from '@/lib/security'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 // GET /api/letters/[id] - получить письмо по ID
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
@@ -17,8 +18,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if (!hasPermission(session.user.role, 'VIEW_LETTERS')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const permissionError = requirePermission(session.user.role, 'VIEW_LETTERS')
+    if (permissionError) {
+      return permissionError
     }
 
     const letter = await prisma.letter.findUnique({

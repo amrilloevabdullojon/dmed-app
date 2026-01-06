@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { syncToGoogleSheets, importFromGoogleSheets } from '@/lib/google-sheets'
 import { prisma } from '@/lib/prisma'
 import { csrfGuard } from '@/lib/security'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 // POST /api/sync - синхронизация с Google Sheets
 export async function POST(request: NextRequest) {

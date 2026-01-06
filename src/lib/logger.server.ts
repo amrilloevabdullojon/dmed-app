@@ -1,6 +1,7 @@
-type LogLevel = 'debug' | 'info' | 'warn' | 'error'
-
+import 'server-only'
 import { getRequestContext } from '@/lib/request-context'
+
+type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
 interface LogEntry {
   level: LogLevel

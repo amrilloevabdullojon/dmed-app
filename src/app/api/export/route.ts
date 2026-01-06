@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { STATUS_LABELS, formatDate } from '@/lib/utils'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 export const dynamic = 'force-dynamic'
 

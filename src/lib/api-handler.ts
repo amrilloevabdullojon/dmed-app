@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { getServerSession, Session } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
 import { runWithRequestContext } from '@/lib/request-context'
 import { isValidCsrfRequest } from '@/lib/security'
@@ -132,7 +132,10 @@ function createTimeout(ms: number): Promise<never> {
  * ```
  */
 export function withAuth<T>(
-  handler: (req: NextRequest, session: AuthenticatedSession) => Promise<NextResponse<T>>,
+  handler: (
+    req: NextRequest,
+    session: AuthenticatedSession
+  ) => Promise<NextResponse<T> | NextResponse<{ error: string }>>,
   options: HandlerOptions = {}
 ): (req: NextRequest) => Promise<NextResponse<T | { error: string }>> {
   return async (req: NextRequest) => {
@@ -274,7 +277,7 @@ export function withValidation<T, TBody = unknown, TQuery = unknown>(
     req: NextRequest,
     session: AuthenticatedSession,
     context: RequestContext<TBody, TQuery>
-  ) => Promise<NextResponse<T>>,
+  ) => Promise<NextResponse<T> | NextResponse<{ error: string }>>,
   options: HandlerOptions<TBody, TQuery> = {}
 ): (req: NextRequest) => Promise<NextResponse<T | { error: string }>> {
   return async (req: NextRequest) => {

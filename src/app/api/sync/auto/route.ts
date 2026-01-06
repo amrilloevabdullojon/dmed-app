@@ -9,7 +9,7 @@ import {
   isSyncWorkerRunning,
 } from '@/lib/sync-worker'
 import { csrfGuard } from '@/lib/security'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 /**
  * GET /api/sync/auto - Получить статус автосинхронизации

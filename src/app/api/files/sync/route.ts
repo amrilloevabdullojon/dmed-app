@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { hasPermission } from '@/lib/permissions'
+import { requirePermission } from '@/lib/permission-guard'
 import { syncFileToDrive, syncPendingFiles } from '@/lib/file-sync'
 import { csrfGuard } from '@/lib/security'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 // POST /api/files/sync - вручную синхронизировать локальные файлы в Drive
 export async function POST(request: NextRequest) {
@@ -19,8 +19,9 @@ export async function POST(request: NextRequest) {
       return csrfError
     }
 
-    if (!hasPermission(session.user.role, 'MANAGE_LETTERS')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const permissionError = requirePermission(session.user.role, 'MANAGE_LETTERS')
+    if (permissionError) {
+      return permissionError
     }
 
     const { searchParams } = new URL(request.url)

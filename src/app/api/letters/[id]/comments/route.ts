@@ -5,9 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { sanitizeInput } from '@/lib/utils'
 import { formatNewCommentMessage, sendTelegramMessage } from '@/lib/telegram'
 import { sendMultiChannelNotification } from '@/lib/notifications'
-import { hasPermission } from '@/lib/permissions'
+import { requirePermission } from '@/lib/permission-guard'
 import { csrfGuard } from '@/lib/security'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 import { z } from 'zod'
 
 const commentSchema = z.object({
@@ -27,8 +27,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return csrfError
     }
 
-    if (!hasPermission(session.user.role, 'MANAGE_LETTERS')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const permissionError = requirePermission(session.user.role, 'MANAGE_LETTERS')
+    if (permissionError) {
+      return permissionError
     }
 
     const body = await request.json()

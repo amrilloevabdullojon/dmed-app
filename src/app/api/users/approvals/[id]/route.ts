@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { Role } from '@prisma/client'
 import { csrfGuard } from '@/lib/security'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {

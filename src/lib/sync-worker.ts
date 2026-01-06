@@ -2,7 +2,7 @@
 import { prisma, getPendingChanges, markChangesSynced, markChangeFailed } from './prisma'
 import { STATUS_LABELS, formatDate } from './utils'
 import type { Letter, LetterChangeLog } from '@prisma/client'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 // ÐšÐ¾Ð»Ð¾Ð½ÐºÐ¸ Ð² Google Sheets
 const COLUMNS = {

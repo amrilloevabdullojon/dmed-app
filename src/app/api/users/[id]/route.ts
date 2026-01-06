@@ -3,8 +3,9 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { hasPermission } from '@/lib/permissions'
+import { requirePermission } from '@/lib/permission-guard'
 import { resolveProfileAssetUrl } from '@/lib/profile-assets'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 import { csrfGuard } from '@/lib/security'
 import { updateUserSchema, idParamSchema } from '@/lib/schemas'
 import { USER_ROLES } from '@/lib/constants'
@@ -92,8 +93,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
 
     // Только админ может редактировать пользователей
-    if (!hasPermission(session.user.role, 'MANAGE_USERS')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const permissionError = requirePermission(session.user.role, 'MANAGE_USERS')
+    if (permissionError) {
+      return permissionError
     }
 
     const csrfError = csrfGuard(request)
@@ -387,8 +389,9 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const isSuperAdmin = session.user.role === 'SUPERADMIN'
 
     // Только админ может удалять пользователей
-    if (!hasPermission(session.user.role, 'MANAGE_USERS')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const permissionError = requirePermission(session.user.role, 'MANAGE_USERS')
+    if (permissionError) {
+      return permissionError
     }
 
     const csrfError = csrfGuard(request)

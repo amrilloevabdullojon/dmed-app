@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 export const dynamic = 'force-dynamic'
 

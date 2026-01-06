@@ -18,8 +18,8 @@ import { FileStorageProvider, Prisma } from '@prisma/client'
 import { formatNewRequestMessage, sendTelegramMessage } from '@/lib/telegram'
 import { createHash, randomUUID } from 'crypto'
 import { extname } from 'path'
-import { logger } from '@/lib/logger'
-import { hasPermission } from '@/lib/permissions'
+import { logger } from '@/lib/logger.server'
+import { requirePermission } from '@/lib/permission-guard'
 
 const ALLOWED_REQUEST_EXTENSIONS = new Set(
   REQUEST_ALLOWED_FILE_EXTENSIONS.split(',')
@@ -132,8 +132,9 @@ export const GET = withValidation<RequestsListResult, unknown, RequestQueryInput
     const requestId = getRequestContext()?.requestId ?? randomUUID()
     const startTime = Date.now()
     try {
-      if (!hasPermission(session.user.role, 'VIEW_REQUESTS')) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      const permissionError = requirePermission(session.user.role, 'VIEW_REQUESTS')
+      if (permissionError) {
+        return permissionError
       }
 
       const { page, limit, status, priority, category, search } = query

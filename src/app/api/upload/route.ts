@@ -8,7 +8,7 @@ import { saveLocalUpload } from '@/lib/file-storage'
 import { syncFileToDrive } from '@/lib/file-sync'
 import { hasPermission } from '@/lib/permissions'
 import { csrfGuard } from '@/lib/security'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 const UPLOAD_STRATEGY = process.env.FILE_UPLOAD_STRATEGY || 'async'
 const ENABLE_ASYNC_SYNC = process.env.FILE_SYNC_ASYNC !== 'false'

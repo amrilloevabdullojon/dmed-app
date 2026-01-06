@@ -5,7 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { randomUUID } from 'crypto'
 import { resolveProfileAssetUrl } from '@/lib/profile-assets'
 import { csrfGuard } from '@/lib/security'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 const emptyProfile = {
   bio: null,

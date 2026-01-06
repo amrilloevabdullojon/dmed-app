@@ -9,7 +9,7 @@ import {
   uploadFileToDrive,
 } from '@/lib/google-drive'
 import { csrfGuard } from '@/lib/security'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 import { Readable } from 'stream'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024

@@ -1,12 +1,8 @@
 import { prisma } from '@/lib/prisma'
 import { addWorkingDays, sanitizeInput } from '@/lib/utils'
 import { buildApplicantPortalLink, sendMultiChannelNotification } from '@/lib/notifications'
-import { logger } from '@/lib/logger'
-import {
-  PAGE_SIZE,
-  PORTAL_TOKEN_EXPIRY_DAYS,
-  DEFAULT_DEADLINE_WORKING_DAYS,
-} from '@/lib/constants'
+import { logger } from '@/lib/logger.server'
+import { PAGE_SIZE, PORTAL_TOKEN_EXPIRY_DAYS, DEFAULT_DEADLINE_WORKING_DAYS } from '@/lib/constants'
 import { randomUUID } from 'crypto'
 import type { LetterStatus, Prisma } from '@prisma/client'
 import { letterQuery, type SortOrder } from '@/lib/query-builder'
@@ -213,7 +209,8 @@ export class LetterService {
     const ownerId = data.ownerId || (await this.resolveAutoOwnerId())
 
     // Calculate deadline
-    const deadlineDate = data.deadlineDate || addWorkingDays(data.date, DEFAULT_DEADLINE_WORKING_DAYS)
+    const deadlineDate =
+      data.deadlineDate || addWorkingDays(data.date, DEFAULT_DEADLINE_WORKING_DAYS)
 
     // Generate portal token if applicant contact provided
     const hasApplicantContact = !!(
@@ -371,10 +368,7 @@ export class LetterService {
 
   // ==================== PRIVATE METHODS ====================
 
-  private static buildWhereClause(
-    filters: LetterFilters,
-    userId: string
-  ): Prisma.LetterWhereInput {
+  private static buildWhereClause(filters: LetterFilters, userId: string): Prisma.LetterWhereInput {
     const where: Prisma.LetterWhereInput = {
       deletedAt: null,
     }

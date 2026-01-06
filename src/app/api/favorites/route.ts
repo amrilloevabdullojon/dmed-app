@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { hasPermission } from '@/lib/permissions'
+import { requirePermission } from '@/lib/permission-guard'
 import { csrfGuard } from '@/lib/security'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 // GET /api/favorites - получить избранные письма пользователя
 export async function GET(request: NextRequest) {
@@ -14,8 +14,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!hasPermission(session.user.role, 'VIEW_LETTERS')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const permissionError = requirePermission(session.user.role, 'VIEW_LETTERS')
+    if (permissionError) {
+      return permissionError
     }
 
     const favorites = await prisma.favorite.findMany({
@@ -57,8 +58,9 @@ export async function POST(request: NextRequest) {
       return csrfError
     }
 
-    if (!hasPermission(session.user.role, 'VIEW_LETTERS')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const permissionError = requirePermission(session.user.role, 'VIEW_LETTERS')
+    if (permissionError) {
+      return permissionError
     }
 
     const { letterId } = await request.json()

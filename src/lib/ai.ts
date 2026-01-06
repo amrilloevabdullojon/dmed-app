@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger.server'
 
 const genai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
