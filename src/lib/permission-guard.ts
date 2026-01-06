@@ -5,7 +5,7 @@ import type { Role } from '@prisma/client'
 export function requirePermission(
   role: Role | null | undefined,
   permission: Permission
-): NextResponse | null {
+): NextResponse<{ error: string }> | null {
   if (hasPermission(role, permission)) {
     return null
   }
