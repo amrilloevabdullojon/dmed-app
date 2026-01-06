@@ -55,10 +55,10 @@ export function useDebounce<T>(value: T, delay: number): T {
  * return <input onChange={(e) => handleSearch(e.target.value)} />
  * ```
  */
-export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
-  callback: T,
+export function useDebouncedCallback<Args extends unknown[], R>(
+  callback: (...args: Args) => R,
   delay: number
-): (...args: Parameters<T>) => void {
+): (...args: Args) => void {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const callbackRef = useRef(callback)
 
@@ -77,7 +77,7 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   }, [])
 
   return useCallback(
-    (...args: Parameters<T>) => {
+    (...args: Args) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
       }
@@ -140,10 +140,10 @@ export function useDebouncedState<T>(initialValue: T, delay: number): [T, T, (va
  * }, [handleScroll])
  * ```
  */
-export function useThrottledCallback<T extends (...args: unknown[]) => unknown>(
-  callback: T,
+export function useThrottledCallback<Args extends unknown[], R>(
+  callback: (...args: Args) => R,
   delay: number
-): (...args: Parameters<T>) => void {
+): (...args: Args) => void {
   const lastCallRef = useRef<number>(0)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const callbackRef = useRef(callback)
@@ -161,7 +161,7 @@ export function useThrottledCallback<T extends (...args: unknown[]) => unknown>(
   }, [])
 
   return useCallback(
-    (...args: Parameters<T>) => {
+    (...args: Args) => {
       const now = Date.now()
       const timeSinceLastCall = now - lastCallRef.current
 
