@@ -209,7 +209,11 @@ export default function LetterDetailPage() {
     }
   }, [letter?.applicantAccessToken])
 
-  const updateField = async (field: string, value: string) => {
+  const updateField = async (
+    field: string,
+    value: string,
+    options: { throwOnError?: boolean } = {}
+  ) => {
     if (!letter) return
 
     setUpdating(true)
@@ -220,15 +224,28 @@ export default function LetterDetailPage() {
         body: JSON.stringify({ field, value }),
       })
 
-      if (res.ok) {
-        await loadLetter()
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        const message = data?.error || 'Не удалось обновить поле'
+        toast.error(message)
+        if (options.throwOnError) {
+          throw new Error(message)
+        }
+        return
       }
+      await loadLetter()
     } catch (error) {
       console.error('Failed to update:', error)
+      if (options.throwOnError) {
+        throw error
+      }
     } finally {
       setUpdating(false)
     }
   }
+
+  const saveField = (field: string, value: string) =>
+    updateField(field, value, { throwOnError: true })
 
   const deleteLetter = useCallback(async () => {
     if (!letter) return
@@ -602,7 +619,7 @@ export default function LetterDetailPage() {
                     label={'\u041d\u043e\u043c\u0435\u0440 \u043f\u0438\u0441\u044c\u043c\u0430'}
                     value={letter.number}
                     field="number"
-                    onSave={updateField}
+                    onSave={saveField}
                     placeholder={
                       '\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043d\u043e\u043c\u0435\u0440'
                     }
@@ -613,7 +630,7 @@ export default function LetterDetailPage() {
                     }
                     value={letter.org}
                     field="org"
-                    onSave={updateField}
+                    onSave={saveField}
                     placeholder={
                       '\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435'
                     }
@@ -625,7 +642,7 @@ export default function LetterDetailPage() {
                 label="Содержание"
                 value={letter.content}
                 field="content"
-                onSave={updateField}
+                onSave={saveField}
                 type="textarea"
                 placeholder="Добавить содержание..."
                 rows={4}
@@ -635,7 +652,7 @@ export default function LetterDetailPage() {
                 label="Контакты"
                 value={letter.contacts}
                 field="contacts"
-                onSave={updateField}
+                onSave={saveField}
                 placeholder="Добавить контакты..."
               />
 
@@ -643,7 +660,7 @@ export default function LetterDetailPage() {
                 label="Ссылка на Jira"
                 value={letter.jiraLink}
                 field="jiraLink"
-                onSave={updateField}
+                onSave={saveField}
                 type="url"
                 placeholder="https://jira.example.com/..."
               />
@@ -652,7 +669,7 @@ export default function LetterDetailPage() {
                 label="Комментарии ZorDoc"
                 value={letter.zordoc}
                 field="zordoc"
-                onSave={updateField}
+                onSave={saveField}
                 type="textarea"
                 placeholder="Добавить комментарий ZorDoc..."
                 rows={3}
@@ -674,7 +691,7 @@ export default function LetterDetailPage() {
                   label=""
                   value={letter.answer}
                   field="answer"
-                  onSave={updateField}
+                  onSave={saveField}
                   type="textarea"
                   placeholder="Добавить ответ..."
                   rows={4}
@@ -685,7 +702,7 @@ export default function LetterDetailPage() {
                 label="Статус отправки"
                 value={letter.sendStatus}
                 field="sendStatus"
-                onSave={updateField}
+                onSave={saveField}
                 placeholder="Добавить статус отправки..."
               />
             </div>
@@ -698,7 +715,7 @@ export default function LetterDetailPage() {
                 label=""
                 value={letter.comment}
                 field="comment"
-                onSave={updateField}
+                onSave={saveField}
                 type="textarea"
                 placeholder={
                   '\u0414\u043e\u0431\u0430\u0432\u044c\u0442\u0435 \u043a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0439...'
@@ -861,7 +878,7 @@ export default function LetterDetailPage() {
                 label={'Имя'}
                 value={letter.applicantName}
                 field="applicantName"
-                onSave={updateField}
+                onSave={saveField}
                 placeholder={'Имя заявителя'}
               />
 
@@ -869,7 +886,7 @@ export default function LetterDetailPage() {
                 label="Email"
                 value={letter.applicantEmail}
                 field="applicantEmail"
-                onSave={updateField}
+                onSave={saveField}
                 placeholder="email@example.com"
               />
 
@@ -877,7 +894,7 @@ export default function LetterDetailPage() {
                 label={'Телефон'}
                 value={letter.applicantPhone}
                 field="applicantPhone"
-                onSave={updateField}
+                onSave={saveField}
                 placeholder="+998901234567"
               />
 
@@ -885,7 +902,7 @@ export default function LetterDetailPage() {
                 label="Telegram chat id"
                 value={letter.applicantTelegramChatId}
                 field="applicantTelegramChatId"
-                onSave={updateField}
+                onSave={saveField}
                 placeholder="123456789"
               />
 
