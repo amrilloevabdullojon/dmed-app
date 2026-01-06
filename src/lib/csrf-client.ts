@@ -1,6 +1,7 @@
 const CSRF_COOKIE_NAME = 'csrf-token'
 const CSRF_HEADER_NAME = 'x-csrf-token'
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
+const CSRF_TOKEN_LENGTH = 32
 
 let csrfFetchInstalled = false
 
@@ -14,6 +15,26 @@ function getCookieValue(name: string): string | null {
     }
   }
   return null
+}
+
+function generateCsrfToken(): string {
+  const array = new Uint8Array(CSRF_TOKEN_LENGTH)
+  crypto.getRandomValues(array)
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+function ensureCsrfCookie(): void {
+  if (typeof document === 'undefined') return
+  if (getCookieValue(CSRF_COOKIE_NAME)) return
+
+  const token = generateCsrfToken()
+  const parts = [`${CSRF_COOKIE_NAME}=${encodeURIComponent(token)}`, 'path=/', 'samesite=strict']
+
+  if (window.location.protocol === 'https:') {
+    parts.push('secure')
+  }
+
+  document.cookie = parts.join('; ')
 }
 
 function isSameOrigin(url: string): boolean {
@@ -51,6 +72,7 @@ function getUrl(input: RequestInfo | URL): string {
 
 export function installCsrfFetch(): void {
   if (typeof window === 'undefined' || csrfFetchInstalled) return
+  ensureCsrfCookie()
   csrfFetchInstalled = true
 
   const originalFetch = window.fetch.bind(window)
