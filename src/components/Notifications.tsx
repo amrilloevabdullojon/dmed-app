@@ -20,16 +20,20 @@ import { useFetch, useMutation } from '@/hooks/useFetch'
 import { useVirtualList } from '@/hooks/useVirtualList'
 import { useToast } from '@/components/Toast'
 
-interface DeadlineLetter {
+interface NotificationLetter {
   id: string
   number: string
   org: string
-  deadlineDate: string
+  deadlineDate?: string
   owner?: {
     id: string
     name: string | null
     email: string | null
   } | null
+}
+
+interface DeadlineLetter extends NotificationLetter {
+  deadlineDate: string
 }
 
 interface UserNotification {
@@ -39,16 +43,7 @@ interface UserNotification {
   body: string | null
   isRead: boolean
   createdAt: string
-  letter?: {
-    id: string
-    number: string
-    org: string
-    owner?: {
-      id: string
-      name: string | null
-      email: string | null
-    } | null
-  } | null
+  letter?: NotificationLetter | null
 }
 
 type UnifiedKind = UserNotification['type'] | 'DEADLINE_OVERDUE' | 'DEADLINE_URGENT'
@@ -60,7 +55,7 @@ interface UnifiedNotification {
   body?: string | null
   createdAt: string
   isRead?: boolean
-  letter?: DeadlineLetter | null
+  letter?: NotificationLetter | null
   daysLeft?: number
 }
 
