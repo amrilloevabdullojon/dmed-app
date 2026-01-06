@@ -641,7 +641,9 @@ export function Notifications() {
                                 onClick={(event) => {
                                   event.preventDefault()
                                   event.stopPropagation()
-                                  snoozeDeadline(notif.letter.id)
+                                  if (notif.letter?.id) {
+                                    snoozeDeadline(notif.letter.id)
+                                  }
                                 }}
                                 className="rounded bg-gray-700 px-2 py-1 text-gray-300 transition hover:text-white"
                               >
