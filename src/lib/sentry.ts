@@ -9,8 +9,6 @@
  * This file provides a wrapper that works with or without Sentry installed.
  */
 
-import { logger } from '@/lib/logger'
-
 interface SentryUser {
   id?: string
   email?: string
@@ -44,8 +42,13 @@ interface SentryLike {
   ) => void
 }
 
+type LoggerLike = {
+  error: (context: string, error: unknown, meta?: Record<string, unknown>) => void
+}
+
 let SentryModule: SentryLike | null = null
 let sentryLoadAttempted = false
+let cachedLogger: LoggerLike | null = null
 
 // Try to load Sentry dynamically
 const getSentry = (): SentryLike | null => {
@@ -61,6 +64,23 @@ const getSentry = (): SentryLike | null => {
   }
 
   return SentryModule
+}
+
+const getLogger = () => {
+  if (cachedLogger !== null) return cachedLogger
+  if (typeof window !== 'undefined') {
+    cachedLogger = null
+    return cachedLogger
+  }
+
+  try {
+    // eslint-disable-next-line no-eval
+    cachedLogger = (eval('require')('./logger') as { logger: LoggerLike }).logger
+  } catch {
+    cachedLogger = null
+  }
+
+  return cachedLogger
 }
 
 /**
@@ -99,7 +119,13 @@ export function captureException(error: Error, context?: SentryContext) {
 
   // Always log to console in development
   if (process.env.NODE_ENV === 'development') {
-    logger.error('Sentry', error, context)
+    const devLogger = getLogger()
+    if (devLogger) {
+      devLogger.error('Sentry', error, context)
+    } else {
+      // eslint-disable-next-line no-console
+      console.error('[Sentry]', error, context)
+    }
   }
 }
 
