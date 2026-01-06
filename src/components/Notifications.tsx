@@ -98,7 +98,8 @@ export function Notifications() {
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all')
   const [loadDeadlineNotifications, setLoadDeadlineNotifications] = useState(false)
   const [snoozedDeadlines, setSnoozedDeadlines] = useState<Record<string, string>>({})
-  const notificationRowHeight = 124
+  const notificationRowHeight = 148
+  const notificationListHeight = 520
 
   const canManageLetters = hasPermission(session?.user.role, 'MANAGE_LETTERS')
   const currentUserId = session?.user.id
@@ -298,6 +299,7 @@ export function Notifications() {
     itemHeight: notificationRowHeight,
     overscan: 4,
     getKey: (item) => item.id,
+    containerHeight: notificationListHeight,
   })
 
   const markNotificationRead = async (id: string) => {
@@ -484,7 +486,7 @@ export function Notifications() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
 
-          <div className="absolute right-0 top-full z-50 mt-2 flex max-h-[78vh] w-[30rem] flex-col overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-900/95 shadow-2xl shadow-black/40 backdrop-blur">
+          <div className="absolute right-0 top-full z-50 mt-2 flex h-[72vh] max-h-[78vh] min-h-[420px] w-[30rem] flex-col overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-900/95 shadow-2xl shadow-black/40 backdrop-blur">
             <div className="flex items-start justify-between border-b border-slate-700/70 px-4 py-3">
               <div>
                 <div className="flex items-center gap-2">
@@ -563,7 +565,11 @@ export function Notifications() {
               ))}
             </div>
 
-            <div ref={notificationsRef} className="flex-1 overflow-y-auto">
+            <div
+              ref={notificationsRef}
+              className="flex-1 overflow-y-auto px-1"
+              style={{ maxHeight: notificationListHeight }}
+            >
               {filteredNotifications.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 p-10 text-slate-500">
                   <Bell className="h-6 w-6 text-slate-600" />
