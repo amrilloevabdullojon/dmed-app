@@ -59,6 +59,14 @@ export function parseLetterFilename(filename: string): ParsedLetterFile {
       result.error = 'Неверная дата'
       return result
     }
+    if (
+      parsedDate.getFullYear() !== year ||
+      parsedDate.getMonth() !== month ||
+      parsedDate.getDate() !== day
+    ) {
+      result.error = 'Invalid date in filename'
+      return result
+    }
     result.date = parsedDate
 
     // Содержание (всё после второго подчёркивания)
@@ -81,15 +89,15 @@ export function guessOrganization(content: string): string {
 
   // Известные организации/ключевые слова
   const orgPatterns: Record<string, string[]> = {
-    'DMED': ['dmed', 'дмед'],
-    'Минздрав': ['минздрав', 'minzdrav', 'ssv', 'ссв'],
-    'Хокимият': ['хокимият', 'hokimiyat', 'hokim'],
-    'Прокуратура': ['прокуратура', 'prokuratura'],
-    'Налоговая': ['налог', 'soliq', 'gni'],
+    DMED: ['dmed', 'дмед'],
+    Минздрав: ['минздрав', 'minzdrav', 'ssv', 'ссв'],
+    Хокимият: ['хокимият', 'hokimiyat', 'hokim'],
+    Прокуратура: ['прокуратура', 'prokuratura'],
+    Налоговая: ['налог', 'soliq', 'gni'],
   }
 
   for (const [org, patterns] of Object.entries(orgPatterns)) {
-    if (patterns.some(p => lower.includes(p))) {
+    if (patterns.some((p) => lower.includes(p))) {
       return org
     }
   }

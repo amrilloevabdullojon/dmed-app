@@ -48,13 +48,15 @@ function parseDateValue(value: Date | string | null | undefined): Date | null {
   if (!value) return null
   if (value instanceof Date) return value
   const trimmed = value.trim()
+  const isExactDate = (date: Date, year: number, month: number, day: number) =>
+    date.getFullYear() === year && date.getMonth() === month && date.getDate() === day
   const dotMatch = trimmed.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/)
   if (dotMatch) {
     const day = parseInt(dotMatch[1], 10)
     const month = parseInt(dotMatch[2], 10) - 1
     const year = parseInt(dotMatch[3], 10)
     const parsed = new Date(year, month, day)
-    return isNaN(parsed.getTime()) ? null : parsed
+    return !isNaN(parsed.getTime()) && isExactDate(parsed, year, month, day) ? parsed : null
   }
   const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
   if (slashMatch) {
@@ -62,7 +64,7 @@ function parseDateValue(value: Date | string | null | undefined): Date | null {
     const month = parseInt(slashMatch[2], 10) - 1
     const year = parseInt(slashMatch[3], 10)
     const parsed = new Date(year, month, day)
-    return isNaN(parsed.getTime()) ? null : parsed
+    return !isNaN(parsed.getTime()) && isExactDate(parsed, year, month, day) ? parsed : null
   }
   const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/)
   if (isoMatch) {
@@ -70,7 +72,7 @@ function parseDateValue(value: Date | string | null | undefined): Date | null {
     const month = parseInt(isoMatch[2], 10) - 1
     const day = parseInt(isoMatch[3], 10)
     const parsed = new Date(year, month, day)
-    return isNaN(parsed.getTime()) ? null : parsed
+    return !isNaN(parsed.getTime()) && isExactDate(parsed, year, month, day) ? parsed : null
   }
   const parsed = new Date(trimmed)
   return isNaN(parsed.getTime()) ? null : parsed
@@ -119,8 +121,10 @@ export function getDaysUntilDeadline(deadline: Date | string): number {
 
 // Приоритет в текст
 export function getPriorityLabel(priority: number): { label: string; color: string } {
-  if (priority >= 70) return { label: '\u0412\u044b\u0441\u043e\u043a\u0438\u0439', color: 'text-red-600' }
-  if (priority >= 40) return { label: '\u0421\u0440\u0435\u0434\u043d\u0438\u0439', color: 'text-yellow-600' }
+  if (priority >= 70)
+    return { label: '\u0412\u044b\u0441\u043e\u043a\u0438\u0439', color: 'text-red-600' }
+  if (priority >= 40)
+    return { label: '\u0421\u0440\u0435\u0434\u043d\u0438\u0439', color: 'text-yellow-600' }
   return { label: '\u041d\u0438\u0437\u043a\u0438\u0439', color: 'text-green-600' }
 }
 

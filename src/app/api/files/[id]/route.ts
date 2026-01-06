@@ -2,11 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
-import {
-  deleteDriveFile,
-  extractDriveFileId,
-  getDriveFileStream,
-} from '@/lib/google-drive'
+import { deleteDriveFile, extractDriveFileId, getDriveFileStream } from '@/lib/google-drive'
 import { deleteLocalFile, getLocalFileAbsolutePath } from '@/lib/file-storage'
 import { hasPermission } from '@/lib/permissions'
 import { FileStorageProvider, FileStatus } from '@prisma/client'
@@ -14,26 +10,24 @@ import { createReadStream, existsSync } from 'fs'
 import { Readable } from 'stream'
 
 // GET /api/files/[id] - скачать файл через backend
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!hasPermission(session.user.role, 'VIEW_LETTERS')) {
+    const canViewLetters = hasPermission(session.user.role, 'VIEW_LETTERS')
+    if (!canViewLetters) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const file = await prisma.file.findUnique({
       where: { id: params.id },
-      include: { letter: true },
+      include: { letter: { select: { id: true, ownerId: true, deletedAt: true } } },
     })
 
-    if (!file) {
+    if (!file || file.letter.deletedAt) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 })
     }
 
@@ -54,9 +48,7 @@ export async function GET(
       return new NextResponse(stream as any, {
         headers: {
           'Content-Type': file.mimeType || 'application/octet-stream',
-          'Content-Disposition': `inline; filename=\"${encodeURIComponent(
-            file.name
-          )}\"`,
+          'Content-Disposition': `inline; filename=\"${encodeURIComponent(file.name)}\"`,
         },
       })
     }
@@ -71,38 +63,41 @@ export async function GET(
     return new NextResponse(stream as any, {
       headers: {
         'Content-Type': contentType || file.mimeType || 'application/octet-stream',
-        'Content-Disposition': `inline; filename=\"${encodeURIComponent(
-          file.name
-        )}\"`,
+        'Content-Disposition': `inline; filename=\"${encodeURIComponent(file.name)}\"`,
       },
     })
   } catch (error) {
     console.error('GET /api/files/[id] error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 // DELETE /api/files/[id] - удалить файл
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const canViewLetters = hasPermission(session.user.role, 'VIEW_LETTERS')
+    if (!canViewLetters) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const file = await prisma.file.findUnique({
       where: { id: params.id },
-      include: { letter: true },
+      include: { letter: { select: { id: true, ownerId: true, deletedAt: true } } },
     })
 
-    if (!file) {
+    if (!file || file.letter.deletedAt) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 })
+    }
+
+    const canManageLetters = hasPermission(session.user.role, 'MANAGE_LETTERS')
+    const isOwner = file.letter.ownerId === session.user.id
+    if (!canManageLetters && !isOwner) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Удалить физический файл
@@ -137,9 +132,6 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('DELETE /api/files/[id] error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

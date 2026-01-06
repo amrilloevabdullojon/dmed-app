@@ -1,6 +1,6 @@
 import { mkdir, writeFile, readFile, unlink } from 'fs/promises'
 import { existsSync } from 'fs'
-import { dirname, join } from 'path'
+import { basename, dirname, join } from 'path'
 
 const DEFAULT_UPLOADS_ROOT = process.env.VERCEL
   ? join(process.env.TMPDIR || '/tmp', 'dmed-uploads')
@@ -8,16 +8,29 @@ const DEFAULT_UPLOADS_ROOT = process.env.VERCEL
 
 const LOCAL_UPLOADS_ROOT = process.env.LOCAL_UPLOADS_DIR || DEFAULT_UPLOADS_ROOT
 
+const MAX_SAFE_NAME_LENGTH = 200
+const FALLBACK_FILE_NAME = 'file'
+
+function sanitizeStorageFileName(fileName: string) {
+  const baseName = basename(fileName || '')
+  const normalized = baseName.replace(/[^a-zA-Z0-9._-]/g, '_').trim()
+  const stripped = normalized.replace(/^\.+/, '')
+  const safeName = stripped || FALLBACK_FILE_NAME
+  return safeName.slice(0, MAX_SAFE_NAME_LENGTH)
+}
+
 export function getLocalUploadsRoot() {
   return LOCAL_UPLOADS_ROOT
 }
 
 export function buildLocalStoragePath(letterId: string, fileName: string) {
-  return join('letters', letterId, fileName).replace(/\\/g, '/')
+  const safeName = sanitizeStorageFileName(fileName)
+  return join('letters', letterId, safeName).replace(/\\/g, '/')
 }
 
 export function buildRequestStoragePath(requestId: string, fileName: string) {
-  return join('requests', requestId, fileName).replace(/\\/g, '/')
+  const safeName = sanitizeStorageFileName(fileName)
+  return join('requests', requestId, safeName).replace(/\\/g, '/')
 }
 
 export function getLocalFileAbsolutePath(storagePath: string) {
