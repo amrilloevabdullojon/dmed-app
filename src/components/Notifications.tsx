@@ -172,9 +172,9 @@ export function Notifications() {
   )
   const setUserNotifications = userNotificationsQuery.mutate
 
-  const deadlineNotifications = useMemo(() => {
+  const deadlineNotifications = useMemo<UnifiedNotification[]>(() => {
     if (!loadDeadlineNotifications) return [] as UnifiedNotification[]
-    const overdue = (overdueQuery.data?.letters || []).map((letter) => ({
+    const overdue: UnifiedNotification[] = (overdueQuery.data?.letters || []).map((letter) => ({
       id: `deadline-overdue-${letter.id}`,
       kind: 'DEADLINE_OVERDUE' as const,
       title: '',
@@ -183,7 +183,7 @@ export function Notifications() {
       letter,
       daysLeft: getDaysUntilDeadline(letter.deadlineDate),
     }))
-    const urgent = (urgentQuery.data?.letters || []).map((letter) => ({
+    const urgent: UnifiedNotification[] = (urgentQuery.data?.letters || []).map((letter) => ({
       id: `deadline-urgent-${letter.id}`,
       kind: 'DEADLINE_URGENT' as const,
       title: '',
