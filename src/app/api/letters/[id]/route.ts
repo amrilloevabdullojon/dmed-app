@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
-import { sanitizeInput, isDoneStatus, STATUS_LABELS } from '@/lib/utils'
+import { sanitizeInput, isDoneStatus, parseDateValue, STATUS_LABELS } from '@/lib/utils'
 import type { LetterStatus } from '@prisma/client'
 import { sendTelegramMessage, formatStatusChangeMessage } from '@/lib/telegram'
 import { sendMultiChannelNotification } from '@/lib/notifications'
@@ -289,6 +289,17 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         newValue = sanitizeInput(value, 10000)
         updateData.content = newValue
         break
+
+      case 'deadlineDate': {
+        const parsed = parseDateValue(value)
+        if (!parsed) {
+          return NextResponse.json({ error: 'Invalid deadline date' }, { status: 400 })
+        }
+        oldValue = letter.deadlineDate ? letter.deadlineDate.toISOString() : null
+        newValue = parsed.toISOString()
+        updateData.deadlineDate = parsed
+        break
+      }
 
       case 'contacts':
         oldValue = letter.contacts

@@ -91,10 +91,16 @@ export function formatDate(date: Date | string | null): string {
 // Добавить рабочие дни
 export function addWorkingDays(date: Date, days: number): Date {
   const result = new Date(date)
-  let added = 0
-  while (added < days) {
-    result.setDate(result.getDate() + 1)
-    if (result.getDay() !== 0 && result.getDay() !== 6) added++
+  if (days === 0) return result
+
+  const direction = days > 0 ? 1 : -1
+  let remaining = Math.abs(days)
+
+  while (remaining > 0) {
+    result.setDate(result.getDate() + direction)
+    if (result.getDay() !== 0 && result.getDay() !== 6) {
+      remaining -= 1
+    }
   }
   return result
 }
@@ -117,6 +123,33 @@ export function getDaysUntilDeadline(deadline: Date | string): number {
   const deadlineUtc = Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
   const nowUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
   return Math.ceil((deadlineUtc - nowUtc) / (1000 * 60 * 60 * 24))
+}
+
+export function getWorkingDaysUntilDeadline(
+  deadline: Date | string,
+  fromDate: Date = new Date()
+): number {
+  const parsed = parseDateValue(deadline)
+  if (!parsed) return 0
+
+  const start = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate())
+  const end = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+
+  if (start.getTime() === end.getTime()) return 0
+
+  const direction = start < end ? 1 : -1
+  let days = 0
+  const cursor = new Date(start)
+
+  while ((direction > 0 && cursor < end) || (direction < 0 && cursor > end)) {
+    cursor.setDate(cursor.getDate() + direction)
+    const day = cursor.getDay()
+    if (day !== 0 && day !== 6) {
+      days += direction
+    }
+  }
+
+  return days
 }
 
 // Приоритет в текст

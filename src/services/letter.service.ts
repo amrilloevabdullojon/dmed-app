@@ -47,6 +47,10 @@ export class LetterService {
       builder.status(['NOT_REVIEWED', 'ACCEPTED', 'IN_PROGRESS', 'CLARIFICATION'])
     } else if (filters.filter === 'favorites') {
       builder.favorites(userId)
+    } else if (filters.filter === 'unassigned') {
+      builder.owner(null)
+    } else if (filters.filter === 'mine') {
+      builder.owner(userId)
     }
 
     if (filters.owner) {
@@ -400,6 +404,10 @@ export class LetterService {
       where.status = { notIn: ['READY', 'DONE'] }
     } else if (filters.filter === 'favorites') {
       where.favorites = { some: { userId } }
+    } else if (filters.filter === 'unassigned') {
+      where.ownerId = null
+    } else if (filters.filter === 'mine') {
+      where.ownerId = userId
     }
 
     // Search

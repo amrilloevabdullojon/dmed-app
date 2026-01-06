@@ -348,7 +348,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
         >
           <input
             id="quick-upload-input"
-            aria-label="????"
+            aria-label="Выбрать файл"
             type="file"
             className="hidden"
             accept=".pdf,.doc,.docx"
@@ -417,7 +417,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
               <input
                 type="text"
                 value={number}
-                aria-label="????? ??????"
+                aria-label="Номер письма"
                 onChange={(e) => setNumber(e.target.value)}
                 className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
                 placeholder="7941"
@@ -432,7 +432,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
               <input
                 type="text"
                 value={org}
-                aria-label="???????????"
+                aria-label="Организация"
                 onChange={(e) => setOrg(e.target.value)}
                 className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
                 placeholder="3-son oilaviy poliklinika"
@@ -447,7 +447,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
               <input
                 type="date"
                 value={date}
-                aria-label="???? ??????"
+                aria-label="Дата письма"
                 onChange={(e) => {
                   setDate(e.target.value)
                   if (e.target.value) {
@@ -470,7 +470,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
               <input
                 type="date"
                 value={deadlineDate}
-                aria-label="???????"
+                aria-label="Дедлайн"
                 onChange={(e) => setDeadlineDate(e.target.value)}
                 className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
               />
@@ -484,7 +484,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
             </label>
             <select
               value={type}
-              aria-label="???"
+              aria-label="Тип запроса"
               onChange={(e) => setType(e.target.value)}
               className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
             >
@@ -509,7 +509,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
                 <input
                   type="text"
                   value={region}
-                  aria-label="??????"
+                  aria-label="Регион"
                   onChange={(e) => setRegion(e.target.value)}
                   className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
                 />
@@ -526,7 +526,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
             </label>
             <textarea
               value={content}
-              aria-label="??????????"
+              aria-label="Краткое содержание"
               onChange={(e) => setContent(e.target.value)}
               rows={2}
               className="w-full resize-none rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
@@ -544,7 +544,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
                 <input
                   type="text"
                   value={applicantName}
-                  aria-label="??? ?????????"
+                  aria-label="Имя заявителя"
                   onChange={(e) => setApplicantName(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
                   placeholder={'Имя заявителя'}
@@ -555,7 +555,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
                 <input
                   type="email"
                   value={applicantEmail}
-                  aria-label="Email ?????????"
+                  aria-label="Email заявителя"
                   onChange={(e) => setApplicantEmail(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
                   placeholder="email@example.com"
@@ -566,7 +566,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
                 <input
                   type="tel"
                   value={applicantPhone}
-                  aria-label="??????? ?????????"
+                  aria-label="Телефон заявителя"
                   onChange={(e) => setApplicantPhone(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
                   placeholder="+998901234567"
@@ -577,7 +577,7 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
                 <input
                   type="text"
                   value={applicantTelegramChatId}
-                  aria-label="Telegram chat id ?????????"
+                  aria-label="Telegram chat id заявителя"
                   onChange={(e) => setApplicantTelegramChatId(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
                   placeholder="123456789"

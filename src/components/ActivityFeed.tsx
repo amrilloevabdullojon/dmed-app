@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
@@ -31,6 +31,9 @@ interface HistoryItem {
 interface ActivityFeedProps {
   letterId: string
   maxItems?: number
+  title?: string
+  showTitle?: boolean
+  compact?: boolean
 }
 
 const fieldLabels: Record<string, string> = {
@@ -51,7 +54,7 @@ const statusLabels: Record<string, string> = {
   IN_PROGRESS: 'В работе',
   CLARIFICATION: 'На уточнении',
   READY: 'Готово',
-  DONE: 'Сделано',
+  DONE: 'Завершено',
 }
 
 function getIcon(field: string) {
@@ -83,7 +86,7 @@ function formatValue(field: string, value: string | null): string {
   if (field === 'created') {
     try {
       const data = JSON.parse(value)
-      return `#${data.number} — ${data.org}`
+      return `#${data.number} · ${data.org}`
     } catch {
       return value
     }
@@ -104,7 +107,13 @@ function formatValue(field: string, value: string | null): string {
   return value
 }
 
-export function ActivityFeed({ letterId, maxItems = 10 }: ActivityFeedProps) {
+export function ActivityFeed({
+  letterId,
+  maxItems = 10,
+  title = 'История изменений',
+  showTitle = true,
+  compact = false,
+}: ActivityFeedProps) {
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -138,19 +147,21 @@ export function ActivityFeed({ letterId, maxItems = 10 }: ActivityFeedProps) {
     return (
       <div className="py-8 text-center text-sm text-gray-500">
         <FileText className="mx-auto mb-2 h-8 w-8 opacity-50" />
-        История пуста
+        История изменений пока пустая
       </div>
     )
   }
 
   return (
-    <div className="space-y-3">
-      <h3 className="flex items-center gap-2 text-sm font-medium text-gray-400">
-        <Clock className="h-4 w-4" />
-        История изменений
-      </h3>
+    <div className={compact ? 'space-y-2' : 'space-y-3'}>
+      {showTitle && (
+        <h3 className="flex items-center gap-2 text-sm font-medium text-gray-400">
+          <Clock className="h-4 w-4" />
+          {title}
+        </h3>
+      )}
 
-      <div className="space-y-2">
+      <div className={compact ? 'space-y-2' : 'space-y-2'}>
         {history.slice(0, maxItems).map((item) => {
           const Icon = getIcon(item.field)
           const label = fieldLabels[item.field] || item.field
@@ -158,17 +169,16 @@ export function ActivityFeed({ letterId, maxItems = 10 }: ActivityFeedProps) {
           return (
             <div
               key={item.id}
-              className="flex gap-3 rounded-lg border border-gray-700/50 bg-gray-800/30 p-3"
+              className={`flex gap-3 rounded-lg border border-gray-700/50 bg-gray-800/30 ${
+                compact ? 'p-3' : 'p-3'
+              }`}
             >
-              {/* Icon */}
               <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-700/50">
                 <Icon className="h-4 w-4 text-gray-400" />
               </div>
 
-              {/* Content */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  {/* User avatar */}
                   {item.user.image ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img src={item.user.image} alt="" className="h-5 w-5 rounded-full" />

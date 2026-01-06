@@ -135,7 +135,7 @@ export interface LetterFilters {
   owner?: string
   type?: string
   search?: string
-  filter?: 'overdue' | 'urgent' | 'done' | 'active' | 'favorites'
+  filter?: 'overdue' | 'urgent' | 'done' | 'active' | 'favorites' | 'unassigned' | 'mine'
   sortBy?: 'created' | 'deadline' | 'date' | 'priority' | 'status' | 'number' | 'org'
   sortOrder?: 'asc' | 'desc'
 }

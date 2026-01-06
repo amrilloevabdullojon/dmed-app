@@ -83,7 +83,9 @@ export class LetterQueryBuilder {
    * Фильтр по владельцу
    */
   owner(ownerId: string | null): this {
-    if (ownerId) {
+    if (ownerId === null) {
+      this.where.ownerId = null
+    } else if (ownerId) {
       this.where.ownerId = ownerId
     }
     return this

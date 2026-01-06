@@ -5,7 +5,7 @@ import {
   STATUS_LABELS,
   STATUS_COLORS,
   formatDate,
-  getDaysUntilDeadline,
+  getWorkingDaysUntilDeadline,
   pluralizeDays,
   getPriorityLabel,
   isDoneStatus,
@@ -18,7 +18,7 @@ import {
   AlertTriangle,
   Star,
   Clock,
-  ArrowRight
+  ArrowRight,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -70,7 +70,7 @@ function getPriorityColor(priority: number): string {
 }
 
 export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
-  const daysLeft = getDaysUntilDeadline(letter.deadlineDate)
+  const daysLeft = getWorkingDaysUntilDeadline(letter.deadlineDate)
   const isDone = isDoneStatus(letter.status)
   const isOverdue = !isDone && daysLeft < 0
   const isUrgent = !isDone && daysLeft <= 2 && daysLeft >= 0
@@ -87,45 +87,54 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
   return (
     <Link
       href={`/letters/${letter.id}`}
-      className="group block relative panel panel-glass rounded-2xl overflow-hidden transition-all duration-300
-                 hover:-translate-y-1 hover:shadow-2xl hover:shadow-teal-500/20 animate-cardIn"
+      className="panel panel-glass animate-cardIn group relative block overflow-hidden rounded-2xl transition-all
+                 duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-teal-500/20"
     >
       {/* Priority indicator bar */}
-      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${getPriorityColor(letter.priority)}`} />
+      <div
+        className={`absolute left-0 right-0 top-0 h-1 bg-gradient-to-r ${getPriorityColor(letter.priority)}`}
+      />
 
       {/* Favorite button */}
       {onToggleFavorite && (
         <button
           onClick={handleFavoriteClick}
-          className={`absolute top-3 right-3 p-2 rounded-full transition-all duration-200 z-10
-                     ${letter.isFavorite
-                       ? 'bg-amber-500/20 text-amber-300'
-                       : 'bg-white/10 text-slate-300 opacity-100 md:opacity-0 md:group-hover:opacity-100'
+          className={`absolute right-3 top-3 z-10 rounded-full p-2 transition-all duration-200
+                     ${
+                       letter.isFavorite
+                         ? 'bg-amber-500/20 text-amber-300'
+                         : 'bg-white/10 text-slate-300 opacity-100 md:opacity-0 md:group-hover:opacity-100'
                      }
                      hover:scale-110 hover:bg-amber-500/30`}
-          aria-label={letter.isFavorite ? '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0438\u0437 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0433\u043e' : '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0432 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435'}
+          aria-label={
+            letter.isFavorite
+              ? '\u0423\u0434\u0430\u043b\u0438\u0442\u044c \u0438\u0437 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0433\u043e'
+              : '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0432 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435'
+          }
         >
-          <Star className={`w-4 h-4 ${letter.isFavorite ? 'fill-current' : ''}`} />
+          <Star className={`h-4 w-4 ${letter.isFavorite ? 'fill-current' : ''}`} />
         </button>
       )}
 
       <div className="p-5">
         {/* Header */}
-        <div className="flex items-start gap-4 mb-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="font-mono text-sm font-semibold text-teal-300
-                             bg-teal-400/10 px-2 py-0.5 rounded-full">
+        <div className="mb-4 flex items-start gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex items-center gap-2">
+              <span
+                className="rounded-full bg-teal-400/10 px-2 py-0.5
+                             font-mono text-sm font-semibold text-teal-300"
+              >
                 #{letter.number}
               </span>
               {letter.type && (
-                <span className="text-xs px-2 py-0.5 data-pill rounded-full">
-                  {letter.type}
-                </span>
+                <span className="data-pill rounded-full px-2 py-0.5 text-xs">{letter.type}</span>
               )}
             </div>
-            <h3 className="font-medium text-white text-lg leading-tight line-clamp-2
-                          group-hover:text-teal-200 transition-colors">
+            <h3
+              className="line-clamp-2 text-lg font-medium leading-tight text-white
+                          transition-colors group-hover:text-teal-200"
+            >
               {letter.org}
             </h3>
           </div>
@@ -134,7 +143,7 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
         {/* Status badge */}
         <div className="mb-4">
           <span
-            className={`inline-flex items-center text-xs px-3 py-1.5 rounded-full font-medium
+            className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium
                        shadow-sm ${STATUS_COLORS[letter.status]}`}
           >
             {STATUS_LABELS[letter.status]}
@@ -143,46 +152,46 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
 
         {/* Content preview */}
         {letter.content && (
-          <p className="text-sm text-slate-300/80 line-clamp-2 mb-4 leading-relaxed">
+          <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-slate-300/80">
             {letter.content}
           </p>
         )}
 
         {/* Meta info */}
-        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-300/70 mb-4">
-          <span className="flex items-center gap-1.5 meta-pill px-2 py-1 rounded">
-            <Calendar className="w-3.5 h-3.5" />
+        <div className="mb-4 flex flex-wrap items-center gap-3 text-sm text-slate-300/70">
+          <span className="meta-pill flex items-center gap-1.5 rounded px-2 py-1">
+            <Calendar className="h-3.5 w-3.5" />
             {formatDate(letter.date)}
           </span>
 
           {letter.owner && (
-            <span className="flex items-center gap-1.5 meta-pill px-2 py-1 rounded">
-              <User className="w-3.5 h-3.5" />
+            <span className="meta-pill flex items-center gap-1.5 rounded px-2 py-1">
+              <User className="h-3.5 w-3.5" />
               {letter.owner.name || letter.owner.email?.split('@')[0]}
             </span>
           )}
 
           {letter._count && letter._count.comments > 0 && (
             <span className="flex items-center gap-1 text-slate-300/70">
-              <MessageSquare className="w-3.5 h-3.5" />
+              <MessageSquare className="h-3.5 w-3.5" />
               {letter._count.comments}
             </span>
           )}
 
           {letter._count && letter._count.watchers > 0 && (
             <span className="flex items-center gap-1 text-slate-300/70">
-              <Eye className="w-3.5 h-3.5" />
+              <Eye className="h-3.5 w-3.5" />
               {letter._count.watchers}
             </span>
           )}
         </div>
 
         {/* Deadline section */}
-        <div className="pt-4 border-t border-white/10">
+        <div className="border-t border-white/10 pt-4">
           {/* Progress bar */}
           {!isDone && (
             <div className="mb-3">
-              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
                 <div
                   className={`h-full rounded-full transition-all duration-500 progress-${progressStep} ${
                     isOverdue
@@ -210,28 +219,34 @@ export function LetterCard({ letter, onToggleFavorite }: LetterCardProps) {
             >
               {isDone ? (
                 <>
-                  <Clock className="w-4 h-4" />
+                  <Clock className="h-4 w-4" />
                   {'\u0413\u043e\u0442\u043e\u0432\u043e'}
                 </>
               ) : isOverdue ? (
                 <>
-                  <AlertTriangle className="w-4 h-4" />
-                  {'\u041f\u0440\u043e\u0441\u0440\u043e\u0447\u0435\u043d\u043e \u043d\u0430'} {Math.abs(daysLeft)} {pluralizeDays(daysLeft)}
+                  <AlertTriangle className="h-4 w-4" />
+                  {'\u041f\u0440\u043e\u0441\u0440\u043e\u0447\u0435\u043d\u043e \u043d\u0430'}{' '}
+                  {Math.abs(daysLeft)} раб. {pluralizeDays(daysLeft)}
                 </>
               ) : (
                 <>
-                  <Clock className="w-4 h-4" />
-                  {'\u0414\u043e \u0441\u0440\u043e\u043a\u0430:'} {daysLeft} {pluralizeDays(daysLeft)}
+                  <Clock className="h-4 w-4" />
+                  {'\u0414\u043e \u0441\u0440\u043e\u043a\u0430:'} {daysLeft} раб.{' '}
+                  {pluralizeDays(daysLeft)}
                 </>
               )}
             </div>
 
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-semibold px-2 py-1 rounded ${priorityInfo.color} bg-opacity-20`}>
+              <span
+                className={`rounded px-2 py-1 text-xs font-semibold ${priorityInfo.color} bg-opacity-20`}
+              >
                 {priorityInfo.label}
               </span>
-              <ArrowRight className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100
-                                    group-hover:translate-x-1 transition-all" />
+              <ArrowRight
+                className="h-4 w-4 text-slate-400 opacity-0 transition-all
+                                    group-hover:translate-x-1 group-hover:opacity-100"
+              />
             </div>
           </div>
         </div>

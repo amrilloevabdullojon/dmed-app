@@ -54,6 +54,12 @@ export async function GET(request: NextRequest) {
         where.status = { in: ['READY', 'DONE'] }
       } else if (filter === 'active') {
         where.status = { notIn: ['READY', 'DONE'] }
+      } else if (filter === 'favorites') {
+        where.favorites = { some: { userId: session.user.id } }
+      } else if (filter === 'unassigned') {
+        where.ownerId = null
+      } else if (filter === 'mine') {
+        where.ownerId = session.user.id
       }
     }
 

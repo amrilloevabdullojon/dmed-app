@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { formatDate, getDaysUntilDeadline, pluralizeDays } from '@/lib/utils'
+import { formatDate, getWorkingDaysUntilDeadline, pluralizeDays } from '@/lib/utils'
 import { hasPermission } from '@/lib/permissions'
 import { useFetch, useMutation } from '@/hooks/useFetch'
 import { useToast } from '@/components/Toast'
@@ -62,6 +62,7 @@ type FilterKey = 'all' | 'unread' | 'deadlines' | 'comments' | 'statuses' | 'ass
 
 const SNOOZE_KEY = 'notification-deadline-snoozes'
 const NOTIFICATIONS_LIMIT = 100
+const NOTIFICATIONS_INCREMENT = 50
 const DEADLINES_LIMIT = 100
 
 const getTomorrowStartIso = () => {
@@ -131,10 +132,20 @@ const buildFallbackTitle = (item: UnifiedNotification) => {
   }
 }
 
+const decodeUnicodeEscapes = (value: string) =>
+  value.replace(/\\u([0-9a-fA-F]{4})/g, (_, code) => String.fromCharCode(Number.parseInt(code, 16)))
+
+const normalizeText = (value?: string | null) => {
+  if (!value) return ''
+  const decoded = decodeUnicodeEscapes(value)
+  return decoded.replace(/\\n/g, '\n')
+}
+
 export function Notifications() {
   const toast = useToast()
   const { data: session } = useSession()
   const [isOpen, setIsOpen] = useState(false)
+  const [notificationsLimit, setNotificationsLimit] = useState(NOTIFICATIONS_LIMIT)
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all')
   const [loadDeadlineNotifications, setLoadDeadlineNotifications] = useState(false)
   const [snoozedDeadlines, setSnoozedDeadlines] = useState<Record<string, string>>({})
@@ -179,7 +190,7 @@ export function Notifications() {
   const refetchInterval = isOpen ? 60 * 1000 : 5 * 60 * 1000
 
   const userNotificationsQuery = useFetch<UserNotification[]>(
-    `/api/notifications?limit=${NOTIFICATIONS_LIMIT}`,
+    `/api/notifications?limit=${notificationsLimit}`,
     {
       initialData: [],
       transform: (data) => (data as { notifications?: UserNotification[] }).notifications || [],
@@ -223,7 +234,7 @@ export function Notifications() {
       body: null,
       createdAt: letter.deadlineDate,
       letter,
-      daysLeft: getDaysUntilDeadline(letter.deadlineDate),
+      daysLeft: getWorkingDaysUntilDeadline(letter.deadlineDate),
     }))
     const urgent: UnifiedNotification[] = (urgentQuery.data?.letters || []).map((letter) => ({
       id: `deadline-urgent-${letter.id}`,
@@ -232,7 +243,7 @@ export function Notifications() {
       body: null,
       createdAt: letter.deadlineDate,
       letter,
-      daysLeft: getDaysUntilDeadline(letter.deadlineDate),
+      daysLeft: getWorkingDaysUntilDeadline(letter.deadlineDate),
     }))
 
     const all = [...overdue, ...urgent]
@@ -309,6 +320,10 @@ export function Notifications() {
   }, [unifiedNotifications])
 
   const totalCount = counts.unread + counts.deadlines
+  const canLoadMore =
+    !userNotificationsQuery.isLoading &&
+    notificationsLimit < 200 &&
+    userNotifications.length >= notificationsLimit
 
   const filteredNotifications = useMemo(() => {
     switch (activeFilter) {
@@ -458,17 +473,18 @@ export function Notifications() {
 
   const renderNotificationTitle = (item: UnifiedNotification) => {
     if (!isDeadlineKind(item.kind)) {
-      if (!item.title || isCorruptedText(item.title)) {
+      const normalizedTitle = normalizeText(item.title)
+      if (!normalizedTitle || isCorruptedText(normalizedTitle)) {
         return buildFallbackTitle(item)
       }
-      return item.title
+      return normalizedTitle
     }
     const days = item.daysLeft ?? 0
     if (item.kind === 'DEADLINE_OVERDUE') {
       const absDays = Math.abs(days)
-      return `Просрочено на ${absDays} ${pluralizeDays(absDays)}`
+      return `Просрочено на ${absDays} раб. ${pluralizeDays(absDays)}`
     }
-    return `Дедлайн через ${days} ${pluralizeDays(days)}`
+    return `До дедлайна ${days} раб. ${pluralizeDays(days)}`
   }
 
   const renderNotificationMeta = (item: UnifiedNotification) => {
@@ -655,6 +671,10 @@ export function Notifications() {
                         const linkTarget = notif.letter?.id
                           ? `/letters/${notif.letter.id}`
                           : '/letters'
+                        const bodyRaw = normalizeText(notif.body)
+                        const body = bodyRaw && !isCorruptedText(bodyRaw) ? bodyRaw : ''
+                        const orgRaw = normalizeText(notif.letter?.org)
+                        const org = orgRaw && !isCorruptedText(orgRaw) ? orgRaw : ''
                         const accentTone = isDeadlineKind(notif.kind)
                           ? notif.kind === 'DEADLINE_OVERDUE'
                             ? 'bg-red-500/70'
@@ -697,15 +717,13 @@ export function Notifications() {
                                   <span className="h-2 w-2 rounded-full bg-emerald-400" />
                                 )}
                               </div>
-                              {notif.body && (
+                              {body && (
                                 <div className="mt-1 line-clamp-2 text-xs text-slate-300">
-                                  {notif.body}
+                                  {body}
                                 </div>
                               )}
-                              {notif.letter?.org && (
-                                <div className="mt-1 truncate text-xs text-slate-400">
-                                  {notif.letter.org}
-                                </div>
+                              {org && (
+                                <div className="mt-1 truncate text-xs text-slate-400">{org}</div>
                               )}
                               <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                                 <span>{getKindLabel(notif.kind)}</span>
@@ -767,6 +785,18 @@ export function Notifications() {
                       })}
                     </div>
                   ))}
+                  {canLoadMore && activeFilter !== 'deadlines' && (
+                    <button
+                      onClick={() =>
+                        setNotificationsLimit((prev) =>
+                          Math.min(prev + NOTIFICATIONS_INCREMENT, 200)
+                        )
+                      }
+                      className="mx-auto block rounded-full border border-slate-700/70 px-4 py-2 text-xs text-slate-300 transition hover:border-slate-500/70 hover:bg-slate-800/70 hover:text-slate-100"
+                    >
+                      {'Показать ещё'}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

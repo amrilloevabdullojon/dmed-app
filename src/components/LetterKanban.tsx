@@ -3,16 +3,8 @@
 import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { LetterStatus } from '@prisma/client'
-import { STATUS_LABELS, formatDate, getDaysUntilDeadline, pluralizeDays } from '@/lib/utils'
-import {
-  AlertTriangle,
-  Clock,
-  ExternalLink,
-  GripVertical,
-  MessageSquare,
-  Star,
-  User,
-} from 'lucide-react'
+import { STATUS_LABELS, formatDate, getWorkingDaysUntilDeadline, pluralizeDays } from '@/lib/utils'
+import { AlertTriangle, GripVertical, MessageSquare, Star, User } from 'lucide-react'
 
 interface Letter {
   id: string
@@ -65,7 +57,7 @@ const STATUS_COLORS: Record<LetterStatus, { bg: string; border: string; text: st
 
 function KanbanCard({ letter, onDragStart }: { letter: Letter; onDragStart: () => void }) {
   const router = useRouter()
-  const daysLeft = getDaysUntilDeadline(letter.deadlineDate)
+  const daysLeft = getWorkingDaysUntilDeadline(letter.deadlineDate)
   const isOverdue = letter.status !== 'DONE' && daysLeft < 0
   const isUrgent = letter.status !== 'DONE' && daysLeft <= 2 && daysLeft >= 0
 
@@ -98,7 +90,9 @@ function KanbanCard({ letter, onDragStart }: { letter: Letter; onDragStart: () =
             }`}
           >
             <AlertTriangle className="h-3 w-3" />
-            {isOverdue ? `${Math.abs(daysLeft)}д` : `${daysLeft}д`}
+            {isOverdue
+              ? `${Math.abs(daysLeft)} раб. ${pluralizeDays(Math.abs(daysLeft))}`
+              : `${daysLeft} раб. ${pluralizeDays(daysLeft)}`}
           </span>
         )}
 

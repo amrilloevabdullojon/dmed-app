@@ -13,15 +13,14 @@ import {
   AlertTriangle,
   Plus,
   ArrowRight,
-  Calendar,
-  User,
+  UserMinus,
   Star,
   TrendingUp,
   BarChart3,
   Inbox,
   Activity,
 } from 'lucide-react'
-import { formatDate, getDaysUntilDeadline, pluralizeDays, STATUS_LABELS } from '@/lib/utils'
+import { formatDate, getWorkingDaysUntilDeadline, pluralizeDays, STATUS_LABELS } from '@/lib/utils'
 import type { LetterStatus } from '@prisma/client'
 
 interface Letter {
@@ -74,6 +73,7 @@ export default function HomePage() {
   const [recentLetters, setRecentLetters] = useState<Letter[]>([])
   const [urgentLetters, setUrgentLetters] = useState<Letter[]>([])
   const [overdueLetters, setOverdueLetters] = useState<Letter[]>([])
+  const [unassignedLetters, setUnassignedLetters] = useState<Letter[]>([])
   const [recentRequests, setRecentRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -87,21 +87,27 @@ export default function HomePage() {
     setLoading(true)
     try {
       // Загрузить все данные параллельно
-      const [statsRes, recentRes, urgentRes, overdueRes, requestsRes] = await Promise.all([
-        fetch('/api/stats'),
-        fetch('/api/letters?limit=5&sortBy=created&sortOrder=desc'),
-        fetch('/api/letters?filter=urgent&limit=5'),
-        fetch('/api/letters?filter=overdue&limit=5'),
-        fetch('/api/requests?limit=5&status=NEW,IN_REVIEW'),
-      ])
+      const [statsRes, recentRes, urgentRes, overdueRes, unassignedRes, requestsRes] =
+        await Promise.all([
+          fetch('/api/stats'),
+          fetch('/api/letters?limit=5&sortBy=created&sortOrder=desc'),
+          fetch('/api/letters?filter=urgent&limit=5'),
+          fetch('/api/letters?filter=overdue&limit=5'),
+          fetch('/api/letters?filter=unassigned&limit=5'),
+          fetch('/api/requests?limit=5&status=NEW,IN_REVIEW'),
+        ])
 
-      const [statsData, recentData, urgentData, overdueData, requestsData] = await Promise.all([
-        statsRes.ok ? (statsRes.json() as Promise<StatsResponse>) : Promise.resolve(null),
-        recentRes.ok ? (recentRes.json() as Promise<{ letters: Letter[] }>) : Promise.resolve(null),
-        urgentRes.json() as Promise<{ letters: Letter[] }>,
-        overdueRes.json() as Promise<{ letters: Letter[] }>,
-        requestsRes.json() as Promise<{ requests: Request[] }>,
-      ])
+      const [statsData, recentData, urgentData, overdueData, unassignedData, requestsData] =
+        await Promise.all([
+          statsRes.ok ? (statsRes.json() as Promise<StatsResponse>) : Promise.resolve(null),
+          recentRes.ok
+            ? (recentRes.json() as Promise<{ letters: Letter[] }>)
+            : Promise.resolve(null),
+          urgentRes.json() as Promise<{ letters: Letter[] }>,
+          overdueRes.json() as Promise<{ letters: Letter[] }>,
+          unassignedRes.json() as Promise<{ letters: Letter[] }>,
+          requestsRes.json() as Promise<{ requests: Request[] }>,
+        ])
 
       if (statsData?.summary) {
         setStats({
@@ -119,6 +125,7 @@ export default function HomePage() {
       setRecentLetters(recentData?.letters || [])
       setUrgentLetters(urgentData.letters || [])
       setOverdueLetters(overdueData.letters || [])
+      setUnassignedLetters(unassignedData.letters || [])
       setRecentRequests(requestsData.requests || [])
     } catch (error) {
       console.error('Failed to load dashboard:', error)
@@ -146,6 +153,7 @@ export default function HomePage() {
       : session.user.role === 'ADMIN'
         ? '\u0410\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440'
         : '\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a'
+  const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'SUPERADMIN'
 
   return (
     <div className="app-shell min-h-screen">
@@ -304,7 +312,7 @@ export default function HomePage() {
               </div>
               <div className="divide-y divide-white/5">
                 {overdueLetters.map((letter) => {
-                  const daysOverdue = Math.abs(getDaysUntilDeadline(letter.deadlineDate))
+                  const daysOverdue = Math.abs(getWorkingDaysUntilDeadline(letter.deadlineDate))
                   return (
                     <Link
                       key={letter.id}
@@ -322,12 +330,52 @@ export default function HomePage() {
                           <p className="mt-1 line-clamp-1 text-white">{letter.org}</p>
                         </div>
                         <span className="whitespace-nowrap text-xs text-red-400">
-                          {daysOverdue} {pluralizeDays(daysOverdue)} просрочено
+                          Просрочено на {daysOverdue} раб. {pluralizeDays(daysOverdue)}
                         </span>
                       </div>
                     </Link>
                   )
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* Unassigned Letters (Admin) */}
+          {isAdmin && unassignedLetters.length > 0 && (
+            <div className="panel panel-glass rounded-2xl border-l-4 border-l-sky-500">
+              <div className="flex items-center justify-between border-b border-white/10 p-4">
+                <div className="flex items-center gap-2">
+                  <UserMinus className="h-5 w-5 text-sky-400" />
+                  <h3 className="font-semibold text-white">Без исполнителя</h3>
+                </div>
+                <Link
+                  href="/letters?filter=unassigned"
+                  className="flex items-center gap-1 text-sm text-sky-400 hover:text-sky-300"
+                >
+                  Все <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+              <div className="divide-y divide-white/5">
+                {unassignedLetters.map((letter) => (
+                  <Link
+                    key={letter.id}
+                    href={`/letters/${letter.id}`}
+                    className="block p-4 transition hover:bg-white/5"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm text-teal-400">№{letter.number}</span>
+                          <StatusBadge status={letter.status} size="sm" />
+                        </div>
+                        <p className="mt-1 line-clamp-1 text-white">{letter.org}</p>
+                      </div>
+                      <span className="whitespace-nowrap text-xs text-slate-500">
+                        {formatDate(letter.date)}
+                      </span>
+                    </div>
+                  </Link>
+                ))}
               </div>
             </div>
           )}
@@ -349,7 +397,7 @@ export default function HomePage() {
               </div>
               <div className="divide-y divide-white/5">
                 {urgentLetters.map((letter) => {
-                  const daysLeft = getDaysUntilDeadline(letter.deadlineDate)
+                  const daysLeft = getWorkingDaysUntilDeadline(letter.deadlineDate)
                   return (
                     <Link
                       key={letter.id}
@@ -367,7 +415,7 @@ export default function HomePage() {
                           <p className="mt-1 line-clamp-1 text-white">{letter.org}</p>
                         </div>
                         <span className="whitespace-nowrap text-xs text-amber-400">
-                          {daysLeft} {pluralizeDays(daysLeft)}
+                          {daysLeft} раб. {pluralizeDays(daysLeft)}
                         </span>
                       </div>
                     </Link>

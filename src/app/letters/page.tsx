@@ -15,7 +15,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useEffect, useState, useRef, useCallback, useMemo, Suspense, startTransition } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import type { LetterStatus } from '@prisma/client'
-import { STATUS_LABELS } from '@/lib/utils'
+import { STATUS_LABELS, getWorkingDaysUntilDeadline, pluralizeDays } from '@/lib/utils'
 import { LETTER_TYPES } from '@/lib/constants'
 import {
   Search,
@@ -42,6 +42,10 @@ import {
   Star,
   ListPlus,
   Kanban,
+  Bookmark,
+  ChevronDown,
+  UserCheck,
+  UserMinus,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useToast } from '@/components/Toast'
@@ -94,25 +98,50 @@ const STATUSES: (LetterStatus | 'all')[] = [
 ]
 
 const FILTERS = [
-  { value: '', label: '\В\с\е \п\и\с\ь\м\а', icon: List },
-  { value: 'favorites', label: '\И\з\б\р\а\н\н\ы\е', icon: Star },
-  { value: 'overdue', label: '\П\р\о\с\р\о\ч\е\н\н\ы\е', icon: AlertTriangle },
-  { value: 'urgent', label: '\С\р\о\ч\н\ы\е (3 \д\н\я)', icon: Clock },
-  { value: 'active', label: '\В \р\а\б\о\т\е', icon: XCircle },
-  { value: 'done', label: '\З\а\в\е\р\ш\е\н\н\ы\е', icon: CheckCircle },
+  { value: '', label: 'Все письма', icon: List },
+  { value: 'mine', label: 'Мои письма', icon: UserCheck },
+  { value: 'unassigned', label: 'Без исполнителя', icon: UserMinus },
+  { value: 'favorites', label: 'Избранные', icon: Star },
+  { value: 'overdue', label: 'Просроченные', icon: AlertTriangle },
+  { value: 'urgent', label: 'Срочно (3 раб. дня)', icon: Clock },
+  { value: 'active', label: 'В работе', icon: XCircle },
+  { value: 'done', label: 'Завершённые', icon: CheckCircle },
 ]
 
 type ViewMode = 'cards' | 'table' | 'kanban'
 type SortField = 'created' | 'deadline' | 'date' | 'number' | 'org' | 'status' | 'priority'
 
+type SavedView = {
+  id: string
+  name: string
+  filters: {
+    search: string
+    status: LetterStatus | 'all'
+    quickFilter: string
+    owner: string
+    type: string
+    sortBy: SortField
+    sortOrder: 'asc' | 'desc'
+    viewMode: ViewMode
+  }
+}
+
+type SearchSuggestion = {
+  id: string
+  number: string
+  org: string
+  status: LetterStatus
+  deadlineDate: string
+}
+
 const pluralizeLetters = (count: number) => {
   const value = Math.abs(count) % 100
   const lastDigit = value % 10
 
-  if (value > 10 && value < 20) return '\п\и\с\е\м'
-  if (lastDigit === 1) return '\п\и\с\ь\м\о'
-  if (lastDigit > 1 && lastDigit < 5) return '\п\и\с\ь\м\а'
-  return '\п\и\с\е\м'
+  if (value > 10 && value < 20) return 'писем'
+  if (lastDigit === 1) return 'письмо'
+  if (lastDigit > 1 && lastDigit < 5) return 'письма'
+  return 'писем'
 }
 
 function LettersPageContent() {
@@ -139,6 +168,16 @@ function LettersPageContent() {
   const [viewMode, setViewMode] = useLocalStorage<ViewMode>('letters-view-mode', 'table')
   const [sortBy, setSortBy] = useState<SortField>('created')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [savedViews, setSavedViews] = useLocalStorage<SavedView[]>('letters-saved-views', [])
+  const [viewsOpen, setViewsOpen] = useState(false)
+  const [newViewName, setNewViewName] = useState('')
+  const [activeViewId, setActiveViewId] = useState<string | null>(null)
+  const savedViewsRef = useRef<HTMLDivElement>(null)
+  const applyingViewRef = useRef(false)
+  const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([])
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false)
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false)
+  const suggestionsAbortRef = useRef<AbortController | null>(null)
   const { page, limit, totalPages, nextPage, prevPage, goToPage, hasNext, hasPrev } = usePagination(
     {
       total: pagination?.total || 0,
@@ -201,6 +240,90 @@ function LettersPageContent() {
     if (typeFilter) count += 1
     return count
   }, [search, statusFilter, quickFilter, ownerFilter, typeFilter])
+
+  const currentViewFilters = useCallback(
+    () => ({
+      search,
+      status: statusFilter,
+      quickFilter,
+      owner: ownerFilter,
+      type: typeFilter,
+      sortBy,
+      sortOrder,
+      viewMode,
+    }),
+    [search, statusFilter, quickFilter, ownerFilter, typeFilter, sortBy, sortOrder, viewMode]
+  )
+
+  const applySavedView = useCallback(
+    (view: SavedView) => {
+      applyingViewRef.current = true
+      setSearch(view.filters.search)
+      setStatusFilter(view.filters.status)
+      setQuickFilter(view.filters.quickFilter)
+      setOwnerFilter(view.filters.owner)
+      setTypeFilter(view.filters.type)
+      setSortBy(view.filters.sortBy)
+      setSortOrder(view.filters.sortOrder)
+      setViewMode(view.filters.viewMode)
+      setIsSearching(!!view.filters.search)
+      setActiveViewId(view.id)
+      setViewsOpen(false)
+      goToPage(1)
+    },
+    [goToPage, setViewMode]
+  )
+
+  const saveCurrentView = useCallback(() => {
+    const name = newViewName.trim()
+    if (!name) return
+
+    const id =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`
+
+    const newView: SavedView = {
+      id,
+      name,
+      filters: currentViewFilters(),
+    }
+
+    setSavedViews((prev) => [newView, ...prev])
+    setNewViewName('')
+    setActiveViewId(id)
+    setViewsOpen(false)
+  }, [currentViewFilters, newViewName, setSavedViews])
+
+  const deleteSavedView = useCallback(
+    (id: string) => {
+      setSavedViews((prev) => prev.filter((view) => view.id !== id))
+      if (activeViewId === id) {
+        setActiveViewId(null)
+      }
+    },
+    [activeViewId, setSavedViews]
+  )
+
+  useEffect(() => {
+    if (!viewsOpen) return
+    const handleClick = (event: MouseEvent) => {
+      if (!savedViewsRef.current) return
+      if (!savedViewsRef.current.contains(event.target as Node)) {
+        setViewsOpen(false)
+      }
+    }
+    window.addEventListener('mousedown', handleClick)
+    return () => window.removeEventListener('mousedown', handleClick)
+  }, [viewsOpen])
+
+  useEffect(() => {
+    if (applyingViewRef.current) {
+      applyingViewRef.current = false
+      return
+    }
+    setActiveViewId(null)
+  }, [search, statusFilter, quickFilter, ownerFilter, typeFilter, sortBy, sortOrder, viewMode])
 
   // Горячие клавиши
   useKeyboard({
@@ -334,7 +457,7 @@ function LettersPageContent() {
       } catch (error) {
         if (controller.signal.aborted) return
         console.error('Failed to load letters:', error)
-        toast.error('\Н\е \у\д\а\л\о\с\ь \з\а\г\р\у\з\и\т\ь \с\п\и\с\о\к \п\и\с\е\м')
+        toast.error('Не удалось загрузить список писем')
       } finally {
         if (requestId === lettersRequestIdRef.current) {
           setLoading(false)
@@ -354,6 +477,52 @@ function LettersPageContent() {
       console.error('Failed to load users:', error)
     }
   }, [])
+
+  const fetchSuggestions = useDebouncedCallback(async (query: string) => {
+    const trimmed = query.trim()
+    if (!trimmed) {
+      setSearchSuggestions([])
+      setSuggestionsOpen(false)
+      setSuggestionsLoading(false)
+      return
+    }
+
+    if (suggestionsAbortRef.current) {
+      suggestionsAbortRef.current.abort()
+    }
+
+    const controller = new AbortController()
+    suggestionsAbortRef.current = controller
+    setSuggestionsLoading(true)
+
+    try {
+      const params = new URLSearchParams({
+        search: trimmed,
+        limit: '6',
+        sortBy: 'created',
+        sortOrder: 'desc',
+      })
+      const res = await fetch(`/api/letters?${params}`, { signal: controller.signal })
+      if (!res.ok) return
+      const data = await res.json()
+      const items: SearchSuggestion[] = (data.letters || []).map((item: Letter) => ({
+        id: item.id,
+        number: item.number,
+        org: item.org,
+        status: item.status,
+        deadlineDate: item.deadlineDate,
+      }))
+      setSearchSuggestions(items)
+      setSuggestionsOpen(true)
+    } catch (error) {
+      if (controller.signal.aborted) return
+      console.error('Failed to load suggestions:', error)
+    } finally {
+      if (!controller.signal.aborted) {
+        setSuggestionsLoading(false)
+      }
+    }
+  }, 250)
 
   const debouncedSearch = useDebouncedCallback(() => {
     if (session) loadLetters(false)
@@ -397,6 +566,16 @@ function LettersPageContent() {
       loadUsers()
     }
   }, [session, loadUsers])
+
+  useEffect(() => {
+    if (!search.trim()) {
+      setSearchSuggestions([])
+      setSuggestionsOpen(false)
+      setSuggestionsLoading(false)
+      return
+    }
+    fetchSuggestions(search)
+  }, [search, fetchSuggestions])
 
   // Debounced search
   useEffect(() => {
@@ -458,17 +637,17 @@ function LettersPageContent() {
       const data = await res.json()
 
       if (data.success) {
-        toast.success(`\О\б\н\о\в\л\е\н\о ${data.updated} ${pluralizeLetters(data.updated)}`)
+        toast.success(`Обновлено ${data.updated} ${pluralizeLetters(data.updated)}`)
         setBulkAction(null)
         setBulkValue('')
         setSelectedIds(new Set())
         loadLetters()
       } else {
-        toast.error(data.error || '\Н\е \у\д\а\л\о\с\ь \в\ы\п\о\л\н\и\т\ь \о\п\е\р\а\ц\и\ю')
+        toast.error(data.error || 'Не удалось выполнить операцию')
       }
     } catch (error) {
       console.error('Bulk action error:', error)
-      toast.error('\Н\е \у\д\а\л\о\с\ь \в\ы\п\о\л\н\и\т\ь \о\п\е\р\а\ц\и\ю')
+      toast.error('Не удалось выполнить операцию')
     } finally {
       setBulkLoading(false)
     }
@@ -479,9 +658,9 @@ function LettersPageContent() {
 
     if (bulkAction === 'delete') {
       confirmDialog({
-        title: '\У\д\а\л\и\т\ь \п\и\с\ь\м\а?',
-        message: `\У\д\а\л\и\т\ь ${selectedIds.size} \п\и\с\е\м? \Э\т\о \д\е\й\с\т\в\и\е \н\е\л\ь\з\я \о\т\м\е\н\и\т\ь.`,
-        confirmText: '\У\д\а\л\и\т\ь',
+        title: 'Удалить письма?',
+        message: `Удалить ${selectedIds.size} писем? Это действие нельзя отменить.`,
+        confirmText: 'Удалить',
         variant: 'danger',
         onConfirm: runBulkAction,
       })
@@ -491,9 +670,9 @@ function LettersPageContent() {
     if (bulkAction === 'status') {
       const statusLabel = STATUS_LABELS[bulkValue as LetterStatus] || bulkValue
       confirmDialog({
-        title: '\И\з\м\е\н\и\т\ь \с\т\а\т\у\с?',
-        message: `\О\б\н\о\в\и\т\ь ${selectedIds.size} \п\и\с\е\м \н\а \с\т\а\т\у\с \"${statusLabel}\"?`,
-        confirmText: '\П\р\и\м\е\н\и\т\ь',
+        title: 'Изменить статус?',
+        message: `Обновить ${selectedIds.size} писем на статус \"${statusLabel}\"?`,
+        confirmText: 'Применить',
         onConfirm: runBulkAction,
       })
       return
@@ -502,12 +681,12 @@ function LettersPageContent() {
     if (bulkAction === 'owner') {
       const owner = users.find((user) => user.id === bulkValue)
       const ownerLabel = bulkValue
-        ? owner?.name || owner?.email || '\И\с\п\о\л\н\и\т\е\л\ь'
-        : '\Б\е\з \и\с\п\о\л\н\и\т\е\л\я'
+        ? owner?.name || owner?.email || 'Исполнитель'
+        : 'Без исполнителя'
       confirmDialog({
-        title: '\Н\а\з\н\а\ч\и\т\ь \и\с\п\о\л\н\и\т\е\л\я?',
-        message: `\Н\а\з\н\а\ч\и\т\ь ${selectedIds.size} \п\и\с\е\м: ${ownerLabel}?`,
-        confirmText: '\П\р\и\м\е\н\и\т\ь',
+        title: 'Назначить исполнителя?',
+        message: `Назначить ${selectedIds.size} писем: ${ownerLabel}?`,
+        confirmText: 'Применить',
         variant: 'info',
         onConfirm: runBulkAction,
       })
@@ -528,9 +707,7 @@ function LettersPageContent() {
   if (!session) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-transparent">
-        <p className="text-slate-300/70">
-          {'\П\о\ж\а\л\у\й\с\т\а, \в\о\й\д\и\т\е \в \с\и\с\т\е\м\у'}
-        </p>
+        <p className="text-slate-300/70">Войдите, чтобы увидеть список писем.</p>
       </div>
     )
   }
@@ -543,11 +720,9 @@ function LettersPageContent() {
         {/* Header */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="font-display text-3xl font-semibold text-white md:text-4xl">
-              {'\П\и\с\ь\м\а'}
-            </h1>
+            <h1 className="font-display text-3xl font-semibold text-white md:text-4xl">Письма</h1>
             {pagination && (
-              <p className="text-muted mt-1 text-sm">{`\В\с\е\г\о: ${pagination.total} \п\и\с\е\м`}</p>
+              <p className="text-muted mt-1 text-sm">{`Всего: ${pagination.total} ${pluralizeLetters(pagination.total)}`}</p>
             )}
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
@@ -562,7 +737,7 @@ function LettersPageContent() {
               className="btn-secondary inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 transition sm:w-auto"
             >
               <Download className="h-5 w-5" />
-              {'\Э\к\с\п\о\р\т'}
+              Экспорт
             </a>
             <button
               type="button"
@@ -570,14 +745,14 @@ function LettersPageContent() {
               className="btn-secondary inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 transition sm:w-auto"
             >
               <ListPlus className="h-5 w-5" />
-              {'\М\а\с\с\о\в\о\е \с\о\з\д\а\н\и\е \п\и\с\е\м'}
+              Импорт писем
             </button>
             <Link
               href="/letters/new"
               className="btn-primary inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 transition sm:w-auto"
             >
               <Plus className="h-5 w-5" />
-              {'\Н\о\в\о\е \п\и\с\ь\м\о'}
+              Новое письмо
             </Link>
           </div>
         </div>
@@ -587,9 +762,7 @@ function LettersPageContent() {
           <div className="panel panel-soft mb-4 flex flex-col gap-4 rounded-2xl p-4 lg:flex-row lg:items-center">
             <div className="flex items-center gap-2">
               <CheckSquare className="h-5 w-5 text-teal-300" />
-              <span className="font-medium text-white">
-                {'\В\ы\б\р\а\н\о'}: {selectedIds.size}
-              </span>
+              <span className="font-medium text-white">Выбрано: {selectedIds.size}</span>
             </div>
 
             <div className="flex w-full flex-1 flex-col gap-2 sm:flex-row sm:items-center">
@@ -601,13 +774,13 @@ function LettersPageContent() {
                   setBulkValue('')
                 }}
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white sm:w-auto"
-                aria-label="\В\ы\б\е\р\и\т\е \д\е\й\с\т\в\и\е"
+                aria-label="Действие"
               >
-                <option value="">{'\В\ы\б\е\р\и\т\е \д\е\й\с\т\в\и\е'}</option>
-                <option value="status">{'\И\з\м\е\н\и\т\ь \с\т\а\т\у\с'}</option>
-                <option value="owner">{'\Н\а\з\н\а\ч\и\т\ь \и\с\п\о\л\н\и\т\е\л\я'}</option>
+                <option value="">Выберите действие</option>
+                <option value="status">Сменить статус</option>
+                <option value="owner">Назначить исполнителя</option>
                 {(session.user.role === 'ADMIN' || session.user.role === 'SUPERADMIN') && (
-                  <option value="delete">{'\У\д\а\л\и\т\ь'}</option>
+                  <option value="delete">Удалить</option>
                 )}
               </select>
 
@@ -616,9 +789,9 @@ function LettersPageContent() {
                   value={bulkValue}
                   onChange={(e) => setBulkValue(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white sm:w-auto"
-                  aria-label="\В\ы\б\е\р\и\т\е \с\т\а\т\у\с"
+                  aria-label="Статус"
                 >
-                  <option value="">{'\В\ы\б\е\р\и\т\е \с\т\а\т\у\с'}</option>
+                  <option value="">Выберите статус</option>
                   {STATUSES.filter((s) => s !== 'all').map((status) => (
                     <option key={status} value={status}>
                       {STATUS_LABELS[status as LetterStatus]}
@@ -632,10 +805,10 @@ function LettersPageContent() {
                   value={bulkValue}
                   onChange={(e) => setBulkValue(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white sm:w-auto"
-                  aria-label="\В\ы\б\е\р\и\т\е \и\с\п\о\л\н\и\т\е\л\я"
+                  aria-label="Исполнитель"
                 >
-                  <option value="">{'\В\ы\б\е\р\и\т\е \и\с\п\о\л\н\и\т\е\л\я'}</option>
-                  <option value="">{'\Б\е\з \и\с\п\о\л\н\и\т\е\л\я'}</option>
+                  <option value="">Выберите исполнителя</option>
+                  <option value="">Без исполнителя</option>
                   {users.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.name || user.email}
@@ -663,7 +836,7 @@ function LettersPageContent() {
                   ) : (
                     <CheckCircle className="h-4 w-4" />
                   )}
-                  {'\П\р\и\м\е\н\и\т\ь'}
+                  Применить
                 </button>
               )}
             </div>
@@ -675,7 +848,7 @@ function LettersPageContent() {
                 setBulkValue('')
               }}
               className="self-start rounded-lg p-2 text-slate-300 transition hover:bg-white/10 hover:text-white lg:self-auto"
-              aria-label="\С\б\р\о\с\и\т\ь \в\ы\б\о\р"
+              aria-label="Снять выбор"
             >
               <X className="h-5 w-5" />
             </button>
@@ -683,6 +856,7 @@ function LettersPageContent() {
         )}
 
         {/* Quick Filters */}
+
         <div className="panel-soft panel-glass no-scrollbar mb-4 flex gap-2 overflow-x-auto rounded-2xl p-2 sm:flex-wrap">
           {FILTERS.map((filter) => {
             const Icon = filter.icon
@@ -692,6 +866,9 @@ function LettersPageContent() {
                 onClick={() => {
                   setQuickFilter(filter.value)
                   setStatusFilter('all')
+                  if (filter.value === 'mine' || filter.value === 'unassigned') {
+                    setOwnerFilter('')
+                  }
                   goToPage(1)
                 }}
                 className={`app-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition ${quickFilter === filter.value ? 'app-chip-active' : ''}`}
@@ -715,9 +892,17 @@ function LettersPageContent() {
             <input
               ref={searchInputRef}
               type="text"
-              placeholder="Поиск по номеру, организации, Jira, содержанию... (нажмите /)"
+              placeholder="Поиск по номеру, организации, содержанию, Jira и ответам..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onFocus={() => {
+                if (searchSuggestions.length > 0) {
+                  setSuggestionsOpen(true)
+                }
+              }}
+              onBlur={() => {
+                window.setTimeout(() => setSuggestionsOpen(false), 150)
+              }}
               className="w-full rounded-xl border border-white/10 bg-white/5 py-2 pl-10 pr-10 text-white placeholder-slate-400 focus:border-teal-400/80 focus:outline-none focus:ring-1 focus:ring-teal-400/40"
               aria-label="Поиск"
             />
@@ -725,11 +910,63 @@ function LettersPageContent() {
               <button
                 onClick={() => setSearch('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-white"
-                aria-label="\О\ч\и\с\т\и\т\ь \п\о\и\с\к"
+                aria-label="Очистить поиск"
               >
                 <X className="h-4 w-4" />
               </button>
             )}
+
+            {(suggestionsOpen || suggestionsLoading) && search.trim() && (
+              <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-slate-800/70 bg-slate-950/95 shadow-2xl shadow-black/40 backdrop-blur">
+                <div className="flex items-center justify-between border-b border-slate-800/70 px-3 py-2 text-xs text-slate-400">
+                  <span>Подсказки</span>
+                  {suggestionsLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                </div>
+                <div className="max-h-64 overflow-auto">
+                  {searchSuggestions.length === 0 ? (
+                    <div className="px-3 py-4 text-xs text-slate-500">Ничего не найдено</div>
+                  ) : (
+                    searchSuggestions.map((item) => {
+                      const daysLeft = getWorkingDaysUntilDeadline(item.deadlineDate)
+                      const tone =
+                        daysLeft < 0
+                          ? 'text-red-400'
+                          : daysLeft <= 2
+                            ? 'text-yellow-400'
+                            : 'text-emerald-300'
+
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onMouseDown={(event) => {
+                            event.preventDefault()
+                            router.push(`/letters/${item.id}`)
+                            setSuggestionsOpen(false)
+                          }}
+                          className="flex w-full flex-col gap-1 border-b border-slate-900/60 px-3 py-2 text-left text-sm transition hover:bg-slate-900/70"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-teal-300">№{item.number}</span>
+                            <span className={`text-[11px] ${tone}`}>
+                              {daysLeft} раб. {pluralizeDays(daysLeft)}
+                            </span>
+                          </div>
+                          <div className="truncate text-xs text-slate-300">{item.org}</div>
+                          <div className="text-[11px] text-slate-500">
+                            {STATUS_LABELS[item.status]}
+                          </div>
+                        </button>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+
+            <p className="mt-2 text-xs text-slate-500">
+              Можно искать по номеру, организации, содержанию, Jira и ответам.
+            </p>
           </div>
 
           <button
@@ -757,9 +994,9 @@ function LettersPageContent() {
                   goToPage(1)
                 }}
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white focus:border-teal-400/80 focus:outline-none focus:ring-1 focus:ring-teal-400/40 sm:w-auto"
-                aria-label="\Ф\и\л\ь\т\р \п\о \с\т\а\т\у\с\у"
+                aria-label="Статус"
               >
-                <option value="all">{'\В\с\е \с\т\а\т\у\с\ы'}</option>
+                <option value="all">Все статусы</option>
                 {STATUSES.filter((s) => s !== 'all').map((status) => (
                   <option key={status} value={status}>
                     {STATUS_LABELS[status as LetterStatus]}
@@ -774,12 +1011,15 @@ function LettersPageContent() {
                 value={ownerFilter}
                 onChange={(e) => {
                   setOwnerFilter(e.target.value)
+                  if (quickFilter === 'mine' || quickFilter === 'unassigned') {
+                    setQuickFilter('')
+                  }
                   goToPage(1)
                 }}
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white focus:border-teal-400/80 focus:outline-none focus:ring-1 focus:ring-teal-400/40 sm:w-auto"
-                aria-label="\Ф\и\л\ь\т\р \п\о \и\с\п\о\л\н\и\т\е\л\ю"
+                aria-label="Исполнитель"
               >
-                <option value="">{'\В\с\е \и\с\п\о\л\н\и\т\е\л\и'}</option>
+                <option value="">Все исполнители</option>
                 {users.map((user) => (
                   <option key={user.id} value={user.id}>
                     {user.name || user.email}
@@ -797,9 +1037,9 @@ function LettersPageContent() {
                   goToPage(1)
                 }}
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white focus:border-teal-400/80 focus:outline-none focus:ring-1 focus:ring-teal-400/40 sm:w-auto"
-                aria-label="\Ф\и\л\ь\т\р \п\о \т\и\п\у"
+                aria-label="Тип"
               >
-                <option value="">{'\В\с\е \т\и\п\ы'}</option>
+                <option value="">Все типы</option>
                 {LETTER_TYPES.filter((item) => item.value !== 'all').map((item) => (
                   <option key={item.value} value={item.value}>
                     {item.label}
@@ -812,11 +1052,85 @@ function LettersPageContent() {
               <button
                 onClick={resetFilters}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-slate-200 transition hover:bg-white/10 hover:text-white sm:w-auto"
-                aria-label="\С\б\р\о\с\и\т\ь \ф\и\л\ь\т\р\ы"
+                aria-label="Сбросить фильтры"
               >
                 <XCircle className="h-4 w-4" />
-                {`\С\б\р\о\с\и\т\ь (${activeFiltersCount})`}
+                {`Сбросить (${activeFiltersCount})`}
               </button>
+            )}
+          </div>
+
+          {/* Saved views */}
+          <div ref={savedViewsRef} className="relative hidden sm:block">
+            <button
+              onClick={() => setViewsOpen((prev) => !prev)}
+              className={`inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm transition ${
+                viewsOpen ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:text-white'
+              }`}
+              aria-expanded={viewsOpen}
+            >
+              <Bookmark className="h-4 w-4" />
+              Виды
+              <ChevronDown className="h-4 w-4" />
+            </button>
+
+            {viewsOpen && (
+              <div className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-xl border border-slate-800/70 bg-slate-950/95 shadow-2xl shadow-black/40 backdrop-blur">
+                <div className="border-b border-slate-800/70 px-3 py-2 text-xs text-slate-400">
+                  Сохранённые виды
+                </div>
+                <div className="max-h-64 overflow-auto">
+                  {savedViews.length === 0 ? (
+                    <div className="px-3 py-4 text-xs text-slate-500">Нет сохранённых видов</div>
+                  ) : (
+                    savedViews.map((view) => (
+                      <div
+                        key={view.id}
+                        className="flex items-center gap-2 border-b border-slate-900/60 px-3 py-2"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => applySavedView(view)}
+                          className="flex-1 truncate text-left text-sm text-slate-200 transition hover:text-white"
+                        >
+                          {view.name}
+                        </button>
+                        {activeViewId === view.id && (
+                          <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-300">
+                            Активен
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            deleteSavedView(view.id)
+                          }}
+                          className="text-slate-500 transition hover:text-red-300"
+                          aria-label="Удалить вид"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="border-t border-slate-800/70 px-3 py-3">
+                  <input
+                    value={newViewName}
+                    onChange={(e) => setNewViewName(e.target.value)}
+                    placeholder="Название вида"
+                    className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder-slate-500"
+                  />
+                  <button
+                    onClick={saveCurrentView}
+                    disabled={!newViewName.trim()}
+                    className="mt-2 w-full rounded-lg bg-emerald-500/20 px-3 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/30 disabled:opacity-50"
+                  >
+                    Сохранить текущий вид
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 
@@ -841,8 +1155,8 @@ function LettersPageContent() {
             <button
               onClick={() => setViewMode('kanban')}
               className={`rounded-lg p-2 transition ${viewMode === 'kanban' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
-              title="Kanban"
-              aria-label="Kanban вид"
+              title="Канбан"
+              aria-label="Канбан"
             >
               <Kanban className="h-5 w-5" />
             </button>
@@ -853,8 +1167,8 @@ function LettersPageContent() {
             <button
               onClick={() => (shortcutsOpen ? closeShortcuts() : openShortcuts())}
               className={`rounded-lg p-2 transition ${shortcutsOpen ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:text-white'}`}
-              title="\Г\о\р\я\ч\и\е \к\л\а\в\и\ш\и"
-              aria-label="\Г\о\р\я\ч\и\е \к\л\а\в\и\ш\и"
+              title="Горячие клавиши"
+              aria-label="Горячие клавиши"
             >
               <Keyboard className="h-5 w-5" />
             </button>
@@ -862,6 +1176,7 @@ function LettersPageContent() {
         </div>
 
         {/* Content */}
+
         {loading ? (
           effectiveViewMode === 'cards' ? (
             <CardsSkeleton count={9} />
@@ -876,7 +1191,7 @@ function LettersPageContent() {
           )
         ) : letters.length === 0 ? (
           <div className="py-12 text-center">
-            <p className="text-slate-300/70">Писем не найдено</p>
+            <p className="text-slate-300/70">Писем нет</p>
           </div>
         ) : effectiveViewMode === 'kanban' ? (
           <LetterKanban letters={letters} onStatusChange={handleKanbanStatusChange} />
@@ -904,7 +1219,7 @@ function LettersPageContent() {
         {/* Pagination */}
         {pagination && pagination.totalPages > 1 && (
           <div className="mt-6 flex items-center justify-between">
-            <div className="text-sm text-slate-300/70">{`\П\о\к\а\з\а\н\ы ${(page - 1) * limit + 1}-${Math.min(page * limit, pagination.total)} \и\з ${pagination.total}`}</div>
+            <div className="text-sm text-slate-300/70">{`Показано ${(page - 1) * limit + 1}-${Math.min(page * limit, pagination.total)} из ${pagination.total}`}</div>
             <div className="flex items-center gap-2">
               <button
                 onClick={prevPage}

@@ -16,7 +16,9 @@ import type { LetterStatus } from '@prisma/client'
 import {
   STATUS_LABELS,
   formatDate,
-  getDaysUntilDeadline,
+  getWorkingDaysUntilDeadline,
+  addWorkingDays,
+  parseDateValue,
   pluralizeDays,
   getPriorityLabel,
   isDoneStatus,
@@ -351,6 +353,64 @@ export default function LetterDetailPage() {
     }
   }
 
+  const handlePostponeDeadline = async () => {
+    if (!letter) return
+
+    const input = window.prompt(
+      '\u041d\u0430 \u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0440\u0430\u0431\u043e\u0447\u0438\u0445 \u0434\u043d\u0435\u0439 \u043f\u0435\u0440\u0435\u043d\u0435\u0441\u0442\u0438 \u0434\u0435\u0434\u043b\u0430\u0439\u043d?',
+      '3'
+    )
+    if (!input) return
+
+    const delta = Number.parseInt(input, 10)
+    if (!Number.isFinite(delta) || delta === 0) {
+      toast.error(
+        '\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0447\u0438\u0441\u043b\u043e \u0440\u0430\u0431\u043e\u0447\u0438\u0445 \u0434\u043d\u0435\u0439'
+      )
+      return
+    }
+
+    const currentDeadline = parseDateValue(letter.deadlineDate)
+    if (!currentDeadline) {
+      toast.error(
+        '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u0440\u043e\u0447\u0438\u0442\u0430\u0442\u044c \u0434\u0430\u0442\u0443 \u0434\u0435\u0434\u043b\u0430\u0439\u043d\u0430'
+      )
+      return
+    }
+
+    const nextDeadline = addWorkingDays(currentDeadline, delta)
+    try {
+      await updateField('deadlineDate', nextDeadline.toISOString(), { throwOnError: true })
+      toast.success(
+        '\u0414\u0435\u0434\u043b\u0430\u0439\u043d \u043e\u0431\u043d\u043e\u0432\u043b\u0451\u043d'
+      )
+    } catch {
+      // updateField already notifies on error
+    }
+  }
+
+  const handleEscalate = async () => {
+    if (!letter) return
+    if (letter.priority >= 90) {
+      toast.success(
+        '\u041f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442 \u0443\u0436\u0435 \u0432\u044b\u0441\u043e\u043a\u0438\u0439'
+      )
+      return
+    }
+
+    try {
+      await updateField('priority', '100', { throwOnError: true })
+      toast.success(
+        '\u041f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442 \u043f\u043e\u0432\u044b\u0448\u0435\u043d'
+      )
+      if (letter.owner?.id) {
+        await handleNotifyOwner()
+      }
+    } catch {
+      // updateField already notifies on error
+    }
+  }
+
   const handleGeneratePortalLink = async () => {
     if (!letter) return
     setPortalLoading(true)
@@ -439,7 +499,7 @@ export default function LetterDetailPage() {
     return null
   }
 
-  const daysLeft = getDaysUntilDeadline(letter.deadlineDate)
+  const daysLeft = getWorkingDaysUntilDeadline(letter.deadlineDate)
   const isDone = isDoneStatus(letter.status)
   const isOverdue = !isDone && daysLeft < 0
   const isUrgent = !isDone && daysLeft <= 2 && daysLeft >= 0
@@ -549,6 +609,15 @@ export default function LetterDetailPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Main Content */}
           <div className="space-y-6 lg:col-span-2">
+            <div className="rounded-lg border border-gray-700 bg-gray-800 p-6">
+              <ActivityFeed
+                letterId={letter.id}
+                maxItems={3}
+                title="\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f"
+                compact
+              />
+            </div>
+
             {/* Header Card */}
             <div className="rounded-lg border border-gray-700 bg-gray-800 p-6">
               <div className="mb-4">
@@ -595,8 +664,8 @@ export default function LetterDetailPage() {
                 >
                   <AlertTriangle className="h-5 w-5" />
                   {isOverdue
-                    ? `Просрочено на ${Math.abs(daysLeft)} ${pluralizeDays(daysLeft)}`
-                    : `До дедлайна осталось ${daysLeft} ${pluralizeDays(daysLeft)}`}
+                    ? `\u041f\u0440\u043e\u0441\u0440\u043e\u0447\u0435\u043d\u043e \u043d\u0430 ${Math.abs(daysLeft)} \u0440\u0430\u0431. ${pluralizeDays(Math.abs(daysLeft))}`
+                    : `\u0414\u043e \u0434\u0435\u0434\u043b\u0430\u0439\u043d\u0430 \u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c ${daysLeft} \u0440\u0430\u0431. ${pluralizeDays(daysLeft)}`}
                 </div>
               )}
 
@@ -813,6 +882,29 @@ export default function LetterDetailPage() {
                     size="md"
                   />
                 </div>
+
+                {!isDone && (
+                  <div className="flex flex-wrap gap-2 border-t border-gray-700 pt-3">
+                    <button
+                      onClick={handlePostponeDeadline}
+                      disabled={updating}
+                      className="inline-flex items-center gap-2 rounded-lg bg-gray-700 px-3 py-2 text-sm text-white transition hover:bg-gray-600 disabled:opacity-50"
+                    >
+                      <Clock className="h-4 w-4" />
+                      {
+                        '\u041f\u0435\u0440\u0435\u043d\u0435\u0441\u0442\u0438 \u0434\u0435\u0434\u043b\u0430\u0439\u043d'
+                      }
+                    </button>
+                    <button
+                      onClick={handleEscalate}
+                      disabled={updating}
+                      className="inline-flex items-center gap-2 rounded-lg bg-amber-500/20 px-3 py-2 text-sm text-amber-300 transition hover:bg-amber-500/30 disabled:opacity-50"
+                    >
+                      <AlertTriangle className="h-4 w-4" />
+                      {'\u042d\u0441\u043a\u0430\u043b\u0438\u0440\u043e\u0432\u0430\u0442\u044c'}
+                    </button>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-3">
                   <User className="h-5 w-5 text-gray-500" />

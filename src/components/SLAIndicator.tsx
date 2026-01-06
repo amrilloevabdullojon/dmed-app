@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { Clock, CheckCircle, AlertTriangle, XCircle } from 'lucide-react'
+import { getWorkingDaysUntilDeadline, parseDateValue, pluralizeDays } from '@/lib/utils'
 
 interface SLAIndicatorProps {
   createdAt: string
@@ -20,21 +21,37 @@ export function SLAIndicator({
   showLabel = true,
   size = 'md',
 }: SLAIndicatorProps) {
-  const { progress, daysLeft, totalDays, isCompleted, isOverdue, statusInfo } = useMemo(() => {
-    const created = new Date(createdAt)
-    const deadline = new Date(deadlineDate)
+  const { progress, statusInfo } = useMemo(() => {
+    const created = parseDateValue(createdAt)
+    const deadline = parseDateValue(deadlineDate)
     const now = new Date()
-    const closed = closedAt ? new Date(closedAt) : null
+    const closed = closedAt ? parseDateValue(closedAt) : null
 
-    const totalMs = deadline.getTime() - created.getTime()
-    const totalDays = Math.max(1, Math.ceil(totalMs / (1000 * 60 * 60 * 24)))
+    if (!created || !deadline) {
+      return {
+        progress: 0,
+        daysLeft: 0,
+        totalDays: 0,
+        isCompleted: false,
+        isOverdue: false,
+        statusInfo: {
+          color: 'text-slate-400',
+          bgColor: 'bg-slate-500',
+          icon: Clock,
+          label: '\u041d\u0435\u0442 \u0434\u0430\u043d\u043d\u044b\u0445',
+        },
+      }
+    }
+
+    const totalDaysRaw = getWorkingDaysUntilDeadline(deadline, created)
+    const totalDays = Math.max(1, Math.abs(totalDaysRaw))
 
     const isCompleted = status === 'DONE' || status === 'READY'
     const endDate = closed || now
-    const elapsedMs = endDate.getTime() - created.getTime()
-    const elapsedDays = Math.ceil(elapsedMs / (1000 * 60 * 60 * 24))
+    const elapsedDaysRaw = getWorkingDaysUntilDeadline(endDate, created)
+    const elapsedDays = Math.min(totalDays, Math.max(0, Math.abs(elapsedDaysRaw)))
 
-    const daysLeft = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    const daysLeft = getWorkingDaysUntilDeadline(deadline, now)
     const isOverdue = !isCompleted && daysLeft < 0
 
     let progress = (elapsedDays / totalDays) * 100
@@ -53,40 +70,45 @@ export function SLAIndicator({
           color: 'text-emerald-400',
           bgColor: 'bg-emerald-500',
           icon: CheckCircle,
-          label: 'Выполнено в срок',
+          label: '\u0417\u0430\u043a\u0440\u044b\u0442\u043e \u0432 \u0441\u0440\u043e\u043a',
         }
       } else {
         statusInfo = {
           color: 'text-amber-400',
           bgColor: 'bg-amber-500',
           icon: CheckCircle,
-          label: 'Выполнено с опозданием',
+          label:
+            '\u0417\u0430\u043a\u0440\u044b\u0442\u043e \u0441 \u043e\u043f\u043e\u0437\u0434\u0430\u043d\u0438\u0435\u043c',
         }
       }
     } else if (isOverdue) {
+      const absDays = Math.abs(daysLeft)
       statusInfo = {
         color: 'text-red-400',
         bgColor: 'bg-red-500',
         icon: XCircle,
-        label: `Просрочено на ${Math.abs(daysLeft)} дн.`,
+        label: `\u041f\u0440\u043e\u0441\u0440\u043e\u0447\u0435\u043d\u043e \u043d\u0430 ${absDays} \u0440\u0430\u0431. ${pluralizeDays(absDays)}`,
       }
     } else if (daysLeft <= 2) {
       statusInfo = {
         color: 'text-amber-400',
         bgColor: 'bg-amber-500',
         icon: AlertTriangle,
-        label: daysLeft === 0 ? 'Сегодня дедлайн' : `Осталось ${daysLeft} дн.`,
+        label:
+          daysLeft === 0
+            ? '\u0414\u0435\u0434\u043b\u0430\u0439\u043d \u0441\u0435\u0433\u043e\u0434\u043d\u044f'
+            : `\u0414\u043e \u0434\u0435\u0434\u043b\u0430\u0439\u043d\u0430 ${daysLeft} \u0440\u0430\u0431. ${pluralizeDays(daysLeft)}`,
       }
     } else {
       statusInfo = {
         color: 'text-blue-400',
         bgColor: 'bg-blue-500',
         icon: Clock,
-        label: `Осталось ${daysLeft} дн.`,
+        label: `\u0414\u043e \u0434\u0435\u0434\u043b\u0430\u0439\u043d\u0430 ${daysLeft} \u0440\u0430\u0431. ${pluralizeDays(daysLeft)}`,
       }
     }
 
-    return { progress, daysLeft, totalDays, isCompleted, isOverdue, statusInfo }
+    return { progress, statusInfo }
   }, [createdAt, deadlineDate, status, closedAt])
 
   const sizeClasses = {
@@ -118,8 +140,14 @@ export function SLAIndicator({
 
       {showLabel && (
         <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
-          <span>Создано: {new Date(createdAt).toLocaleDateString('ru-RU')}</span>
-          <span>Дедлайн: {new Date(deadlineDate).toLocaleDateString('ru-RU')}</span>
+          <span>
+            {'\u0421\u043e\u0437\u0434\u0430\u043d\u043e:'}{' '}
+            {new Date(createdAt).toLocaleDateString('ru-RU')}
+          </span>
+          <span>
+            {'\u0414\u0435\u0434\u043b\u0430\u0439\u043d:'}{' '}
+            {new Date(deadlineDate).toLocaleDateString('ru-RU')}
+          </span>
         </div>
       )}
     </div>
