@@ -14,6 +14,7 @@ import { hasPermission } from '@/lib/permissions'
 import { csrfGuard } from '@/lib/security'
 import { z } from 'zod'
 import { randomUUID } from 'crypto'
+import type { LetterSummary, PaginationMeta } from '@/types/dto'
 
 // Схема валидации для создания письма
 const createLetterSchema = z.object({
@@ -37,6 +38,11 @@ const createLetterSchema = z.object({
 })
 
 const lettersQuerySchema = paginationSchema.merge(letterFiltersSchema)
+
+type LettersQueryInput = z.infer<typeof lettersQuerySchema>
+type LettersListResponse =
+  | { letters: LetterSummary[]; pagination: PaginationMeta }
+  | { error: string }
 
 const resolveAutoOwnerId = async () => {
   const users = await prisma.user.findMany({
@@ -71,7 +77,7 @@ const resolveAutoOwnerId = async () => {
 }
 
 // GET /api/letters - получить все письма
-export const GET = withValidation(
+export const GET = withValidation<LettersListResponse, unknown, LettersQueryInput>(
   async (_request, session, { query }) => {
     if (!hasPermission(session.user.role, 'VIEW_LETTERS')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
