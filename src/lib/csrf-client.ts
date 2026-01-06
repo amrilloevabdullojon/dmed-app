@@ -26,7 +26,7 @@ function isSameOrigin(url: string): boolean {
   }
 }
 
-function buildHeaders(input: RequestInfo, init?: RequestInit): Headers {
+function buildHeaders(input: RequestInfo | URL, init?: RequestInit): Headers {
   const headers = new Headers()
   if (input instanceof Request) {
     input.headers.forEach((value, key) => headers.set(key, value))
@@ -37,14 +37,15 @@ function buildHeaders(input: RequestInfo, init?: RequestInit): Headers {
   return headers
 }
 
-function getMethod(input: RequestInfo, init?: RequestInit): string {
+function getMethod(input: RequestInfo | URL, init?: RequestInit): string {
   if (init?.method) return init.method
   if (input instanceof Request) return input.method
   return 'GET'
 }
 
-function getUrl(input: RequestInfo): string {
+function getUrl(input: RequestInfo | URL): string {
   if (input instanceof Request) return input.url
+  if (input instanceof URL) return input.toString()
   return typeof input === 'string' ? input : String(input)
 }
 
@@ -56,13 +57,13 @@ export function installCsrfFetch(): void {
 
   window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
     const method = getMethod(input, init).toUpperCase()
-    const url = getUrl(input as RequestInfo)
+    const url = getUrl(input)
 
     if (!MUTATING_METHODS.has(method) || !isSameOrigin(url)) {
       return originalFetch(input, init)
     }
 
-    const headers = buildHeaders(input as RequestInfo, init)
+    const headers = buildHeaders(input, init)
     if (!headers.has(CSRF_HEADER_NAME)) {
       const token = getCookieValue(CSRF_COOKIE_NAME)
       if (token) {
