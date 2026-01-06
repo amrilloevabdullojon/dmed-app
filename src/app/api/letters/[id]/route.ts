@@ -139,6 +139,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const body = await request.json()
     const { field, value } = body
+    const canEditIdentity = session.user.role === 'ADMIN' || session.user.role === 'SUPERADMIN'
 
     const letter = await prisma.letter.findUnique({
       where: { id: params.id },
@@ -164,6 +165,54 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     let newValue: string | null = null
 
     switch (field) {
+      case 'number': {
+        if (!canEditIdentity) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+        if (typeof value !== 'string') {
+          return NextResponse.json({ error: 'Invalid number' }, { status: 400 })
+        }
+        const sanitizedNumber = sanitizeInput(value, 50)
+        if (!sanitizedNumber) {
+          return NextResponse.json({ error: 'Invalid number' }, { status: 400 })
+        }
+        const sameNumber = letter.number.trim().toLowerCase() === sanitizedNumber.toLowerCase()
+        if (!sameNumber) {
+          const existing = await prisma.letter.findFirst({
+            where: {
+              number: { equals: sanitizedNumber, mode: 'insensitive' },
+              deletedAt: null,
+              NOT: { id: params.id },
+            },
+            select: { id: true },
+          })
+          if (existing) {
+            return NextResponse.json({ error: 'Letter number already exists' }, { status: 409 })
+          }
+        }
+        oldValue = letter.number
+        newValue = sanitizedNumber
+        updateData.number = sanitizedNumber
+        break
+      }
+
+      case 'org': {
+        if (!canEditIdentity) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+        if (typeof value !== 'string') {
+          return NextResponse.json({ error: 'Invalid organization' }, { status: 400 })
+        }
+        const sanitizedOrg = sanitizeInput(value, 500)
+        if (!sanitizedOrg) {
+          return NextResponse.json({ error: 'Invalid organization' }, { status: 400 })
+        }
+        oldValue = letter.org
+        newValue = sanitizedOrg
+        updateData.org = sanitizedOrg
+        break
+      }
+
       case 'status':
         const newStatus = value as LetterStatus
         oldValue = letter.status

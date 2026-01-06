@@ -24,7 +24,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react'
 import { useToast } from '@/components/Toast'
-import { LETTER_TYPES } from '@/lib/constants'
+import { DEFAULT_DEADLINE_WORKING_DAYS, LETTER_TYPES } from '@/lib/constants'
 import { formatDateForInput, calculateDeadline } from '@/lib/parseLetterFilename'
 import { recommendLetterType } from '@/lib/recommendLetterType'
 
@@ -185,7 +185,9 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
           if (data.deadline) {
             deadlineDate = formatDateForInput(new Date(data.deadline))
           } else if (data.date) {
-            deadlineDate = formatDateForInput(calculateDeadline(new Date(data.date), 7))
+            deadlineDate = formatDateForInput(
+              calculateDeadline(new Date(data.date), DEFAULT_DEADLINE_WORKING_DAYS)
+            )
           }
 
           const recommendedType = recommendLetterType({
@@ -283,8 +285,8 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
         // Автозаполнение дедлайна (+7 дней)
         if (field === 'date' && value && !row.deadlineDate) {
           const date = new Date(value as string)
-          date.setDate(date.getDate() + 7)
-          updated.deadlineDate = date.toISOString().split('T')[0]
+          const deadline = calculateDeadline(date, DEFAULT_DEADLINE_WORKING_DAYS)
+          updated.deadlineDate = deadline.toISOString().split('T')[0]
         }
         return updated
       })

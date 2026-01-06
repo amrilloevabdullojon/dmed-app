@@ -5,6 +5,8 @@ import { calculateDeadline } from '@/lib/parsePdfLetter'
 import { extractLetterDataFromPdf, translateToRussian } from '@/lib/ai'
 import { csrfGuard } from '@/lib/security'
 import { logger } from '@/lib/logger.server'
+import { parseDateValue } from '@/lib/utils'
+import { DEFAULT_DEADLINE_WORKING_DAYS } from '@/lib/constants'
 
 export async function POST(request: NextRequest) {
   try {
@@ -81,13 +83,14 @@ export async function POST(request: NextRequest) {
 
     let finalDate: Date | null = null
     if (dateStr) {
-      finalDate = new Date(dateStr)
-    } else if (filenameDate) {
+      finalDate = parseDateValue(dateStr)
+    }
+    if (!finalDate && filenameDate) {
       finalDate = filenameDate
     }
 
     // Дедлайн +7 рабочих дней
-    const deadline = finalDate ? calculateDeadline(finalDate, 7) : null
+    const deadline = finalDate ? calculateDeadline(finalDate, DEFAULT_DEADLINE_WORKING_DAYS) : null
 
     const organization = await translateIfNeeded(aiData?.organization || null)
     const region = await translateIfNeeded(aiData?.region || null)

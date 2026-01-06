@@ -431,6 +431,7 @@ export default function LetterDetailPage() {
   const typeValue = letter.type || ''
   const hasCustomType =
     !!typeValue && !letterTypeOptions.some((option) => option.value === typeValue)
+  const canEditIdentity = session.user.role === 'ADMIN' || session.user.role === 'SUPERADMIN'
 
   const renderComment = (comment: CommentItem, depth = 0) => {
     const author = comment.author.name || comment.author.email || 'Пользователь'
@@ -594,6 +595,31 @@ export default function LetterDetailPage() {
             {/* Editable Fields Card */}
             <div className="rounded-lg border border-gray-700 bg-gray-800 p-6">
               <h3 className="mb-4 text-lg font-semibold text-white">Информация о письме</h3>
+
+              {canEditIdentity && (
+                <>
+                  <EditableField
+                    label={'\u041d\u043e\u043c\u0435\u0440 \u043f\u0438\u0441\u044c\u043c\u0430'}
+                    value={letter.number}
+                    field="number"
+                    onSave={updateField}
+                    placeholder={
+                      '\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043d\u043e\u043c\u0435\u0440'
+                    }
+                  />
+                  <EditableField
+                    label={
+                      '\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043f\u0438\u0441\u044c\u043c\u0430'
+                    }
+                    value={letter.org}
+                    field="org"
+                    onSave={updateField}
+                    placeholder={
+                      '\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435'
+                    }
+                  />
+                </>
+              )}
 
               <EditableField
                 label="Содержание"

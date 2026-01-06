@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { LetterStatus } from '@prisma/client'
+import { parseDateValue } from '@/lib/utils'
 
 // ==================== COMMON ====================
 
@@ -31,11 +32,15 @@ export const createLetterSchema = z.object({
     .string()
     .min(1, 'Организация обязательна')
     .max(500, 'Название организации слишком длинное'),
-  date: z.string().transform((val) => new Date(val)),
+  date: z
+    .string()
+    .refine((val) => parseDateValue(val), { message: 'Invalid date' })
+    .transform((val) => parseDateValue(val) as Date),
   deadlineDate: z
     .string()
     .optional()
-    .transform((val) => (val ? new Date(val) : null)),
+    .refine((val) => !val || parseDateValue(val), { message: 'Invalid deadline date' })
+    .transform((val) => (val ? (parseDateValue(val) as Date) : null)),
   type: z.string().max(100).optional(),
   content: z.string().max(10000).optional(),
   comment: z.string().max(5000).optional(),

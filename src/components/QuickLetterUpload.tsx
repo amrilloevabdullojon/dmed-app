@@ -26,7 +26,7 @@ import {
   calculateDeadline,
   formatDateForInput,
 } from '@/lib/parseLetterFilename'
-import { LETTER_TYPES } from '@/lib/constants'
+import { DEFAULT_DEADLINE_WORKING_DAYS, LETTER_TYPES } from '@/lib/constants'
 import { recommendLetterType } from '@/lib/recommendLetterType'
 
 interface ParsedPdfData {
@@ -143,7 +143,9 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
           } else if (data.date) {
             const dateObj = new Date(data.date)
             // +7 рабочих дней
-            setDeadlineDate(formatDateForInput(calculateDeadline(dateObj, 7)))
+            setDeadlineDate(
+              formatDateForInput(calculateDeadline(dateObj, DEFAULT_DEADLINE_WORKING_DAYS))
+            )
           }
           if (data.content) setContent(data.content)
           if (data.contentRussian) setContentRussian(data.contentRussian)
@@ -179,7 +181,9 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
         setNumber(result.number)
         setDate(formatDateForInput(result.date))
         // +7 рабочих дней
-        setDeadlineDate(formatDateForInput(calculateDeadline(result.date, 7)))
+        setDeadlineDate(
+          formatDateForInput(calculateDeadline(result.date, DEFAULT_DEADLINE_WORKING_DAYS))
+        )
         setContent(result.content)
         const guessedOrg = guessOrganization(result.content)
         setOrg(guessedOrg)
@@ -449,7 +453,9 @@ export function QuickLetterUpload({ onClose }: QuickLetterUploadProps) {
                   if (e.target.value) {
                     const newDate = new Date(e.target.value)
                     // +7 рабочих дней
-                    setDeadlineDate(formatDateForInput(calculateDeadline(newDate, 7)))
+                    setDeadlineDate(
+                      formatDateForInput(calculateDeadline(newDate, DEFAULT_DEADLINE_WORKING_DAYS))
+                    )
                   }
                 }}
                 className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
