@@ -558,14 +558,14 @@ export function Notifications() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
 
-          <div className="absolute right-0 top-full z-50 mt-2 flex h-[72vh] max-h-[78vh] min-h-[420px] w-[30rem] flex-col overflow-hidden rounded-2xl border border-slate-700/70 bg-gradient-to-b from-slate-900/95 via-slate-900/95 to-slate-950/95 shadow-2xl shadow-black/40 ring-1 ring-white/5 backdrop-blur">
+          <div className="fixed inset-x-3 top-16 z-50 mt-0 flex h-[75vh] max-h-[85vh] min-h-[320px] w-auto flex-col overflow-hidden rounded-2xl border border-slate-700/70 bg-gradient-to-b from-slate-900/95 via-slate-900/95 to-slate-950/95 shadow-2xl shadow-black/40 ring-1 ring-white/5 backdrop-blur sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:h-[72vh] sm:max-h-[78vh] sm:min-h-[420px] sm:w-[30rem]">
             <div className="pointer-events-none absolute inset-0">
               <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl" />
               <div className="absolute -left-20 bottom-20 h-56 w-56 rounded-full bg-sky-500/10 blur-3xl" />
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(15,23,42,0.35),transparent_55%)]" />
             </div>
 
-            <div className="relative z-10 flex items-start justify-between border-b border-slate-700/70 bg-slate-950/50 px-4 py-3 backdrop-blur">
+            <div className="relative z-10 flex flex-col gap-3 border-b border-slate-700/70 bg-slate-950/50 px-4 py-3 backdrop-blur sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-semibold text-white">Уведомления</h3>
@@ -581,7 +581,7 @@ export function Notifications() {
                   </div>
                 )}
               </div>
-              <div className="flex flex-wrap items-center justify-end gap-2 text-right">
+              <div className="flex w-full flex-wrap items-center justify-start gap-2 text-left sm:w-auto sm:justify-end sm:text-right">
                 {counts.unread > 0 && (
                   <button
                     onClick={markAllRead}
@@ -616,7 +616,7 @@ export function Notifications() {
               </div>
             </div>
 
-            <div className="relative z-10 flex items-center gap-2 overflow-x-auto border-b border-slate-800/80 bg-slate-900/70 px-4 py-2 shadow-inner shadow-black/20">
+            <div className="relative z-10 flex items-center gap-2 overflow-x-auto border-b border-slate-800/80 bg-slate-900/70 px-4 py-2 shadow-inner shadow-black/20 sm:flex-wrap sm:overflow-visible">
               {filterConfig.map((filter) => (
                 <button
                   key={filter.key}

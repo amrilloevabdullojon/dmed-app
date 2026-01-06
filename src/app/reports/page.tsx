@@ -214,7 +214,7 @@ function OwnerDetailModal({
           </div>
         </div>
 
-        <div className="mb-6 grid grid-cols-2 gap-4">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="panel panel-soft rounded-lg p-4 text-center">
             <div className="text-2xl font-bold text-white">{owner.count}</div>
             <div className="text-xs text-gray-400">Всего писем</div>
@@ -722,7 +722,7 @@ export default function ReportsPage() {
         {/* Toolbar */}
         <div className="panel panel-glass mb-6 rounded-2xl p-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="no-scrollbar flex items-center gap-2 overflow-x-auto sm:flex-wrap">
+            <div className="no-scrollbar flex items-center gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible">
               <span className="text-xs uppercase tracking-wide text-gray-400">Период</span>
               {periodOptions.map((months) => (
                 <button

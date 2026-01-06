@@ -640,7 +640,7 @@ export default function LetterDetailPage() {
                   ))}
                 </select>
               </div>
-              <div className="mb-4 flex items-start justify-between gap-4">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="mb-2 flex items-center gap-3">
                     <span className="font-mono text-lg text-emerald-400">№{letter.number}</span>

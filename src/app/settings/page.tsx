@@ -1321,7 +1321,7 @@ export default function SettingsPage() {
         {/* Sync Logs */}
         {activeTab === 'sync' && (
           <div className="panel panel-glass mb-8 rounded-2xl p-6">
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <RefreshCw className="h-6 w-6 text-emerald-400" />
                 <h2 className="text-xl font-semibold text-white">Логи синхронизации</h2>
@@ -1471,7 +1471,7 @@ export default function SettingsPage() {
 
             {isSuperAdmin && (
               <div className="panel-soft panel-glass mb-6 rounded-2xl p-4">
-                <div className="mb-3 flex items-center justify-between">
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-2 text-sm text-gray-400">
                     <ShieldAlert className="h-4 w-4 text-amber-400" />
                     {'\З\а\п\р\о\с\ы \н\а \п\о\д\т\в\е\р\ж\д\е\н\и\е'}
@@ -1800,7 +1800,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <label className="inline-flex items-center gap-2 text-sm text-gray-400">
                 <input
                   type="checkbox"
@@ -2137,7 +2137,7 @@ export default function SettingsPage() {
                       </div>
                     )}
 
-                    <div className="mt-4 flex items-center justify-between">
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       {isEditing ? (
                         <span className="text-xs text-gray-500">
                           {isSaving
@@ -2251,7 +2251,7 @@ export default function SettingsPage() {
 
                     {auditOpenId === user.id && (
                       <div className="mt-4 border-t border-white/10 pt-4">
-                        <div className="mb-3 flex items-center justify-between">
+                        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <div className="flex items-center gap-2 text-sm text-gray-200">
                             <History className="h-4 w-4 text-emerald-400" />
                             {'\И\с\т\о\р\и\я \и\з\м\е\н\е\н\и\й'}
@@ -2435,7 +2435,7 @@ export default function SettingsPage() {
         {/* Security Audit */}
         {activeTab === 'audit' && (
           <div className="panel panel-glass mb-8 rounded-2xl p-6">
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <History className="h-6 w-6 text-emerald-400" />
                 <h2 className="text-xl font-semibold text-white">{'Безопасность: входы'}</h2>

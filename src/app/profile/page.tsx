@@ -256,9 +256,7 @@ export default function ProfilePage() {
         await updateSession({ image: data.profile?.avatarUrl || null })
       }
       toast.success(
-        type === 'avatar'
-          ? '\А\в\а\т\а\р \о\б\н\о\в\л\ё\н'
-          : '\О\б\л\о\ж\к\а \о\б\н\о\в\л\е\н\а'
+        type === 'avatar' ? '\А\в\а\т\а\р \о\б\н\о\в\л\ё\н' : '\О\б\л\о\ж\к\а \о\б\н\о\в\л\е\н\а'
       )
     } catch (error) {
       console.error('Failed to upload asset:', error)
@@ -301,8 +299,8 @@ export default function ProfilePage() {
 
   if (authStatus === 'loading' || (authStatus === 'authenticated' && loading)) {
     return (
-      <div className="min-h-screen app-shell flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+      <div className="app-shell flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
       </div>
     )
   }
@@ -319,35 +317,33 @@ export default function ProfilePage() {
       : ''
 
   return (
-    <div className="min-h-screen app-shell">
+    <div className="app-shell min-h-screen">
       <Header />
 
-      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-24 sm:pb-8 animate-pageIn">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+      <main className="animate-pageIn mx-auto max-w-[1400px] px-4 pb-24 pt-6 sm:px-6 sm:pb-8 sm:pt-8 lg:px-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl md:text-4xl font-display font-semibold text-white">
+            <h1 className="font-display text-3xl font-semibold text-white md:text-4xl">
               {'\П\р\о\ф\и\л\ь'}
             </h1>
-            <p className="text-muted text-sm mt-2">
-              {'\О\б\н\о\в\и\т\е \д\а\н\н\ы\е \и \н\а\с\т\р\о\й\т\е \в\и\д\и\м\о\с\т\ь \д\л\я \к\о\л\л\е\г.'}
+            <p className="text-muted mt-2 text-sm">
+              {
+                '\О\б\н\о\в\и\т\е \д\а\н\н\ы\е \и \н\а\с\т\р\о\й\т\е \в\и\д\и\м\о\с\т\ь \д\л\я \к\о\л\л\е\г.'
+              }
             </p>
           </div>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="hidden sm:inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg btn-primary text-white disabled:opacity-60"
+            className="btn-primary hidden items-center justify-center gap-2 rounded-lg px-4 py-2 text-white disabled:opacity-60 sm:inline-flex"
           >
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             {'\С\о\х\р\а\н\и\т\ь'}
           </button>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          <div className="panel panel-glass rounded-2xl p-6 space-y-6">
+          <div className="panel panel-glass space-y-6 rounded-2xl p-6">
             <div className="flex items-center gap-3">
               {displayAvatar ? (
                 <Image
@@ -355,49 +351,49 @@ export default function ProfilePage() {
                   alt={user.name || user.email || 'User'}
                   width={64}
                   height={64}
-                  className="w-16 h-16 rounded-full object-cover"
+                  className="h-16 w-16 rounded-full object-cover"
                   unoptimized
                 />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
-                  <UserCircle className="w-8 h-8 text-slate-300" />
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
+                  <UserCircle className="h-8 w-8 text-slate-300" />
                 </div>
               )}
               <div>
                 <div className="text-lg font-semibold text-white">
                   {user.name || '\Б\е\з \и\м\е\н\и'}
                 </div>
-                <div className="text-xs text-gray-400 flex items-center gap-2">
-                  <Mail className="w-3.5 h-3.5" />
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <Mail className="h-3.5 w-3.5" />
                   <span className="truncate">{user.email || '-'}</span>
                 </div>
               </div>
             </div>
 
             <span
-              className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${ROLE_BADGE_CLASSES[user.role]}`}
+              className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs ${ROLE_BADGE_CLASSES[user.role]}`}
             >
               {user.role === 'SUPERADMIN' ? (
-                <Crown className="w-3 h-3 text-yellow-200" />
+                <Crown className="h-3 w-3 text-yellow-200" />
               ) : (
-                <Shield className="w-3 h-3" />
+                <Shield className="h-3 w-3" />
               )}
               {ROLE_LABELS[user.role]}
             </span>
 
-            <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
               <div className="panel-soft panel-glass rounded-xl p-2 text-center">
-                <FileText className="w-4 h-4 text-emerald-300 mx-auto mb-1" />
+                <FileText className="mx-auto mb-1 h-4 w-4 text-emerald-300" />
                 <div className="text-white">{user._count.letters}</div>
                 <div className="text-gray-500">{'\П\и\с\ь\м\а'}</div>
               </div>
               <div className="panel-soft panel-glass rounded-xl p-2 text-center">
-                <MessageSquare className="w-4 h-4 text-blue-300 mx-auto mb-1" />
+                <MessageSquare className="mx-auto mb-1 h-4 w-4 text-blue-300" />
                 <div className="text-white">{user._count.comments}</div>
                 <div className="text-gray-500">{'\К\о\м\м\е\н\т\ы'}</div>
               </div>
               <div className="panel-soft panel-glass rounded-xl p-2 text-center">
-                <Clock className="w-4 h-4 text-amber-300 mx-auto mb-1" />
+                <Clock className="mx-auto mb-1 h-4 w-4 text-amber-300" />
                 <div className="text-white">{user._count.sessions}</div>
                 <div className="text-gray-500">{'\С\е\с\с\и\и'}</div>
               </div>
@@ -405,31 +401,31 @@ export default function ProfilePage() {
 
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-xs text-gray-400">
-                <Upload className="w-3.5 h-3.5 text-emerald-400" />
+                <Upload className="h-3.5 w-3.5 text-emerald-400" />
                 {'\О\ф\о\р\м\л\е\н\и\е'}
               </div>
-              <div className="rounded-xl overflow-hidden h-20 bg-white/10 border border-white/10">
+              <div className="h-20 overflow-hidden rounded-xl border border-white/10 bg-white/10">
                 {coverUrl ? (
                   <Image
                     src={coverUrl}
                     alt="Cover"
                     width={600}
                     height={160}
-                    className="w-full h-full object-cover"
+                    className="h-full w-full object-cover"
                     unoptimized
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xs text-gray-500">
+                  <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">
                     {'\Н\е\т \о\б\л\о\ж\к\и'}
                   </div>
                 )}
               </div>
               <div className="flex flex-wrap gap-2 text-xs">
-                <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 transition cursor-pointer">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-slate-200 transition hover:bg-white/10">
                   {avatarUploading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
-                    <Upload className="w-3.5 h-3.5" />
+                    <Upload className="h-3.5 w-3.5" />
                   )}
                   {'\А\в\а\т\а\р'}
                   <input
@@ -443,11 +439,11 @@ export default function ProfilePage() {
                     }}
                   />
                 </label>
-                <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10 transition cursor-pointer">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-slate-200 transition hover:bg-white/10">
                   {coverUploading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
-                    <Upload className="w-3.5 h-3.5" />
+                    <Upload className="h-3.5 w-3.5" />
                   )}
                   {'\О\б\л\о\ж\к\а'}
                   <input
@@ -464,29 +460,29 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="text-xs text-gray-400 flex items-center gap-2">
-              <Clock className="w-4 h-4" />
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <Clock className="h-4 w-4" />
               {'\П\о\с\л\е\д\н\и\й \в\х\о\д:'} {formatDate(user.lastLoginAt)}
             </div>
           </div>
 
-          <div className="lg:col-span-2 panel panel-glass rounded-2xl p-6 space-y-6">
+          <div className="panel panel-glass space-y-6 rounded-2xl p-6 lg:col-span-2">
             <div className="flex items-center gap-2 text-sm text-gray-300">
-              <UserCircle className="w-4 h-4 text-emerald-400" />
+              <UserCircle className="h-4 w-4 text-emerald-400" />
               {'\О\с\н\о\в\н\о\е'}
             </div>
             <textarea
               value={profile.bio || ''}
               onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-              className={`${fieldBase} w-full px-3 py-2 min-h-[120px]`}
+              className={`${fieldBase} min-h-[120px] w-full px-3 py-2`}
               placeholder={'\К\о\р\о\т\к\о \о \с\е\б\е'}
               aria-label="Bio"
             />
 
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
-                  <Briefcase className="w-4 h-4 text-emerald-400" />
+                <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
+                  <Briefcase className="h-4 w-4 text-emerald-400" />
                   {'\Д\о\л\ж\н\о\с\т\ь'}
                 </div>
                 <input
@@ -498,8 +494,8 @@ export default function ProfilePage() {
                 />
               </div>
               <div>
-                <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-emerald-400" />
+                <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
+                  <Building2 className="h-4 w-4 text-emerald-400" />
                   {'\О\т\д\е\л'}
                 </div>
                 <input
@@ -511,8 +507,8 @@ export default function ProfilePage() {
                 />
               </div>
               <div>
-                <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-emerald-400" />
+                <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
+                  <MapPin className="h-4 w-4 text-emerald-400" />
                   {'\Л\о\к\а\ц\и\я'}
                 </div>
                 <input
@@ -524,8 +520,8 @@ export default function ProfilePage() {
                 />
               </div>
               <div>
-                <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
-                  <Globe2 className="w-4 h-4 text-emerald-400" />
+                <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
+                  <Globe2 className="h-4 w-4 text-emerald-400" />
                   {'\Ч\а\с\о\в\о\й \п\о\я\с'}
                 </div>
                 <input
@@ -537,8 +533,8 @@ export default function ProfilePage() {
                 />
               </div>
               <div>
-                <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-emerald-400" />
+                <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
+                  <Phone className="h-4 w-4 text-emerald-400" />
                   {'\Т\е\л\е\ф\о\н'}
                 </div>
                 <input
@@ -550,8 +546,8 @@ export default function ProfilePage() {
                 />
               </div>
               <div>
-                <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-emerald-400" />
+                <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
+                  <Mail className="h-4 w-4 text-emerald-400" />
                   {'\О\т\к\р\ы\т\ы\й email'}
                 </div>
                 <input
@@ -564,8 +560,8 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <div className="text-xs text-gray-400 mb-2 flex items-center gap-2">
-                <ListChecks className="w-4 h-4 text-emerald-400" />
+              <div className="mb-2 flex items-center gap-2 text-xs text-gray-400">
+                <ListChecks className="h-4 w-4 text-emerald-400" />
                 {'\Н\а\в\ы\к\и'}
               </div>
               <input
@@ -576,11 +572,11 @@ export default function ProfilePage() {
                 aria-label="Skills"
               />
               {parsedSkills.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="mt-2 flex flex-wrap gap-2">
                   {parsedSkills.map((skill) => (
                     <span
                       key={skill}
-                      className="px-2 py-1 rounded-full text-xs bg-white/10 border border-white/10 text-slate-200"
+                      className="rounded-full border border-white/10 bg-white/10 px-2 py-1 text-xs text-slate-200"
                     >
                       {skill}
                     </span>
@@ -590,15 +586,13 @@ export default function ProfilePage() {
             </div>
 
             <div className="panel-soft panel-glass rounded-2xl p-4">
-              <div className="flex items-center gap-2 text-sm text-gray-300 mb-4">
-                <Eye className="w-4 h-4 text-emerald-400" />
+              <div className="mb-4 flex items-center gap-2 text-sm text-gray-300">
+                <Eye className="h-4 w-4 text-emerald-400" />
                 {'\В\и\д\и\м\о\с\т\ь \п\р\о\ф\и\л\я'}
               </div>
               <div className="grid gap-4 lg:grid-cols-3">
                 <div className="space-y-3">
-                  <label className="text-xs text-gray-400 block">
-                    {'\У\р\о\в\е\н\ь'}
-                  </label>
+                  <label className="block text-xs text-gray-400">{'\У\р\о\в\е\н\ь'}</label>
                   <select
                     value={profile.visibility}
                     onChange={(e) =>
@@ -623,21 +617,19 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public profile link"
                     />
-                    <Link2 className="w-3.5 h-3.5" />
+                    <Link2 className="h-3.5 w-3.5" />
                     {'\П\у\б\л\и\ч\н\а\я \с\с\ы\л\к\а'}
                   </label>
                   <p className="text-[11px] text-gray-500">
                     {'\С\с\ы\л\к\у \м\о\ж\н\о \р\а\с\п\р\о\с\т\р\а\н\я\т\ь \в\н\е \с\и\с\т\е\м\ы.'}
                   </p>
                 </div>
-                <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-300">
+                <div className="grid grid-cols-1 gap-2 text-xs text-gray-300 sm:grid-cols-2 lg:col-span-2">
                   <label className="inline-flex items-center gap-2">
                     <input
                       type="checkbox"
                       checked={profile.publicBio}
-                      onChange={(e) =>
-                        setProfile({ ...profile, publicBio: e.target.checked })
-                      }
+                      onChange={(e) => setProfile({ ...profile, publicBio: e.target.checked })}
                       className={controlBase}
                       aria-label="Public bio"
                     />
@@ -647,9 +639,7 @@ export default function ProfilePage() {
                     <input
                       type="checkbox"
                       checked={profile.publicPosition}
-                      onChange={(e) =>
-                        setProfile({ ...profile, publicPosition: e.target.checked })
-                      }
+                      onChange={(e) => setProfile({ ...profile, publicPosition: e.target.checked })}
                       className={controlBase}
                       aria-label="Public position"
                     />
@@ -671,9 +661,7 @@ export default function ProfilePage() {
                     <input
                       type="checkbox"
                       checked={profile.publicLocation}
-                      onChange={(e) =>
-                        setProfile({ ...profile, publicLocation: e.target.checked })
-                      }
+                      onChange={(e) => setProfile({ ...profile, publicLocation: e.target.checked })}
                       className={controlBase}
                       aria-label="Public location"
                     />
@@ -683,9 +671,7 @@ export default function ProfilePage() {
                     <input
                       type="checkbox"
                       checked={profile.publicTimezone}
-                      onChange={(e) =>
-                        setProfile({ ...profile, publicTimezone: e.target.checked })
-                      }
+                      onChange={(e) => setProfile({ ...profile, publicTimezone: e.target.checked })}
                       className={controlBase}
                       aria-label="Public timezone"
                     />
@@ -695,9 +681,7 @@ export default function ProfilePage() {
                     <input
                       type="checkbox"
                       checked={profile.publicSkills}
-                      onChange={(e) =>
-                        setProfile({ ...profile, publicSkills: e.target.checked })
-                      }
+                      onChange={(e) => setProfile({ ...profile, publicSkills: e.target.checked })}
                       className={controlBase}
                       aria-label="Public skills"
                     />
@@ -719,9 +703,7 @@ export default function ProfilePage() {
                     <input
                       type="checkbox"
                       checked={profile.publicEmail}
-                      onChange={(e) =>
-                        setProfile({ ...profile, publicEmail: e.target.checked })
-                      }
+                      onChange={(e) => setProfile({ ...profile, publicEmail: e.target.checked })}
                       className={controlBase}
                       disabled={!user.email}
                       aria-label="Public email"
@@ -732,9 +714,7 @@ export default function ProfilePage() {
                     <input
                       type="checkbox"
                       checked={profile.publicPhone}
-                      onChange={(e) =>
-                        setProfile({ ...profile, publicPhone: e.target.checked })
-                      }
+                      onChange={(e) => setProfile({ ...profile, publicPhone: e.target.checked })}
                       className={controlBase}
                       aria-label="Public phone"
                     />
@@ -743,9 +723,9 @@ export default function ProfilePage() {
                 </div>
               </div>
               {profile.publicProfileEnabled && (
-                <div className="mt-4 panel-soft panel-glass rounded-xl p-3">
-                  <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
-                    <Link2 className="w-3.5 h-3.5 text-emerald-400" />
+                <div className="panel-soft panel-glass mt-4 rounded-xl p-3">
+                  <div className="mb-2 flex items-center gap-2 text-xs text-gray-400">
+                    <Link2 className="h-3.5 w-3.5 text-emerald-400" />
                     {'\С\с\ы\л\к\а \д\л\я \п\р\о\с\м\о\т\р\а'}
                   </div>
                   {publicProfileUrl ? (
@@ -754,31 +734,31 @@ export default function ProfilePage() {
                         href={publicProfileUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-emerald-300 hover:text-emerald-200 transition truncate max-w-full"
+                        className="max-w-full truncate text-xs text-emerald-300 transition hover:text-emerald-200"
                       >
                         {publicProfileUrl}
                       </a>
                       <button
                         onClick={handleCopyLink}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition"
+                        className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 transition hover:bg-white/10"
                       >
-                        <Copy className="w-3 h-3" />
+                        <Copy className="h-3 w-3" />
                         {'\К\о\п\и\р\о\в\а\т\ь'}
                       </button>
                       <button
                         onClick={handleRotateToken}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition"
+                        className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 transition hover:bg-white/10"
                       >
-                        <RefreshCw className="w-3 h-3" />
+                        <RefreshCw className="h-3 w-3" />
                         {'\О\б\н\о\в\и\т\ь'}
                       </button>
                       <a
                         href={publicProfileUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 bg-white/5 text-xs text-slate-200 hover:bg-white/10 transition"
+                        className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 transition hover:bg-white/10"
                       >
-                        <ExternalLink className="w-3 h-3" />
+                        <ExternalLink className="h-3 w-3" />
                         {'\О\т\к\р\ы\т\ь'}
                       </a>
                     </div>
@@ -790,20 +770,20 @@ export default function ProfilePage() {
                 </div>
               )}
               {profile.visibility === 'PRIVATE' && (
-                <div className="mt-3 text-xs text-amber-400 flex items-center gap-2">
-                  <EyeOff className="w-4 h-4" />
+                <div className="mt-3 flex items-center gap-2 text-xs text-amber-400">
+                  <EyeOff className="h-4 w-4" />
                   {'\П\р\о\ф\и\л\ь \в\и\д\е\н \т\о\л\ь\к\о \в\а\м \и \а\д\м\и\н\а\м.'}
                 </div>
               )}
             </div>
 
             <div className="panel-soft panel-glass rounded-2xl p-4">
-              <div className="flex items-center gap-2 text-sm text-gray-300 mb-4">
-                <Clock className="w-4 h-4 text-emerald-400" />
+              <div className="mb-4 flex items-center gap-2 text-sm text-gray-300">
+                <Clock className="h-4 w-4 text-emerald-400" />
                 {'\А\к\т\и\в\н\о\с\т\ь'}
               </div>
               {activity ? (
-                <div className="grid gap-4 md:grid-cols-3 text-xs">
+                <div className="grid gap-4 text-xs md:grid-cols-3">
                   <div className="space-y-2">
                     <div className="text-gray-400">{'\П\и\с\ь\м\а'}</div>
                     {activity.letters.length > 0 ? (
@@ -811,10 +791,10 @@ export default function ProfilePage() {
                         <Link
                           key={item.id}
                           href={`/letters/${item.id}`}
-                          className="block rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-slate-200 hover:bg-white/10 transition"
+                          className="block rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-slate-200 transition hover:bg-white/10"
                         >
                           <div className="font-medium">#{item.number}</div>
-                          <div className="text-gray-500 truncate">{item.org}</div>
+                          <div className="truncate text-gray-500">{item.org}</div>
                         </Link>
                       ))
                     ) : (
@@ -828,10 +808,10 @@ export default function ProfilePage() {
                         <Link
                           key={item.id}
                           href={`/letters/${item.letter.id}`}
-                          className="block rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-slate-200 hover:bg-white/10 transition"
+                          className="block rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-slate-200 transition hover:bg-white/10"
                         >
                           <div className="font-medium">#{item.letter.number}</div>
-                          <div className="text-gray-500 truncate">{item.text}</div>
+                          <div className="truncate text-gray-500">{item.text}</div>
                         </Link>
                       ))
                     ) : (
@@ -845,10 +825,10 @@ export default function ProfilePage() {
                         <Link
                           key={item.id}
                           href={`/letters/${item.letter.id}`}
-                          className="block rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-slate-200 hover:bg-white/10 transition"
+                          className="block rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-slate-200 transition hover:bg-white/10"
                         >
                           <div className="font-medium">#{item.letter.number}</div>
-                          <div className="text-gray-500 truncate">{item.letter.org}</div>
+                          <div className="truncate text-gray-500">{item.letter.org}</div>
                         </Link>
                       ))
                     ) : (
@@ -870,13 +850,9 @@ export default function ProfilePage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg btn-primary text-white disabled:opacity-60"
+          className="btn-primary inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-white disabled:opacity-60"
         >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           {'\D­\D_\Ľ.\Ľ?\Dř\DŤ\D,\Ľ,\ĽO'}
         </button>
       </div>

@@ -857,7 +857,7 @@ function LettersPageContent() {
 
         {/* Quick Filters */}
 
-        <div className="panel-soft panel-glass no-scrollbar mb-4 flex gap-2 overflow-x-auto rounded-2xl p-2 sm:flex-wrap">
+        <div className="panel-soft panel-glass no-scrollbar mb-4 flex gap-2 overflow-x-auto rounded-2xl p-2 sm:flex-wrap sm:overflow-visible">
           {FILTERS.map((filter) => {
             const Icon = filter.icon
             return (
@@ -881,7 +881,7 @@ function LettersPageContent() {
         </div>
 
         {/* Filters Row */}
-        <div className="panel panel-soft panel-glass relative z-20 mb-6 flex flex-col gap-4 rounded-2xl p-4 sm:flex-row">
+        <div className="panel panel-soft panel-glass relative z-20 mb-6 flex flex-col items-start gap-4 rounded-2xl p-4 lg:flex-row lg:flex-wrap lg:items-center xl:flex-nowrap">
           {/* Search */}
           <div className="relative flex-1">
             {isSearching ? (
@@ -964,7 +964,7 @@ function LettersPageContent() {
               </div>
             )}
 
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 hidden text-xs text-slate-500 md:block">
               Можно искать по номеру, организации, содержанию, Jira и ответам.
             </p>
           </div>
@@ -981,7 +981,7 @@ function LettersPageContent() {
 
           <div
             id="letters-filters"
-            className={`${filtersOpen ? 'flex' : 'hidden'} w-full flex-col gap-4 sm:flex sm:w-auto sm:flex-row`}
+            className={`${filtersOpen ? 'flex' : 'hidden'} w-full flex-col gap-4 sm:flex sm:w-full sm:flex-row sm:flex-wrap lg:w-auto lg:flex-nowrap`}
           >
             {/* Status filter */}
             <div className="flex w-full items-center gap-2 sm:w-auto">
@@ -1060,118 +1060,122 @@ function LettersPageContent() {
             )}
           </div>
 
-          {/* Saved views */}
-          <div ref={savedViewsRef} className="relative hidden sm:block">
-            <button
-              onClick={() => setViewsOpen((prev) => !prev)}
-              className={`inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm transition ${
-                viewsOpen ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:text-white'
-              }`}
-              aria-expanded={viewsOpen}
-            >
-              <Bookmark className="h-4 w-4" />
-              Виды
-              <ChevronDown className="h-4 w-4" />
-            </button>
+          <div className="hidden w-full flex-wrap items-center gap-2 sm:ml-auto sm:flex sm:w-auto">
+            {/* Saved views */}
+            <div ref={savedViewsRef} className="relative hidden sm:block">
+              <button
+                onClick={() => setViewsOpen((prev) => !prev)}
+                className={`inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-sm transition ${
+                  viewsOpen
+                    ? 'bg-white/10 text-white'
+                    : 'bg-white/5 text-slate-300 hover:text-white'
+                }`}
+                aria-expanded={viewsOpen}
+              >
+                <Bookmark className="h-4 w-4" />
+                Виды
+                <ChevronDown className="h-4 w-4" />
+              </button>
 
-            {viewsOpen && (
-              <div className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-xl border border-slate-800/70 bg-slate-950/95 shadow-2xl shadow-black/40 backdrop-blur">
-                <div className="border-b border-slate-800/70 px-3 py-2 text-xs text-slate-400">
-                  Сохранённые виды
-                </div>
-                <div className="max-h-64 overflow-auto">
-                  {savedViews.length === 0 ? (
-                    <div className="px-3 py-4 text-xs text-slate-500">Нет сохранённых видов</div>
-                  ) : (
-                    savedViews.map((view) => (
-                      <div
-                        key={view.id}
-                        className="flex items-center gap-2 border-b border-slate-900/60 px-3 py-2"
-                      >
-                        <button
-                          type="button"
-                          onClick={() => applySavedView(view)}
-                          className="flex-1 truncate text-left text-sm text-slate-200 transition hover:text-white"
+              {viewsOpen && (
+                <div className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-xl border border-slate-800/70 bg-slate-950/95 shadow-2xl shadow-black/40 backdrop-blur">
+                  <div className="border-b border-slate-800/70 px-3 py-2 text-xs text-slate-400">
+                    Сохранённые виды
+                  </div>
+                  <div className="max-h-64 overflow-auto">
+                    {savedViews.length === 0 ? (
+                      <div className="px-3 py-4 text-xs text-slate-500">Нет сохранённых видов</div>
+                    ) : (
+                      savedViews.map((view) => (
+                        <div
+                          key={view.id}
+                          className="flex items-center gap-2 border-b border-slate-900/60 px-3 py-2"
                         >
-                          {view.name}
-                        </button>
-                        {activeViewId === view.id && (
-                          <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-300">
-                            Активен
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            deleteSavedView(view.id)
-                          }}
-                          className="text-slate-500 transition hover:text-red-300"
-                          aria-label="Удалить вид"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))
-                  )}
+                          <button
+                            type="button"
+                            onClick={() => applySavedView(view)}
+                            className="flex-1 truncate text-left text-sm text-slate-200 transition hover:text-white"
+                          >
+                            {view.name}
+                          </button>
+                          {activeViewId === view.id && (
+                            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-300">
+                              Активен
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              deleteSavedView(view.id)
+                            }}
+                            className="text-slate-500 transition hover:text-red-300"
+                            aria-label="Удалить вид"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="border-t border-slate-800/70 px-3 py-3">
+                    <input
+                      value={newViewName}
+                      onChange={(e) => setNewViewName(e.target.value)}
+                      placeholder="Название вида"
+                      className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder-slate-500"
+                    />
+                    <button
+                      onClick={saveCurrentView}
+                      disabled={!newViewName.trim()}
+                      className="mt-2 w-full rounded-lg bg-emerald-500/20 px-3 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/30 disabled:opacity-50"
+                    >
+                      Сохранить текущий вид
+                    </button>
+                  </div>
                 </div>
-                <div className="border-t border-slate-800/70 px-3 py-3">
-                  <input
-                    value={newViewName}
-                    onChange={(e) => setNewViewName(e.target.value)}
-                    placeholder="Название вида"
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-white placeholder-slate-500"
-                  />
-                  <button
-                    onClick={saveCurrentView}
-                    disabled={!newViewName.trim()}
-                    className="mt-2 w-full rounded-lg bg-emerald-500/20 px-3 py-1.5 text-xs font-medium text-emerald-200 transition hover:bg-emerald-500/30 disabled:opacity-50"
-                  >
-                    Сохранить текущий вид
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          {/* View toggle */}
-          <div className="panel-soft panel-glass hidden rounded-xl p-1 sm:flex">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`rounded-lg p-2 transition ${viewMode === 'table' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
-              title="Таблица"
-              aria-label="Табличный вид"
-            >
-              <List className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => setViewMode('cards')}
-              className={`rounded-lg p-2 transition ${viewMode === 'cards' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
-              title="Карточки"
-              aria-label="Карточный вид"
-            >
-              <LayoutGrid className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => setViewMode('kanban')}
-              className={`rounded-lg p-2 transition ${viewMode === 'kanban' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
-              title="Канбан"
-              aria-label="Канбан"
-            >
-              <Kanban className="h-5 w-5" />
-            </button>
-          </div>
+            {/* View toggle */}
+            <div className="panel-soft panel-glass hidden rounded-xl p-1 sm:flex">
+              <button
+                onClick={() => setViewMode('table')}
+                className={`rounded-lg p-2 transition ${viewMode === 'table' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
+                title="Таблица"
+                aria-label="Табличный вид"
+              >
+                <List className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('cards')}
+                className={`rounded-lg p-2 transition ${viewMode === 'cards' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
+                title="Карточки"
+                aria-label="Карточный вид"
+              >
+                <LayoutGrid className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('kanban')}
+                className={`rounded-lg p-2 transition ${viewMode === 'kanban' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
+                title="Канбан"
+                aria-label="Канбан"
+              >
+                <Kanban className="h-5 w-5" />
+              </button>
+            </div>
 
-          {/* Keyboard shortcuts help */}
-          <div className="relative hidden sm:block">
-            <button
-              onClick={() => (shortcutsOpen ? closeShortcuts() : openShortcuts())}
-              className={`rounded-lg p-2 transition ${shortcutsOpen ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:text-white'}`}
-              title="Горячие клавиши"
-              aria-label="Горячие клавиши"
-            >
-              <Keyboard className="h-5 w-5" />
-            </button>
+            {/* Keyboard shortcuts help */}
+            <div className="relative hidden sm:block">
+              <button
+                onClick={() => (shortcutsOpen ? closeShortcuts() : openShortcuts())}
+                className={`rounded-lg p-2 transition ${shortcutsOpen ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:text-white'}`}
+                title="Горячие клавиши"
+                aria-label="Горячие клавиши"
+              >
+                <Keyboard className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
 
