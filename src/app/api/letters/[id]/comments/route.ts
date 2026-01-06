@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { sanitizeInput } from '@/lib/utils'
 import { formatNewCommentMessage, sendTelegramMessage } from '@/lib/telegram'
 import { sendMultiChannelNotification } from '@/lib/notifications'
+import { hasPermission } from '@/lib/permissions'
+import { csrfGuard } from '@/lib/security'
+import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
 const commentSchema = z.object({
@@ -12,23 +15,26 @@ const commentSchema = z.object({
   parentId: z.string().optional().nullable(),
 })
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
+    }
+
+    if (!hasPermission(session.user.role, 'MANAGE_LETTERS')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const body = await request.json()
     const result = commentSchema.safeParse(body)
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error.errors[0].message },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: result.error.errors[0].message }, { status: 400 })
     }
 
     const text = sanitizeInput(result.data.text, 2000).trim()
@@ -135,9 +141,7 @@ export async function POST(
       })
 
       await Promise.all(
-        Array.from(recipientChatIds).map((chatId) =>
-          sendTelegramMessage(chatId, message)
-        )
+        Array.from(recipientChatIds).map((chatId) => sendTelegramMessage(chatId, message))
       )
     }
 
@@ -175,10 +179,7 @@ ${text}`
 
     return NextResponse.json({ success: true, comment })
   } catch (error) {
-    console.error('POST /api/letters/[id]/comments error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('POST /api/letters/[id]/comments', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { STATUS_LABELS, formatDate } from '@/lib/utils'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -269,7 +270,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('GET /api/export/pdf error:', error)
+    logger.error('GET /api/export/pdf', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

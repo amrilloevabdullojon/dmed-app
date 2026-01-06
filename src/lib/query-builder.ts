@@ -10,6 +10,18 @@ import { Prisma } from '@prisma/client'
  */
 export type SortOrder = 'asc' | 'desc'
 
+export const LETTER_SORT_FIELDS = [
+  'created',
+  'deadline',
+  'date',
+  'number',
+  'org',
+  'status',
+  'priority',
+] as const
+
+export type LetterSortField = (typeof LETTER_SORT_FIELDS)[number]
+
 /**
  * Опции пагинации
  */
@@ -180,7 +192,7 @@ export class LetterQueryBuilder {
   /**
    * Сортировка
    */
-  sortBy(field: string, order: SortOrder = 'desc'): this {
+  sortBy(field: LetterSortField, order: SortOrder = 'desc'): this {
     const sortMapping: Record<string, Prisma.LetterOrderByWithRelationInput> = {
       created: { createdAt: order },
       deadline: { deadlineDate: order },

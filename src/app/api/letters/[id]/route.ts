@@ -6,16 +6,19 @@ import { sanitizeInput, isDoneStatus, STATUS_LABELS } from '@/lib/utils'
 import type { LetterStatus } from '@prisma/client'
 import { sendTelegramMessage, formatStatusChangeMessage } from '@/lib/telegram'
 import { sendMultiChannelNotification } from '@/lib/notifications'
+import { hasPermission } from '@/lib/permissions'
+import { csrfGuard } from '@/lib/security'
+import { logger } from '@/lib/logger'
 
 // GET /api/letters/[id] - получить письмо по ID
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!hasPermission(session.user.role, 'VIEW_LETTERS')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const letter = await prisma.letter.findUnique({
@@ -82,10 +85,14 @@ export async function GET(
       return NextResponse.json({ error: 'Letter not found' }, { status: 404 })
     }
 
+    const canManageLetters = hasPermission(session.user.role, 'MANAGE_LETTERS')
+    const isOwner = letter.ownerId === session.user.id
+    if (!canManageLetters && !isOwner) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     // Проверить, подписан ли текущий пользователь
-    const isWatching = letter.watchers.some(
-      (w) => w.userId === session.user.id
-    )
+    const isWatching = letter.watchers.some((w) => w.userId === session.user.id)
 
     // Проверить, в избранном ли
     const isFavorite = letter.favorites.length > 0
@@ -110,23 +117,27 @@ export async function GET(
       isFavorite,
     })
   } catch (error) {
-    console.error('GET /api/letters/[id] error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('GET /api/letters/[id]', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 // PATCH /api/letters/[id] - обновить письмо
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
     }
 
     const body = await request.json()
@@ -273,10 +284,7 @@ export async function PATCH(
         break
 
       default:
-        return NextResponse.json(
-          { error: 'Invalid field' },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: 'Invalid field' }, { status: 400 })
     }
 
     // Обновить письмо
@@ -339,12 +347,8 @@ export async function PATCH(
       )
 
       if (applicantHasContact) {
-        const oldStatusLabel = oldValue
-          ? STATUS_LABELS[oldValue as LetterStatus]
-          : ''
-        const newStatusLabel = newValue
-          ? STATUS_LABELS[newValue as LetterStatus]
-          : ''
+        const oldStatusLabel = oldValue ? STATUS_LABELS[oldValue as LetterStatus] : ''
+        const newStatusLabel = newValue ? STATUS_LABELS[newValue as LetterStatus] : ''
 
         const subject = `?????? ????????? ?${letter.number} ???????`
         const text = `?????? ?????? ????????? ???????.
@@ -392,19 +396,13 @@ ${letter.org}
 
     return NextResponse.json({ success: true, letter: updatedLetter })
   } catch (error) {
-    console.error('PATCH /api/letters/[id] error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('PATCH /api/letters/[id]', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 // DELETE /api/letters/[id] - удалить письмо (только админ, soft delete)
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
@@ -434,10 +432,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('DELETE /api/letters/[id] error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('DELETE /api/letters/[id]', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

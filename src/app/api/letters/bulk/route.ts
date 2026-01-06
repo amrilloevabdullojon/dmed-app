@@ -6,6 +6,8 @@ import type { LetterStatus } from '@prisma/client'
 import { isDoneStatus, addWorkingDays, sanitizeInput } from '@/lib/utils'
 import { logger } from '@/lib/logger'
 import { DEFAULT_DEADLINE_WORKING_DAYS } from '@/lib/constants'
+import { hasPermission } from '@/lib/permissions'
+import { csrfGuard } from '@/lib/security'
 import { z } from 'zod'
 
 // Схема валидации для массового создания
@@ -34,6 +36,15 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
+    }
+
+    if (!hasPermission(session.user.role, 'MANAGE_LETTERS')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const body = await request.json()

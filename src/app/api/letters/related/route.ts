@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { hasPermission } from '@/lib/permissions'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -9,11 +11,15 @@ export async function GET(request: NextRequest) {
   if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  if (!hasPermission(session.user.role, 'VIEW_LETTERS')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const { searchParams } = new URL(request.url)
   const org = searchParams.get('org')
   const exclude = searchParams.get('exclude')
-  const limit = parseInt(searchParams.get('limit') || '10', 10)
+  const limitParam = parseInt(searchParams.get('limit') || '10', 10)
+  const limit = Number.isFinite(limitParam) ? Math.min(limitParam, 20) : 10
 
   if (!org) {
     return NextResponse.json({ error: 'Organization is required' }, { status: 400 })
@@ -50,7 +56,7 @@ export async function GET(request: NextRequest) {
       })),
     })
   } catch (error) {
-    console.error('Failed to fetch related letters:', error)
+    logger.error('GET /api/letters/related', error)
     return NextResponse.json({ error: 'Failed to fetch related letters' }, { status: 500 })
   }
 }

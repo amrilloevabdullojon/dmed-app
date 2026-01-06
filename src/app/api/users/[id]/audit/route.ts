@@ -3,19 +3,18 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { hasPermission } from '@/lib/permissions'
+import { logger } from '@/lib/logger'
 
 // GET /api/users/[id]/audit - audit log for a user
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const canViewAudit = hasPermission(session.user.role, 'VIEW_AUDIT') ||
+    const canViewAudit =
+      hasPermission(session.user.role, 'VIEW_AUDIT') ||
       hasPermission(session.user.role, 'MANAGE_USERS')
     if (!canViewAudit && session.user.id !== params.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -72,10 +71,7 @@ export async function GET(
     if (cursor) {
       const cursorDate = new Date(cursor.createdAt)
       andFilters.push({
-        OR: [
-          { createdAt: { lt: cursorDate } },
-          { createdAt: cursorDate, id: { lt: cursor.id } },
-        ],
+        OR: [{ createdAt: { lt: cursorDate } }, { createdAt: cursorDate, id: { lt: cursor.id } }],
       })
     }
 
@@ -102,18 +98,14 @@ export async function GET(
     const hasMore = audits.length > take
     const items = hasMore ? audits.slice(0, take) : audits
     const last = items[items.length - 1]
-    const nextCursor = hasMore && last
-      ? Buffer.from(
-          JSON.stringify({ id: last.id, createdAt: last.createdAt })
-        ).toString('base64')
-      : null
+    const nextCursor =
+      hasMore && last
+        ? Buffer.from(JSON.stringify({ id: last.id, createdAt: last.createdAt })).toString('base64')
+        : null
 
     return NextResponse.json({ audits: items, nextCursor })
   } catch (error) {
-    console.error('GET /api/users/[id]/audit error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('GET /api/users/[id]/audit', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

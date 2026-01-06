@@ -1,8 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import type { Role } from '@prisma/client'
+import { csrfGuard } from '@/lib/security'
+import { logger } from '@/lib/logger'
 
 // Все доступные разрешения
 const ALL_PERMISSIONS = [
@@ -98,17 +100,22 @@ export async function GET() {
       permissionLabels: PERMISSION_LABELS,
     })
   } catch (error) {
-    console.error('Error fetching permissions:', error)
+    logger.error('GET /api/permissions', error)
     return NextResponse.json({ error: 'Failed to fetch permissions' }, { status: 500 })
   }
 }
 
 // PUT - обновить разрешение для роли
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
     }
 
     // Только SUPERADMIN может изменять разрешения
@@ -160,17 +167,22 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error updating permission:', error)
+    logger.error('PUT /api/permissions', error)
     return NextResponse.json({ error: 'Failed to update permission' }, { status: 500 })
   }
 }
 
 // POST - сбросить разрешения для роли к значениям по умолчанию
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
     }
 
     if (session.user.role !== 'SUPERADMIN') {
@@ -196,7 +208,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error resetting permissions:', error)
+    logger.error('POST /api/permissions', error)
     return NextResponse.json({ error: 'Failed to reset permissions' }, { status: 500 })
   }
 }

@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { syncToGoogleSheets, importFromGoogleSheets } from '@/lib/google-sheets'
 import { prisma } from '@/lib/prisma'
+import { csrfGuard } from '@/lib/security'
+import { logger } from '@/lib/logger'
 
 // POST /api/sync - синхронизация с Google Sheets
 export async function POST(request: NextRequest) {
@@ -12,6 +14,11 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
     }
 
     // Только админ может синхронизировать
@@ -58,15 +65,17 @@ export async function POST(request: NextRequest) {
       where: { id: logId },
       data: {
         status: result.success ? 'COMPLETED' : 'FAILED',
-        rowsAffected: ('rowsAffected' in result ? result.rowsAffected : 0) || ('imported' in result ? result.imported : 0),
-        error: result.success ? null : ('error' in result ? String(result.error) : 'Unknown error'),
+        rowsAffected:
+          ('rowsAffected' in result ? result.rowsAffected : 0) ||
+          ('imported' in result ? result.imported : 0),
+        error: result.success ? null : 'error' in result ? String(result.error) : 'Unknown error',
         finishedAt: new Date(),
       },
     })
 
     return NextResponse.json(result)
   } catch (error) {
-    console.error('POST /api/sync error:', error)
+    logger.error('POST /api/sync', error)
 
     // Обновить лог с ошибкой если он был создан
     if (logId) {
@@ -80,10 +89,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return NextResponse.json(
-      { error: String(error) },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }
 
@@ -102,10 +108,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ logs })
   } catch (error) {
-    console.error('GET /api/sync error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('GET /api/sync', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

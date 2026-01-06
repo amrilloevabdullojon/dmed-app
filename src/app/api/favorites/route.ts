@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { hasPermission } from '@/lib/permissions'
+import { csrfGuard } from '@/lib/security'
+import { logger } from '@/lib/logger'
 
 // GET /api/favorites - получить избранные письма пользователя
 export async function GET(request: NextRequest) {
@@ -9,6 +12,10 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (!hasPermission(session.user.role, 'VIEW_LETTERS')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const favorites = await prisma.favorite.findMany({
@@ -32,11 +39,8 @@ export async function GET(request: NextRequest) {
       })),
     })
   } catch (error) {
-    console.error('GET /api/favorites error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('GET /api/favorites', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -46,6 +50,15 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
+    }
+
+    if (!hasPermission(session.user.role, 'VIEW_LETTERS')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const { letterId } = await request.json()
@@ -100,10 +113,7 @@ export async function POST(request: NextRequest) {
       })
     }
   } catch (error) {
-    console.error('POST /api/favorites error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('POST /api/favorites', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

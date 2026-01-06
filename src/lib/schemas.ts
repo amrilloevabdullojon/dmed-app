@@ -5,7 +5,7 @@ import type { LetterStatus } from '@prisma/client'
 
 export const paginationSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(200).default(50),
+  limit: z.coerce.number().int().positive().max(100).default(50),
 })
 
 export const idParamSchema = z.object({
@@ -26,10 +26,7 @@ const letterStatuses: [LetterStatus, ...LetterStatus[]] = [
 export const letterStatusSchema = z.enum(letterStatuses)
 
 export const createLetterSchema = z.object({
-  number: z
-    .string()
-    .min(1, 'Номер письма обязателен')
-    .max(50, 'Номер письма слишком длинный'),
+  number: z.string().min(1, 'Номер письма обязателен').max(50, 'Номер письма слишком длинный'),
   org: z
     .string()
     .min(1, 'Организация обязательна')
@@ -73,12 +70,18 @@ export const bulkLetterSchema = z.object({
   ownerId: z.string().cuid().optional(),
 })
 
-
 // ==================== REQUEST ====================
 
 const requestStatuses = ['NEW', 'IN_REVIEW', 'DONE', 'SPAM', 'CANCELLED'] as const
 const requestPriorities = ['LOW', 'NORMAL', 'HIGH', 'URGENT'] as const
-const requestCategories = ['CONSULTATION', 'TECHNICAL', 'DOCUMENTATION', 'COMPLAINT', 'SUGGESTION', 'OTHER'] as const
+const requestCategories = [
+  'CONSULTATION',
+  'TECHNICAL',
+  'DOCUMENTATION',
+  'COMPLAINT',
+  'SUGGESTION',
+  'OTHER',
+] as const
 
 export const requestStatusSchema = z.enum(requestStatuses)
 export const requestPrioritySchema = z.enum(requestPriorities)
@@ -113,16 +116,20 @@ export const updateRequestSchema = z.object({
 // ==================== COMMENT ====================
 
 export const createCommentSchema = z.object({
-  text: z
-    .string()
-    .min(1, 'Текст комментария обязателен')
-    .max(5000, 'Комментарий слишком длинный'),
+  text: z.string().min(1, 'Текст комментария обязателен').max(5000, 'Комментарий слишком длинный'),
   parentId: z.string().cuid().optional(),
 })
 
 // ==================== USER ====================
 
-export const userRoleSchema = z.enum(['SUPERADMIN', 'ADMIN', 'MANAGER', 'AUDITOR', 'EMPLOYEE', 'VIEWER'])
+export const userRoleSchema = z.enum([
+  'SUPERADMIN',
+  'ADMIN',
+  'MANAGER',
+  'AUDITOR',
+  'EMPLOYEE',
+  'VIEWER',
+])
 
 export const createUserSchema = z.object({
   name: z.string().max(100).optional(),
@@ -141,8 +148,16 @@ export const updateUserSchema = z.object({
   notifySms: z.boolean().optional(),
   notifyInApp: z.boolean().optional(),
   telegramChatId: z.string().max(50).optional().nullable(),
-  quietHoursStart: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
-  quietHoursEnd: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+  quietHoursStart: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional()
+    .nullable(),
+  quietHoursEnd: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional()
+    .nullable(),
   digestFrequency: z.enum(['NONE', 'DAILY', 'WEEKLY']).optional(),
 })
 

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { STATUS_LABELS, formatDate } from '@/lib/utils'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -104,7 +105,12 @@ export async function GET(request: NextRequest) {
 
     // Функция экранирования CSV
     const escapeCSV = (value: string) => {
-      if (value.includes('"') || value.includes(',') || value.includes('\n') || value.includes('\r')) {
+      if (
+        value.includes('"') ||
+        value.includes(',') ||
+        value.includes('\n') ||
+        value.includes('\r')
+      ) {
         return `"${value.replace(/"/g, '""')}"`
       }
       return value
@@ -112,10 +118,11 @@ export async function GET(request: NextRequest) {
 
     // Генерируем CSV с BOM для корректного открытия в Excel
     const BOM = '\uFEFF'
-    const csv = BOM + [
-      headers.map(escapeCSV).join(','),
-      ...rows.map((row) => row.map(escapeCSV).join(',')),
-    ].join('\r\n')
+    const csv =
+      BOM +
+      [headers.map(escapeCSV).join(','), ...rows.map((row) => row.map(escapeCSV).join(','))].join(
+        '\r\n'
+      )
 
     // Отправляем файл
     const filename = `letters_${new Date().toISOString().split('T')[0]}.csv`
@@ -127,10 +134,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('GET /api/export error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('GET /api/export', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

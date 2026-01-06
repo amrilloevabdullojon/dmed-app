@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { hasPermission } from '@/lib/permissions'
 import { resolveProfileAssetUrl } from '@/lib/profile-assets'
+import { logger } from '@/lib/logger'
 
 const emptyProfile = {
   bio: null,
@@ -73,10 +74,7 @@ const buildActivity = async (userId: string) => {
 }
 
 // GET /api/users/[id]/profile - view user profile
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
@@ -121,8 +119,7 @@ export async function GET(
     const canShowPhone = canViewAll || profile.publicPhone
     const canShowLastLogin = canViewAll || profile.publicLastLogin
 
-    const allowField = (flag: boolean | null | undefined) =>
-      canViewAll ? true : flag === true
+    const allowField = (flag: boolean | null | undefined) => (canViewAll ? true : flag === true)
 
     const filteredProfile = {
       ...profile,
@@ -157,10 +154,7 @@ export async function GET(
       activity,
     })
   } catch (error) {
-    console.error('GET /api/users/[id]/profile error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('GET /api/users/[id]/profile', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

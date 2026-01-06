@@ -19,6 +19,7 @@ import { formatNewRequestMessage, sendTelegramMessage } from '@/lib/telegram'
 import { createHash, randomUUID } from 'crypto'
 import { extname } from 'path'
 import { logger } from '@/lib/logger'
+import { hasPermission } from '@/lib/permissions'
 
 const ALLOWED_REQUEST_EXTENSIONS = new Set(
   REQUEST_ALLOWED_FILE_EXTENSIONS.split(',')
@@ -127,10 +128,14 @@ type RequestsListError = {
 type RequestsListResult = RequestsListResponse | RequestsListError
 
 export const GET = withValidation<RequestsListResult, unknown, RequestQueryInput>(
-  async (_request, _session, { query }) => {
+  async (_request, session, { query }) => {
     const requestId = getRequestContext()?.requestId ?? randomUUID()
     const startTime = Date.now()
     try {
+      if (!hasPermission(session.user.role, 'VIEW_REQUESTS')) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+
       const { page, limit, status, priority, category, search } = query
       const pageValue = page ?? 1
       const limitValue = limit ?? PAGE_SIZE
@@ -167,22 +172,24 @@ export const GET = withValidation<RequestsListResult, unknown, RequestQueryInput
       const findStart = Date.now()
       let findMs = 0
       let countMs = 0
-      const requestsPromise = prisma.request.findMany({
-        where,
-        orderBy: [
-          { priority: 'desc' }, // URGENT > HIGH > NORMAL > LOW
-          { createdAt: 'desc' },
-        ],
-        skip: (pageValue - 1) * limitValue,
-        take: limitValue,
-        include: {
-          assignedTo: { select: { id: true, name: true, email: true, image: true } },
-          _count: { select: { files: true, comments: true } },
-        },
-      }).then((result) => {
-        findMs = Date.now() - findStart
-        return result
-      })
+      const requestsPromise = prisma.request
+        .findMany({
+          where,
+          orderBy: [
+            { priority: 'desc' }, // URGENT > HIGH > NORMAL > LOW
+            { createdAt: 'desc' },
+          ],
+          skip: (pageValue - 1) * limitValue,
+          take: limitValue,
+          include: {
+            assignedTo: { select: { id: true, name: true, email: true, image: true } },
+            _count: { select: { files: true, comments: true } },
+          },
+        })
+        .then((result) => {
+          findMs = Date.now() - findStart
+          return result
+        })
       const countStart = Date.now()
       const countPromise = prisma.request.count({ where }).then((result) => {
         countMs = Date.now() - countStart
@@ -241,7 +248,7 @@ export const GET = withValidation<RequestsListResult, unknown, RequestQueryInput
 export async function POST(request: NextRequest) {
   try {
     const clientId = getClientIdentifier(request.headers)
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       `${clientId}:/api/requests:POST`,
       RATE_LIMITS.upload.limit,
       RATE_LIMITS.upload.windowMs
@@ -260,18 +267,12 @@ export async function POST(request: NextRequest) {
 
     if (!turnstileSecret && process.env.NODE_ENV === 'production') {
       logger.error('POST /api/requests', 'Turnstile secret key is missing')
-      return NextResponse.json(
-        { error: 'Captcha is not configured.' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Captcha is not configured.' }, { status: 500 })
     }
 
     if (turnstileSecret) {
       if (!turnstileToken) {
-        return NextResponse.json(
-          { error: 'Captcha is required.' },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: 'Captcha is required.' }, { status: 400 })
       }
 
       const verification = await verifyTurnstileToken(turnstileToken, clientId)
@@ -280,10 +281,7 @@ export async function POST(request: NextRequest) {
           errorCodes: verification.data?.['error-codes'],
           clientId,
         })
-        return NextResponse.json(
-          { error: 'Captcha verification failed.' },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: 'Captcha verification failed.' }, { status: 400 })
       }
     }
     const rawData = {
@@ -323,10 +321,7 @@ export async function POST(request: NextRequest) {
         contactTelegram: sanitizeInput(rawData.contactTelegram, 100),
         description: sanitizeInput(rawData.description, 10000),
         status: isSpam ? 'SPAM' : 'NEW',
-        source: sanitizeInput(
-          request.headers.get('referer') || 'web',
-          200
-        ),
+        source: sanitizeInput(request.headers.get('referer') || 'web', 200),
         ipHash: buildRequestIpHash(clientId),
       },
     })
@@ -420,9 +415,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const chatId =
-        process.env.TELEGRAM_REQUESTS_CHAT_ID ||
-        process.env.TELEGRAM_ADMIN_CHAT_ID
+      const chatId = process.env.TELEGRAM_REQUESTS_CHAT_ID || process.env.TELEGRAM_ADMIN_CHAT_ID
 
       if (chatId) {
         const message = formatNewRequestMessage({
@@ -449,9 +442,6 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     logger.error('POST /api/requests', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

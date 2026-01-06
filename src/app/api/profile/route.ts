@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { randomUUID } from 'crypto'
 import { resolveProfileAssetUrl } from '@/lib/profile-assets'
+import { csrfGuard } from '@/lib/security'
+import { logger } from '@/lib/logger'
 
 const emptyProfile = {
   bio: null,
@@ -38,11 +40,7 @@ const normalizeOptional = (value: unknown) => {
 const parseSkills = (value: unknown) => {
   if (!value) return []
   const raw = Array.isArray(value) ? value : String(value).split(',')
-  const unique = new Set(
-    raw
-      .map((item) => String(item).trim())
-      .filter((item) => item.length > 0)
-  )
+  const unique = new Set(raw.map((item) => String(item).trim()).filter((item) => item.length > 0))
   return Array.from(unique)
 }
 
@@ -145,11 +143,8 @@ export async function GET() {
       activity,
     })
   } catch (error) {
-    console.error('GET /api/profile error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('GET /api/profile', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -159,6 +154,11 @@ export async function PATCH(request: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
     }
 
     const body = await request.json()
@@ -241,10 +241,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true, profile })
   } catch (error) {
-    console.error('PATCH /api/profile error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('PATCH /api/profile', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

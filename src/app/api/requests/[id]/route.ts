@@ -6,18 +6,20 @@ import { idParamSchema, updateRequestSchema } from '@/lib/schemas'
 import { logger } from '@/lib/logger'
 import { hasPermission } from '@/lib/permissions'
 import { formatRequestStatusChangeMessage, sendTelegramMessage } from '@/lib/telegram'
+import { csrfGuard } from '@/lib/security'
 import type { Prisma } from '@prisma/client'
 
 const CONTEXT = 'API:Requests:[id]'
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (!hasPermission(session.user.role, 'VIEW_REQUESTS')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const paramResult = idParamSchema.safeParse(params)
@@ -47,21 +49,24 @@ export async function GET(
     return NextResponse.json({ request: requestRecord })
   } catch (error) {
     logger.error(CONTEXT, error, { method: 'GET', requestId: params.id })
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
+    }
+
+    if (!hasPermission(session.user.role, 'MANAGE_REQUESTS')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const paramResult = idParamSchema.safeParse(params)
@@ -140,10 +145,7 @@ export async function PATCH(
           })
 
           if (!assignee) {
-            return NextResponse.json(
-              { error: 'Assigned user not found' },
-              { status: 404 }
-            )
+            return NextResponse.json({ error: 'Assigned user not found' }, { status: 404 })
           }
 
           updateData.assignedTo = { connect: { id: parsed.data.assignedToId } }
@@ -207,9 +209,7 @@ export async function PATCH(
     // Отправляем Telegram уведомление при изменении статуса
     const statusChange = historyRecords.find((r) => r.field === 'status')
     if (statusChange) {
-      const chatId =
-        process.env.TELEGRAM_REQUESTS_CHAT_ID ||
-        process.env.TELEGRAM_ADMIN_CHAT_ID
+      const chatId = process.env.TELEGRAM_REQUESTS_CHAT_ID || process.env.TELEGRAM_ADMIN_CHAT_ID
 
       if (chatId) {
         const message = formatRequestStatusChangeMessage({
@@ -231,25 +231,24 @@ export async function PATCH(
     return NextResponse.json({ success: true, request: updated })
   } catch (error) {
     logger.error(CONTEXT, error, { method: 'PATCH', requestId: params.id })
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const csrfError = csrfGuard(_request)
+    if (csrfError) {
+      return csrfError
+    }
+
     // Только админы могут удалять заявки
-    if (!hasPermission(session.user.role, 'MANAGE_USERS')) {
+    if (!hasPermission(session.user.role, 'MANAGE_REQUESTS')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -301,9 +300,6 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (error) {
     logger.error(CONTEXT, error, { method: 'DELETE', requestId: params.id })
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

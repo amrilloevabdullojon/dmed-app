@@ -9,11 +9,9 @@ import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-lim
 import { withValidation } from '@/lib/api-handler'
 import { letterFiltersSchema, paginationSchema } from '@/lib/schemas'
 import { LetterService } from '@/services/letter.service'
-import {
-  PAGE_SIZE,
-  PORTAL_TOKEN_EXPIRY_DAYS,
-  DEFAULT_DEADLINE_WORKING_DAYS,
-} from '@/lib/constants'
+import { PAGE_SIZE, PORTAL_TOKEN_EXPIRY_DAYS, DEFAULT_DEADLINE_WORKING_DAYS } from '@/lib/constants'
+import { hasPermission } from '@/lib/permissions'
+import { csrfGuard } from '@/lib/security'
 import { z } from 'zod'
 import { randomUUID } from 'crypto'
 
@@ -22,7 +20,10 @@ const createLetterSchema = z.object({
   number: z.string().min(1, 'Номер письма обязателен').max(50),
   org: z.string().min(1, 'Организация обязательна').max(500),
   date: z.string().transform((val) => new Date(val)),
-  deadlineDate: z.string().optional().transform((val) => val ? new Date(val) : null),
+  deadlineDate: z
+    .string()
+    .optional()
+    .transform((val) => (val ? new Date(val) : null)),
   type: z.string().optional(),
   content: z.string().max(10000).optional(),
   comment: z.string().max(5000).optional(),
@@ -57,9 +58,7 @@ const resolveAutoOwnerId = async () => {
     _count: { _all: true },
   })
 
-  const countByUser = new Map(
-    counts.map((item) => [item.ownerId, item._count._all])
-  )
+  const countByUser = new Map(counts.map((item) => [item.ownerId, item._count._all]))
 
   const sorted = [...userIds].sort((a, b) => {
     const countA = countByUser.get(a) || 0
@@ -74,12 +73,12 @@ const resolveAutoOwnerId = async () => {
 // GET /api/letters - получить все письма
 export const GET = withValidation(
   async (_request, session, { query }) => {
+    if (!hasPermission(session.user.role, 'VIEW_LETTERS')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const { page, limit, ...filters } = query
-    const result = await LetterService.findMany(
-      filters,
-      { page, limit },
-      session.user.id
-    )
+    const result = await LetterService.findMany(filters, { page, limit }, session.user.id)
 
     return NextResponse.json({
       letters: result.data,
@@ -93,7 +92,7 @@ export async function POST(request: NextRequest) {
   try {
     // Rate limiting
     const clientId = getClientIdentifier(request.headers)
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       `${clientId}:/api/letters:POST`,
       RATE_LIMITS.standard.limit,
       RATE_LIMITS.standard.windowMs
@@ -111,15 +110,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
+    }
+
+    if (!hasPermission(session.user.role, 'MANAGE_LETTERS')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const body = await request.json()
 
     // Валидация
     const result = createLetterSchema.safeParse(body)
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error.errors[0].message },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: result.error.errors[0].message }, { status: 400 })
     }
 
     const data = result.data
@@ -134,8 +139,8 @@ export async function POST(request: NextRequest) {
     if (data.applicantName) data.applicantName = sanitizeInput(data.applicantName, 200)
     if (data.applicantEmail) data.applicantEmail = sanitizeInput(data.applicantEmail, 320)
     if (data.applicantPhone) data.applicantPhone = sanitizeInput(data.applicantPhone, 50)
-    if (data.applicantTelegramChatId) data.applicantTelegramChatId = sanitizeInput(data.applicantTelegramChatId, 50)
-
+    if (data.applicantTelegramChatId)
+      data.applicantTelegramChatId = sanitizeInput(data.applicantTelegramChatId, 50)
 
     const existing = await prisma.letter.findFirst({
       where: {
@@ -146,22 +151,24 @@ export async function POST(request: NextRequest) {
     })
 
     if (existing) {
-      return NextResponse.json(
-        { error: 'Письмо с таким номером уже существует' },
-        { status: 409 }
-      )
+      return NextResponse.json({ error: 'Письмо с таким номером уже существует' }, { status: 409 })
     }
 
     // Рассчитать дедлайн (+7 рабочих дней если не указан)
-    const ownerId = data.ownerId || await resolveAutoOwnerId()
+    const ownerId = data.ownerId || (await resolveAutoOwnerId())
 
-    const hasApplicantContact = !!(data.applicantEmail || data.applicantPhone || data.applicantTelegramChatId)
+    const hasApplicantContact = !!(
+      data.applicantEmail ||
+      data.applicantPhone ||
+      data.applicantTelegramChatId
+    )
     const applicantAccessToken = hasApplicantContact ? randomUUID() : null
     const applicantAccessTokenExpiresAt = hasApplicantContact
       ? new Date(Date.now() + 1000 * 60 * 60 * 24 * PORTAL_TOKEN_EXPIRY_DAYS)
       : null
 
-    const deadlineDate = data.deadlineDate || addWorkingDays(data.date, DEFAULT_DEADLINE_WORKING_DAYS)
+    const deadlineDate =
+      data.deadlineDate || addWorkingDays(data.date, DEFAULT_DEADLINE_WORKING_DAYS)
 
     // Создать письмо
     const letter = await prisma.letter.create({
@@ -217,7 +224,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-
     if (letter.ownerId && letter.ownerId !== session.user.id) {
       await prisma.notification.create({
         data: {
@@ -261,9 +267,6 @@ ${letter.org}
     return NextResponse.json({ success: true, letter }, { status: 201 })
   } catch (error) {
     logger.error('POST /api/letters', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

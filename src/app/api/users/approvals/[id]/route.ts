@@ -3,15 +3,19 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { Role } from '@prisma/client'
+import { csrfGuard } from '@/lib/security'
+import { logger } from '@/lib/logger'
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
     }
 
     if (session.user.role !== 'SUPERADMIN') {
@@ -19,7 +23,8 @@ export async function PATCH(
     }
 
     const body = await request.json().catch(() => ({}))
-    const action = body.action === 'approve' ? 'approve' : body.action === 'reject' ? 'reject' : null
+    const action =
+      body.action === 'approve' ? 'approve' : body.action === 'reject' ? 'reject' : null
     if (!action) {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     }
@@ -52,10 +57,7 @@ export async function PATCH(
     }
 
     if (approval.requestedById === session.user.id) {
-      return NextResponse.json(
-        { error: 'Second admin approval required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Second admin approval required' }, { status: 400 })
     }
 
     if (action === 'reject') {
@@ -82,10 +84,7 @@ export async function PATCH(
         where: { role: 'ADMIN' },
       })
       if (approval.targetUser.role === 'ADMIN' && adminCount <= 1) {
-        return NextResponse.json(
-          { error: 'At least one admin is required' },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: 'At least one admin is required' }, { status: 400 })
       }
 
       const result = await prisma.$transaction(async (tx) => {
@@ -144,10 +143,7 @@ export async function PATCH(
         where: { role: 'ADMIN' },
       })
       if (approval.targetUser.role === 'ADMIN' && adminCount <= 1) {
-        return NextResponse.json(
-          { error: 'Cannot delete the last admin' },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: 'Cannot delete the last admin' }, { status: 400 })
       }
 
       const result = await prisma.$transaction(async (tx) => {
@@ -192,10 +188,7 @@ export async function PATCH(
 
     return NextResponse.json({ error: 'Unsupported approval action' }, { status: 400 })
   } catch (error) {
-    console.error('PATCH /api/users/approvals/[id] error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('PATCH /api/users/approvals/[id]', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

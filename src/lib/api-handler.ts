@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { logger } from '@/lib/logger'
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
 import { runWithRequestContext } from '@/lib/request-context'
+import { isValidCsrfRequest } from '@/lib/security'
 import type { Role } from '@prisma/client'
 import { z, ZodError, ZodType, ZodTypeDef } from 'zod'
 
@@ -142,13 +143,24 @@ export function withAuth<T>(
       const timeoutMs = options.timeout ?? 30000
 
       try {
+        if (!options.public && !isValidCsrfRequest(req)) {
+          return NextResponse.json(
+            { error: 'Invalid CSRF token' },
+            { status: 403 }
+          ) as NextResponse<{
+            error: string
+          }>
+        }
+
         // Rate limiting
         if (options.rateLimit) {
           const config =
-            typeof options.rateLimit === 'string' ? RATE_LIMITS[options.rateLimit] : options.rateLimit
+            typeof options.rateLimit === 'string'
+              ? RATE_LIMITS[options.rateLimit]
+              : options.rateLimit
 
           const identifier = getClientIdentifier(req.headers)
-          const result = checkRateLimit(
+          const result = await checkRateLimit(
             `${identifier}:${req.nextUrl.pathname}`,
             config.limit,
             config.windowMs
@@ -273,13 +285,24 @@ export function withValidation<T, TBody = unknown, TQuery = unknown>(
       const timeoutMs = options.timeout ?? 30000
 
       try {
+        if (!options.public && !isValidCsrfRequest(req)) {
+          return NextResponse.json(
+            { error: 'Invalid CSRF token' },
+            { status: 403 }
+          ) as NextResponse<{
+            error: string
+          }>
+        }
+
         // Rate limiting
         if (options.rateLimit) {
           const config =
-            typeof options.rateLimit === 'string' ? RATE_LIMITS[options.rateLimit] : options.rateLimit
+            typeof options.rateLimit === 'string'
+              ? RATE_LIMITS[options.rateLimit]
+              : options.rateLimit
 
           const identifier = getClientIdentifier(req.headers)
-          const result = checkRateLimit(
+          const result = await checkRateLimit(
             `${identifier}:${req.nextUrl.pathname}`,
             config.limit,
             config.windowMs

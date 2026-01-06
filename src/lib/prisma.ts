@@ -257,8 +257,7 @@ async function logLetterChange(
   } catch (error) {
     // Логируем ошибку, но не прерываем основную операцию
     if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
-      console.error('[LetterChangeLog] Failed to log change:', error)
+      logger.error('LetterChangeLog', error)
     }
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,10 +29,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ logs })
   } catch (error) {
-    console.error('GET /api/sync/logs error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('GET /api/sync/logs', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

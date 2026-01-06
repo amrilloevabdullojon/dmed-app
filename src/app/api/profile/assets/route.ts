@@ -8,6 +8,8 @@ import {
   getDriveFileStream,
   uploadFileToDrive,
 } from '@/lib/google-drive'
+import { csrfGuard } from '@/lib/security'
+import { logger } from '@/lib/logger'
 import { Readable } from 'stream'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
@@ -26,10 +28,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions)
     const profile = await prisma.userProfile.findFirst({
       where: {
-        OR: [
-          { avatarUrl: { contains: fileId } },
-          { coverUrl: { contains: fileId } },
-        ],
+        OR: [{ avatarUrl: { contains: fileId } }, { coverUrl: { contains: fileId } }],
       },
       select: { publicProfileEnabled: true },
     })
@@ -51,11 +50,8 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('GET /api/profile/assets error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('GET /api/profile/assets', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -64,6 +60,11 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
     }
 
     const formData = await request.formData()
@@ -79,17 +80,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: 'File too large. Max 5 MB' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'File too large. Max 5 MB' }, { status: 400 })
     }
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { error: 'File type not allowed' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'File type not allowed' }, { status: 400 })
     }
 
     let folderId = process.env.GOOGLE_DRIVE_FOLDER_ID
@@ -136,10 +131,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, profile })
   } catch (error) {
-    console.error('POST /api/profile/assets error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('POST /api/profile/assets', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -6,6 +6,9 @@ import { ReactNode } from 'react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ToastWrapper } from '@/components/Toast'
 import { QueryProvider } from '@/lib/react-query'
+import { installCsrfFetch } from '@/lib/csrf-client'
+
+installCsrfFetch()
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -13,9 +16,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <SessionProvider>
         <ThemeProvider>
           <ErrorBoundary>
-            <ToastWrapper>
-              {children}
-            </ToastWrapper>
+            <ToastWrapper>{children}</ToastWrapper>
           </ErrorBoundary>
         </ThemeProvider>
       </SessionProvider>

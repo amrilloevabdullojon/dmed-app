@@ -19,7 +19,7 @@ export const securityHeaders = {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    "upgrade-insecure-requests",
+    'upgrade-insecure-requests',
   ].join('; '),
 
   // Prevent MIME type sniffing
@@ -133,3 +133,24 @@ export const CSRF_EXCLUDED_PATHS = [
   '/api/health',
   '/api/webhook', // Webhooks use signatures
 ]
+
+export function isCsrfProtectedRequest(request: NextRequest): boolean {
+  if (!CSRF_PROTECTED_METHODS.includes(request.method)) {
+    return false
+  }
+  return !CSRF_EXCLUDED_PATHS.some((path) => request.nextUrl.pathname.startsWith(path))
+}
+
+export function isValidCsrfRequest(request: NextRequest): boolean {
+  if (!isCsrfProtectedRequest(request)) {
+    return true
+  }
+  return validateCsrfToken(request)
+}
+
+export function csrfGuard(request: NextRequest): NextResponse | null {
+  if (isValidCsrfRequest(request)) {
+    return null
+  }
+  return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 })
+}

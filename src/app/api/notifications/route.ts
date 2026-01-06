@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { csrfGuard } from '@/lib/security'
+import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
 const updateSchema = z.object({
@@ -29,11 +31,8 @@ export async function GET() {
 
     return NextResponse.json({ notifications })
   } catch (error) {
-    console.error('GET /api/notifications error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('GET /api/notifications', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -44,13 +43,15 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
+    }
+
     const body = await request.json()
     const result = updateSchema.safeParse(body)
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error.errors[0].message },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: result.error.errors[0].message }, { status: 400 })
     }
 
     const { ids, all } = result.data
@@ -69,10 +70,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('PATCH /api/notifications error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('PATCH /api/notifications', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { csrfGuard } from '@/lib/security'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/sync/changes - Получить историю изменений для синхронизации
@@ -92,6 +94,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
+    logger.error('GET /api/sync/changes', error)
     const message = error instanceof Error ? error.message : 'Неизвестная ошибка'
     return NextResponse.json({ error: message }, { status: 500 })
   }
@@ -105,6 +108,11 @@ export async function DELETE(request: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) {
     return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
+  }
+
+  const csrfError = csrfGuard(request)
+  if (csrfError) {
+    return csrfError
   }
 
   // Только SUPERADMIN может удалять логи
@@ -133,6 +141,7 @@ export async function DELETE(request: NextRequest) {
       message: `Удалено ${result.count} записей старше ${olderThanDays} дней`,
     })
   } catch (error) {
+    logger.error('DELETE /api/sync/changes', error)
     const message = error instanceof Error ? error.message : 'Неизвестная ошибка'
     return NextResponse.json({ error: message }, { status: 500 })
   }

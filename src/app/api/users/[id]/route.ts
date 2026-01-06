@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { hasPermission } from '@/lib/permissions'
 import { resolveProfileAssetUrl } from '@/lib/profile-assets'
 import { logger } from '@/lib/logger'
+import { csrfGuard } from '@/lib/security'
 import { updateUserSchema, idParamSchema } from '@/lib/schemas'
 import { USER_ROLES } from '@/lib/constants'
 import type { Role } from '@prisma/client'
@@ -12,10 +13,7 @@ import type { Role } from '@prisma/client'
 const CONTEXT = 'API:Users:[id]'
 
 // GET /api/users/[id] - получить пользователя по ID
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
@@ -27,10 +25,7 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
     }
 
-    if (
-      !hasPermission(session.user.role, 'MANAGE_USERS') &&
-      session.user.id !== params.id
-    ) {
+    if (!hasPermission(session.user.role, 'MANAGE_USERS') && session.user.id !== params.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -84,18 +79,12 @@ export async function GET(
     return NextResponse.json(normalizedUser)
   } catch (error) {
     logger.error(CONTEXT, error, { method: 'GET', userId: params.id })
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 // PATCH /api/users/[id] - обновить пользователя (только админ)
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
@@ -105,6 +94,11 @@ export async function PATCH(
     // Только админ может редактировать пользователей
     if (!hasPermission(session.user.role, 'MANAGE_USERS')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
     }
 
     const paramResult = idParamSchema.safeParse({ id: params.id })
@@ -179,10 +173,7 @@ export async function PATCH(
         if (currentUser.role === 'ADMIN' && requestedRole !== 'ADMIN') {
           const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } })
           if (adminCount <= 1) {
-            return NextResponse.json(
-              { error: 'At least one admin is required' },
-              { status: 400 }
-            )
+            return NextResponse.json({ error: 'At least one admin is required' }, { status: 400 })
           }
         }
 
@@ -294,15 +285,60 @@ export async function PATCH(
     }> = [
       { field: 'name', action: 'UPDATE', oldValue: currentUser.name, newValue: user.name },
       { field: 'role', action: 'ROLE', oldValue: currentUser.role, newValue: user.role },
-      { field: 'canLogin', action: 'ACCESS', oldValue: currentUser.canLogin, newValue: user.canLogin },
-      { field: 'telegramChatId', action: 'UPDATE', oldValue: currentUser.telegramChatId, newValue: user.telegramChatId },
-      { field: 'notifyEmail', action: 'UPDATE', oldValue: currentUser.notifyEmail, newValue: user.notifyEmail },
-      { field: 'notifyTelegram', action: 'UPDATE', oldValue: currentUser.notifyTelegram, newValue: user.notifyTelegram },
-      { field: 'notifySms', action: 'UPDATE', oldValue: currentUser.notifySms, newValue: user.notifySms },
-      { field: 'notifyInApp', action: 'UPDATE', oldValue: currentUser.notifyInApp, newValue: user.notifyInApp },
-      { field: 'quietHoursStart', action: 'UPDATE', oldValue: currentUser.quietHoursStart, newValue: user.quietHoursStart },
-      { field: 'quietHoursEnd', action: 'UPDATE', oldValue: currentUser.quietHoursEnd, newValue: user.quietHoursEnd },
-      { field: 'digestFrequency', action: 'UPDATE', oldValue: currentUser.digestFrequency, newValue: user.digestFrequency },
+      {
+        field: 'canLogin',
+        action: 'ACCESS',
+        oldValue: currentUser.canLogin,
+        newValue: user.canLogin,
+      },
+      {
+        field: 'telegramChatId',
+        action: 'UPDATE',
+        oldValue: currentUser.telegramChatId,
+        newValue: user.telegramChatId,
+      },
+      {
+        field: 'notifyEmail',
+        action: 'UPDATE',
+        oldValue: currentUser.notifyEmail,
+        newValue: user.notifyEmail,
+      },
+      {
+        field: 'notifyTelegram',
+        action: 'UPDATE',
+        oldValue: currentUser.notifyTelegram,
+        newValue: user.notifyTelegram,
+      },
+      {
+        field: 'notifySms',
+        action: 'UPDATE',
+        oldValue: currentUser.notifySms,
+        newValue: user.notifySms,
+      },
+      {
+        field: 'notifyInApp',
+        action: 'UPDATE',
+        oldValue: currentUser.notifyInApp,
+        newValue: user.notifyInApp,
+      },
+      {
+        field: 'quietHoursStart',
+        action: 'UPDATE',
+        oldValue: currentUser.quietHoursStart,
+        newValue: user.quietHoursStart,
+      },
+      {
+        field: 'quietHoursEnd',
+        action: 'UPDATE',
+        oldValue: currentUser.quietHoursEnd,
+        newValue: user.quietHoursEnd,
+      },
+      {
+        field: 'digestFrequency',
+        action: 'UPDATE',
+        oldValue: currentUser.digestFrequency,
+        newValue: user.digestFrequency,
+      },
     ]
 
     for (const { field, action, oldValue, newValue } of fieldsToAudit) {
@@ -325,24 +361,18 @@ export async function PATCH(
     logger.info(CONTEXT, 'User updated', {
       userId: params.id,
       actorId: session.user.id,
-      changedFields: auditEntries.map(e => e.field),
+      changedFields: auditEntries.map((e) => e.field),
     })
 
     return NextResponse.json({ success: true, user }, { status: 200 })
   } catch (error) {
     logger.error(CONTEXT, error, { method: 'PATCH', userId: params.id })
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 // DELETE /api/users/[id] - удалить пользователя (только админ)
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
@@ -361,12 +391,14 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
+    }
+
     // Нельзя удалить себя
     if (params.id === session.user.id) {
-      return NextResponse.json(
-        { error: 'Cannot delete yourself' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 })
     }
 
     const user = await prisma.user.findUnique({
@@ -394,14 +426,14 @@ export async function DELETE(
 
     if (user.role === 'SUPERADMIN') {
       if (!isSuperAdmin) {
-        return NextResponse.json({ error: 'Only superadmin can delete a superadmin' }, { status: 403 })
+        return NextResponse.json(
+          { error: 'Only superadmin can delete a superadmin' },
+          { status: 403 }
+        )
       }
       const superAdminCount = await prisma.user.count({ where: { role: 'SUPERADMIN' } })
       if (superAdminCount <= 1) {
-        return NextResponse.json(
-          { error: 'Cannot delete the last superadmin' },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: 'Cannot delete the last superadmin' }, { status: 400 })
       }
     }
 
@@ -412,10 +444,7 @@ export async function DELETE(
     if (user.role === 'ADMIN') {
       const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } })
       if (adminCount <= 1) {
-        return NextResponse.json(
-          { error: 'Cannot delete the last admin' },
-          { status: 400 }
-        )
+        return NextResponse.json({ error: 'Cannot delete the last admin' }, { status: 400 })
       }
     }
 
@@ -450,9 +479,6 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (error) {
     logger.error(CONTEXT, error, { method: 'DELETE', userId: params.id })
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

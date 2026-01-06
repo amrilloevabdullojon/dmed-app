@@ -110,6 +110,7 @@ export const authOptions: AuthOptions = {
             id: true,
             role: true,
             tokenVersion: true,
+            canLogin: true,
             profile: { select: { avatarUrl: true, updatedAt: true } },
           },
         })
@@ -117,6 +118,7 @@ export const authOptions: AuthOptions = {
         token.id = user.id
         token.role = dbUser?.role || 'EMPLOYEE'
         token.tokenVersion = dbUser?.tokenVersion ?? 0
+        token.canLogin = dbUser?.canLogin ?? true
         token.avatarUrl = resolveProfileAssetUrl(
           dbUser?.profile?.avatarUrl ?? null,
           dbUser?.profile?.updatedAt ?? null
@@ -130,6 +132,7 @@ export const authOptions: AuthOptions = {
           select: {
             role: true,
             tokenVersion: true,
+            canLogin: true,
             profile: { select: { avatarUrl: true, updatedAt: true } },
           },
         })
@@ -137,6 +140,7 @@ export const authOptions: AuthOptions = {
         if (dbUser) {
           token.role = dbUser.role
           token.tokenVersion = dbUser.tokenVersion
+          token.canLogin = dbUser.canLogin
           token.avatarUrl = resolveProfileAssetUrl(
             dbUser.profile?.avatarUrl ?? null,
             dbUser.profile?.updatedAt ?? null
@@ -155,7 +159,11 @@ export const authOptions: AuthOptions = {
 
           // If tokenVersion in DB is higher, the token was invalidated
           // Skip check if dbUser.tokenVersion is null/undefined (field not migrated yet)
-          if (dbUser && typeof dbUser.tokenVersion === 'number' && dbUser.tokenVersion > token.tokenVersion) {
+          if (
+            dbUser &&
+            typeof dbUser.tokenVersion === 'number' &&
+            dbUser.tokenVersion > token.tokenVersion
+          ) {
             // Return empty token to force re-authentication
             return { ...token, id: undefined, role: undefined }
           }
@@ -171,6 +179,7 @@ export const authOptions: AuthOptions = {
       if (session.user && token) {
         session.user.id = token.id as string
         session.user.role = (token.role as Role) || 'EMPLOYEE'
+        session.user.canLogin = Boolean(token.canLogin ?? true)
         if (token.avatarUrl) {
           session.user.image = token.avatarUrl as string
         }
@@ -190,5 +199,6 @@ declare module 'next-auth/jwt' {
     role?: Role
     avatarUrl?: string | null
     tokenVersion?: number
+    canLogin?: boolean
   }
 }

@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer'
 import { sendTelegramMessage } from '@/lib/telegram'
+import { logger } from '@/lib/logger'
 
 const SMTP_HOST = process.env.SMTP_HOST
 const SMTP_PORT = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined
@@ -52,7 +53,7 @@ export const sendEmail = async (to: string, subject: string, text: string) => {
     })
     return true
   } catch (error) {
-    console.error('Failed to send email:', error)
+    logger.error('Notifications', error, { channel: 'email' })
     return false
   }
 }
@@ -85,13 +86,13 @@ export const sendSms = async (to: string, text: string) => {
 
     if (!res.ok) {
       const data = await res.text()
-      console.error('Failed to send SMS:', data)
+      logger.error('Notifications', 'Failed to send SMS', { channel: 'sms', response: data })
       return false
     }
 
     return true
   } catch (error) {
-    console.error('Failed to send SMS:', error)
+    logger.error('Notifications', error, { channel: 'sms' })
     return false
   }
 }

@@ -6,6 +6,9 @@ import { FileStatus, FileStorageProvider } from '@prisma/client'
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '@/lib/constants'
 import { saveLocalUpload } from '@/lib/file-storage'
 import { syncFileToDrive } from '@/lib/file-sync'
+import { hasPermission } from '@/lib/permissions'
+import { csrfGuard } from '@/lib/security'
+import { logger } from '@/lib/logger'
 
 const UPLOAD_STRATEGY = process.env.FILE_UPLOAD_STRATEGY || 'async'
 const ENABLE_ASYNC_SYNC = process.env.FILE_SYNC_ASYNC !== 'false'
@@ -16,6 +19,11 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
     }
 
     const formData = await request.formData()
@@ -32,22 +40,12 @@ export async function POST(request: NextRequest) {
 
     // Проверить размер файла
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: 'File too large. Max 10 MB' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'File too large. Max 10 MB' }, { status: 400 })
     }
 
     // Проверить тип файла
-    if (
-      !ALLOWED_FILE_TYPES.includes(
-        file.type as (typeof ALLOWED_FILE_TYPES)[number]
-      )
-    ) {
-      return NextResponse.json(
-        { error: 'File type not allowed' },
-        { status: 400 }
-      )
+    if (!ALLOWED_FILE_TYPES.includes(file.type as (typeof ALLOWED_FILE_TYPES)[number])) {
+      return NextResponse.json({ error: 'File type not allowed' }, { status: 400 })
     }
 
     // Проверить, существует ли письмо
@@ -57,6 +55,12 @@ export async function POST(request: NextRequest) {
 
     if (!letter) {
       return NextResponse.json({ error: 'Letter not found' }, { status: 404 })
+    }
+
+    const canManageLetters = hasPermission(session.user.role, 'MANAGE_LETTERS')
+    const isOwner = letter.ownerId === session.user.id
+    if (!canManageLetters && !isOwner) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Создать директорию для загрузок если не существует
@@ -89,7 +93,7 @@ export async function POST(request: NextRequest) {
       if (!ENABLE_ASYNC_SYNC) return
       setTimeout(() => {
         syncFileToDrive(fileRecord.id).catch((error) => {
-          console.error('Background drive sync failed:', error)
+          logger.error('Background drive sync failed', error, { fileId: fileRecord.id })
         })
       }, 0)
     }
@@ -108,8 +112,7 @@ export async function POST(request: NextRequest) {
           queueSync()
         }
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : 'Drive upload failed'
+        const message = error instanceof Error ? error.message : 'Drive upload failed'
         await prisma.file.update({
           where: { id: fileRecord.id },
           data: { uploadError: message, status: FileStatus.PENDING_SYNC },
@@ -136,10 +139,7 @@ export async function POST(request: NextRequest) {
       { status: UPLOAD_STRATEGY === 'sync' ? 200 : 202 }
     )
   } catch (error) {
-    console.error('POST /api/upload error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('POST /api/upload', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

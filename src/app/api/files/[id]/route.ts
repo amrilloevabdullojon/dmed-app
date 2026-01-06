@@ -5,6 +5,8 @@ import { authOptions } from '@/lib/auth'
 import { deleteDriveFile, extractDriveFileId, getDriveFileStream } from '@/lib/google-drive'
 import { deleteLocalFile, getLocalFileAbsolutePath } from '@/lib/file-storage'
 import { hasPermission } from '@/lib/permissions'
+import { csrfGuard } from '@/lib/security'
+import { logger } from '@/lib/logger'
 import { FileStorageProvider, FileStatus } from '@prisma/client'
 import { createReadStream, existsSync } from 'fs'
 import { Readable } from 'stream'
@@ -67,7 +69,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       },
     })
   } catch (error) {
-    console.error('GET /api/files/[id] error:', error)
+    logger.error('GET /api/files/[id]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -78,6 +80,11 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
     }
 
     const canViewLetters = hasPermission(session.user.role, 'VIEW_LETTERS')
@@ -106,7 +113,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       try {
         await deleteDriveFile(driveFileId)
       } catch (error) {
-        console.error('Drive delete failed:', error)
+        logger.error('Drive delete failed', error, { fileId: file.id })
       }
     } else if (file.storageProvider === FileStorageProvider.LOCAL && file.storagePath) {
       await deleteLocalFile(file.storagePath)
@@ -131,7 +138,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('DELETE /api/files/[id] error:', error)
+    logger.error('DELETE /api/files/[id]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

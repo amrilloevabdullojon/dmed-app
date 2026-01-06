@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { cache, CACHE_TTL, CACHE_KEYS } from '@/lib/cache'
 import type { LetterStatus } from '@prisma/client'
 import { URGENT_DAYS, MONTHS_TO_SHOW } from '@/lib/constants'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Проверяем кэш
-    const cachedStats = cache.get<StatsData>(CACHE_KEYS.STATS)
+    const cachedStats = await cache.get<StatsData>(CACHE_KEYS.STATS)
     if (cachedStats) {
       return NextResponse.json(cachedStats)
     }
@@ -260,11 +261,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Сохраняем в кэш
-    cache.set(CACHE_KEYS.STATS, result, CACHE_TTL.STATS)
+    await cache.set(CACHE_KEYS.STATS, result, CACHE_TTL.STATS)
 
     return NextResponse.json(result)
   } catch (error) {
-    console.error('GET /api/stats error:', error)
+    logger.error('GET /api/stats', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

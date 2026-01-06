@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { hasPermission } from '@/lib/permissions'
+import { csrfGuard } from '@/lib/security'
 import { z } from 'zod'
 
 const createCommentSchema = z.object({
@@ -10,14 +12,15 @@ const createCommentSchema = z.object({
 })
 
 // GET /api/requests/[id]/comments - список комментариев
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (!hasPermission(session.user.role, 'VIEW_REQUESTS')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const { id } = params
@@ -50,22 +53,25 @@ export async function GET(
     return NextResponse.json({ comments })
   } catch (error) {
     logger.error('GET /api/requests/[id]/comments', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 // POST /api/requests/[id]/comments - добавить комментарий
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
+    }
+
+    if (!hasPermission(session.user.role, 'MANAGE_REQUESTS')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const { id } = params
@@ -90,10 +96,7 @@ export async function POST(
     }
 
     if (requestRecord.deletedAt) {
-      return NextResponse.json(
-        { error: 'Нельзя комментировать удалённую заявку' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Нельзя комментировать удалённую заявку' }, { status: 400 })
     }
 
     const comment = await prisma.requestComment.create({
@@ -123,9 +126,6 @@ export async function POST(
     return NextResponse.json({ comment }, { status: 201 })
   } catch (error) {
     logger.error('POST /api/requests/[id]/comments', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

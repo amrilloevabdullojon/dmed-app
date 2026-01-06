@@ -2,16 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { hasPermission } from '@/lib/permissions'
+import { csrfGuard } from '@/lib/security'
+import { logger } from '@/lib/logger'
 
 // POST /api/letters/[id]/duplicate - дублировать письмо
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
+    }
+
+    if (!hasPermission(session.user.role, 'MANAGE_LETTERS')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const { id } = await params
@@ -57,7 +66,7 @@ export async function POST(
         priority: original.priority,
         ownerId: session.user.id, // Назначаем текущего пользователя
         tags: {
-          connect: original.tags.map(tag => ({ id: tag.id })),
+          connect: original.tags.map((tag) => ({ id: tag.id })),
         },
       },
     })
@@ -79,10 +88,7 @@ export async function POST(
       number: duplicate.number,
     })
   } catch (error) {
-    console.error('POST /api/letters/[id]/duplicate error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('POST /api/letters/[id]/duplicate', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -4,15 +4,24 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sendTelegramMessage, formatNewLetterMessage } from '@/lib/telegram'
 import { formatDate } from '@/lib/utils'
+import { hasPermission } from '@/lib/permissions'
+import { csrfGuard } from '@/lib/security'
+import { logger } from '@/lib/logger'
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
+    }
+
+    if (!hasPermission(session.user.role, 'MANAGE_LETTERS')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const letter = await prisma.letter.findUnique({
@@ -30,7 +39,10 @@ export async function POST(
 
     if (!letter.owner?.telegramChatId) {
       return NextResponse.json(
-        { error: '\u0423 \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a\u0430 \u043d\u0435\u0442 Telegram ID' },
+        {
+          error:
+            '\u0423 \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a\u0430 \u043d\u0435\u0442 Telegram ID',
+        },
         { status: 400 }
       )
     }
@@ -45,17 +57,17 @@ export async function POST(
     const sent = await sendTelegramMessage(letter.owner.telegramChatId, message)
     if (!sent) {
       return NextResponse.json(
-        { error: '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435' },
+        {
+          error:
+            '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435',
+        },
         { status: 500 }
       )
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('POST /api/letters/[id]/notify error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('POST /api/letters/[id]/notify', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

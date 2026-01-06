@@ -9,6 +9,8 @@
  * This file provides a wrapper that works with or without Sentry installed.
  */
 
+import { logger } from '@/lib/logger'
+
 interface SentryUser {
   id?: string
   email?: string
@@ -97,8 +99,7 @@ export function captureException(error: Error, context?: SentryContext) {
 
   // Always log to console in development
   if (process.env.NODE_ENV === 'development') {
-    // eslint-disable-next-line no-console
-    console.error('[Sentry]', error, context)
+    logger.error('Sentry', error, context)
   }
 }
 

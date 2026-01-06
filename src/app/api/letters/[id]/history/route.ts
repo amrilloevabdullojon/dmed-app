@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { hasPermission } from '@/lib/permissions'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!hasPermission(session.user.role, 'VIEW_LETTERS')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -52,7 +57,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       hasMore: offset + history.length < total,
     })
   } catch (error) {
-    console.error('GET /api/letters/[id]/history error:', error)
+    logger.error('GET /api/letters/[id]/history', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

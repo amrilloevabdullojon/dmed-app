@@ -1,6 +1,8 @@
+import { getRedisClient } from '@/lib/redis'
+
 /**
- * Simple in-memory rate limiter for API endpoints.
- * Uses a sliding window approach with LRU-like cleanup.
+ * Rate limiter for API endpoints.
+ * Uses Redis when available, falls back to in-memory storage.
  */
 
 interface RateLimitEntry {
@@ -47,7 +49,7 @@ export interface RateLimitResult {
  * @param windowMs - Time window in milliseconds
  * @returns Result indicating if request is allowed
  */
-export function checkRateLimit(
+async function checkRateLimitMemory(
   identifier: string,
   limit: number,
   windowMs: number
@@ -87,6 +89,49 @@ export function checkRateLimit(
   }
 }
 
+async function checkRateLimitRedis(
+  identifier: string,
+  limit: number,
+  windowMs: number
+): Promise<RateLimitResult> {
+  const redis = getRedisClient()
+  if (!redis) {
+    return checkRateLimitMemory(identifier, limit, windowMs)
+  }
+
+  const key = `rate:${identifier}`
+  const script = `
+    local current = redis.call("INCR", KEYS[1])
+    if tonumber(current) == 1 then
+      redis.call("PEXPIRE", KEYS[1], ARGV[1])
+    end
+    local ttl = redis.call("PTTL", KEYS[1])
+    return {current, ttl}
+  `
+
+  try {
+    const result = (await redis.eval(script, [key], [windowMs])) as [number, number]
+    const current = Number(result?.[0] ?? 0)
+    const ttl = Number(result?.[1] ?? windowMs)
+    const remaining = Math.max(0, limit - current)
+    return {
+      success: current <= limit,
+      remaining,
+      reset: Date.now() + (ttl > 0 ? ttl : windowMs),
+    }
+  } catch {
+    return checkRateLimitMemory(identifier, limit, windowMs)
+  }
+}
+
+export async function checkRateLimit(
+  identifier: string,
+  limit: number,
+  windowMs: number
+): Promise<RateLimitResult> {
+  return checkRateLimitRedis(identifier, limit, windowMs)
+}
+
 /**
  * Rate limit configuration presets
  */
@@ -113,8 +158,6 @@ export const RATE_LIMITS = {
  */
 export function getClientIdentifier(headers: Headers): string {
   return (
-    headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    headers.get('x-real-ip') ||
-    'anonymous'
+    headers.get('x-forwarded-for')?.split(',')[0]?.trim() || headers.get('x-real-ip') || 'anonymous'
   )
 }

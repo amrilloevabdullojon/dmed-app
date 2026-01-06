@@ -3,12 +3,19 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { calculateDeadline } from '@/lib/parsePdfLetter'
 import { extractLetterDataFromPdf, translateToRussian } from '@/lib/ai'
+import { csrfGuard } from '@/lib/security'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
     }
 
     const formData = await request.formData()
@@ -107,7 +114,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('PDF parse error:', error)
+    logger.error('POST /api/parse-pdf', error)
     return NextResponse.json(
       {
         error: 'Ошибка при обработке PDF',

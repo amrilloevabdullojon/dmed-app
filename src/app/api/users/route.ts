@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { hasPermission } from '@/lib/permissions'
 import { resolveProfileAssetUrl } from '@/lib/profile-assets'
 import { logger } from '@/lib/logger'
+import { csrfGuard } from '@/lib/security'
 import { createUserSchema, usersQuerySchema } from '@/lib/schemas'
 import { USER_ROLES } from '@/lib/constants'
 
@@ -107,10 +108,7 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     logger.error(CONTEXT, error, { method: 'GET' })
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -124,6 +122,11 @@ export async function POST(request: NextRequest) {
 
     if (!hasPermission(session.user.role, 'MANAGE_USERS')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const csrfError = csrfGuard(request)
+    if (csrfError) {
+      return csrfError
     }
 
     const body = await request.json()
@@ -147,10 +150,7 @@ export async function POST(request: NextRequest) {
     let role: keyof typeof USER_ROLES = 'EMPLOYEE'
     if (requestedRole && validRoles.includes(requestedRole)) {
       if (!isSuperAdmin && requestedRole !== 'EMPLOYEE') {
-        return NextResponse.json(
-          { error: 'Only superadmin can assign roles' },
-          { status: 403 }
-        )
+        return NextResponse.json({ error: 'Only superadmin can assign roles' }, { status: 403 })
       }
       role = requestedRole
     }
@@ -226,9 +226,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, user }, { status: 201 })
   } catch (error) {
     logger.error(CONTEXT, error, { method: 'POST' })
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

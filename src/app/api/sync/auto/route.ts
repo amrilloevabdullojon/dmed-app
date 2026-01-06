@@ -8,6 +8,8 @@ import {
   stopSyncWorker,
   isSyncWorkerRunning,
 } from '@/lib/sync-worker'
+import { csrfGuard } from '@/lib/security'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/sync/auto - Получить статус автосинхронизации
@@ -35,6 +37,7 @@ export async function GET() {
       },
     })
   } catch (error) {
+    logger.error('GET /api/sync/auto', error)
     return NextResponse.json({ error: 'Ошибка получения статуса' }, { status: 500 })
   }
 }
@@ -47,6 +50,11 @@ export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) {
     return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
+  }
+
+  const csrfError = csrfGuard(request)
+  if (csrfError) {
+    return csrfError
   }
 
   // Только админы могут управлять синхронизацией
@@ -99,7 +107,8 @@ export async function POST(request: NextRequest) {
         )
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Неизвестная ошибка'
+    const message = error instanceof Error ? error.message : 'D?DæD,DúDýDæ¥?¥,D«Dø¥? D_¥^D,DñD§Dø'
+    logger.error('POST /api/sync/auto', error)
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai'
+import { logger } from '@/lib/logger'
 
 const genai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -124,7 +125,7 @@ export async function extractLetterDataFromPdf(
     const data = JSON.parse(jsonStr) as ExtractedLetterData
     return data
   } catch (error) {
-    console.error('AI PDF extraction error:', error)
+    logger.error('AI', error, { action: 'extractLetterDataFromPdf' })
     return null
   }
 }
@@ -159,7 +160,7 @@ export async function extractLetterDataWithAI(
 
     return JSON.parse(jsonStr) as ExtractedLetterData
   } catch (error) {
-    console.error('AI extraction error:', error)
+    logger.error('AI', error, { action: 'extractLetterDataWithAI' })
     return null
   }
 }
@@ -181,7 +182,7 @@ export async function translateToRussian(text: string): Promise<string | null> {
     )
     return response.text || null
   } catch (error) {
-    console.error('Translation error:', error)
+    logger.error('AI', error, { action: 'translateToRussian' })
     return null
   }
 }
@@ -203,7 +204,7 @@ export async function summarizeLetter(text: string): Promise<string | null> {
     )
     return response.text || null
   } catch (error) {
-    console.error('Summarize error:', error)
+    logger.error('AI', error, { action: 'summarizeLetter' })
     return null
   }
 }

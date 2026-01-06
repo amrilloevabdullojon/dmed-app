@@ -5,24 +5,24 @@ describe('checkRateLimit', () => {
     // Clear cache between tests by using unique identifiers
   })
 
-  it('allows requests within limit', () => {
+  it('allows requests within limit', async () => {
     const identifier = `test-${Date.now()}-1`
-    const result = checkRateLimit(identifier, 5, 60000)
+    const result = await checkRateLimit(identifier, 5, 60000)
 
     expect(result.success).toBe(true)
     expect(result.remaining).toBe(4)
   })
 
-  it('blocks requests exceeding limit', () => {
+  it('blocks requests exceeding limit', async () => {
     const identifier = `test-${Date.now()}-2`
 
     // Make 5 requests (limit)
     for (let i = 0; i < 5; i++) {
-      checkRateLimit(identifier, 5, 60000)
+      await checkRateLimit(identifier, 5, 60000)
     }
 
     // 6th request should be blocked
-    const result = checkRateLimit(identifier, 5, 60000)
+    const result = await checkRateLimit(identifier, 5, 60000)
     expect(result.success).toBe(false)
     expect(result.remaining).toBe(0)
   })
@@ -32,30 +32,30 @@ describe('checkRateLimit', () => {
 
     // Use up the limit with a very short window
     for (let i = 0; i < 3; i++) {
-      checkRateLimit(identifier, 3, 50) // 50ms window
+      await checkRateLimit(identifier, 3, 50) // 50ms window
     }
 
     // Should be blocked
-    expect(checkRateLimit(identifier, 3, 50).success).toBe(false)
+    expect((await checkRateLimit(identifier, 3, 50)).success).toBe(false)
 
     // Wait for window to expire
     await new Promise((resolve) => setTimeout(resolve, 100))
 
     // Should be allowed again
-    const result = checkRateLimit(identifier, 3, 50)
+    const result = await checkRateLimit(identifier, 3, 50)
     expect(result.success).toBe(true)
   })
 
-  it('tracks remaining requests correctly', () => {
+  it('tracks remaining requests correctly', async () => {
     const identifier = `test-${Date.now()}-4`
 
-    const r1 = checkRateLimit(identifier, 5, 60000)
+    const r1 = await checkRateLimit(identifier, 5, 60000)
     expect(r1.remaining).toBe(4)
 
-    const r2 = checkRateLimit(identifier, 5, 60000)
+    const r2 = await checkRateLimit(identifier, 5, 60000)
     expect(r2.remaining).toBe(3)
 
-    const r3 = checkRateLimit(identifier, 5, 60000)
+    const r3 = await checkRateLimit(identifier, 5, 60000)
     expect(r3.remaining).toBe(2)
   })
 })

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { hasPermission } from '@/lib/permissions'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -72,10 +73,7 @@ export async function GET(request: NextRequest) {
     if (cursor) {
       const cursorDate = new Date(cursor.createdAt)
       andFilters.push({
-        OR: [
-          { createdAt: { lt: cursorDate } },
-          { createdAt: cursorDate, id: { lt: cursor.id } },
-        ],
+        OR: [{ createdAt: { lt: cursorDate } }, { createdAt: cursorDate, id: { lt: cursor.id } }],
       })
     }
 
@@ -102,9 +100,8 @@ export async function GET(request: NextRequest) {
     const hasMore = events.length > take
     const items = hasMore ? events.slice(0, take) : events
     const last = items[items.length - 1]
-    const nextCursor = hasMore && last
-      ? buildCursor({ id: last.id, createdAt: last.createdAt.toISOString() })
-      : null
+    const nextCursor =
+      hasMore && last ? buildCursor({ id: last.id, createdAt: last.createdAt.toISOString() }) : null
 
     const summarySince = new Date()
     summarySince.setDate(summarySince.getDate() - SUMMARY_DAYS)
@@ -128,16 +125,11 @@ export async function GET(request: NextRequest) {
       summaryMap.set(date, entry)
     })
 
-    const summary = Array.from(summaryMap.values()).sort((a, b) =>
-      a.date.localeCompare(b.date)
-    )
+    const summary = Array.from(summaryMap.values()).sort((a, b) => a.date.localeCompare(b.date))
 
     return NextResponse.json({ events: items, nextCursor, summary })
   } catch (error) {
-    console.error('GET /api/security/logins error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    logger.error('GET /api/security/logins', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -1,7 +1,9 @@
+import { logger } from '@/lib/logger'
+
 // Telegram Bot API интеграция
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
-const APP_URL = process.env.NEXTAUTH_URL || process.env.APP_URL || ""
+const APP_URL = process.env.NEXTAUTH_URL || process.env.APP_URL || ''
 
 interface TelegramResponse {
   ok: boolean
@@ -21,38 +23,32 @@ export async function sendTelegramMessage(
   }
 
   try {
-    const response = await fetch(
-      `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text,
-          parse_mode: parseMode,
-        }),
-      }
-    )
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: parseMode,
+      }),
+    })
 
     const data: TelegramResponse = await response.json()
 
     if (!data.ok) {
-      console.error('Telegram API error:', data.description)
+      logger.error('Telegram', 'Telegram API error', { description: data.description })
       return false
     }
 
     return true
   } catch (error) {
-    console.error('Failed to send Telegram message:', error)
+    logger.error('Telegram', error)
     return false
   }
 }
 
 // Отправить уведомление нескольким пользователям
-export async function sendTelegramToMany(
-  chatIds: string[],
-  text: string
-): Promise<number> {
+export async function sendTelegramToMany(chatIds: string[], text: string): Promise<number> {
   let sent = 0
 
   for (const chatId of chatIds) {
@@ -66,10 +62,7 @@ export async function sendTelegramToMany(
 // Уведомление о новом письме
 
 const escapeTelegramHtml = (value: string) =>
-  value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 export function formatNewLetterMessage(letter: {
   number: string
@@ -114,11 +107,8 @@ export function formatDeadlineReminderMessage(letter: {
   daysLeft: number
   owner?: string
 }): string {
-  const urgency = letter.daysLeft <= 0
-    ? '🔥 ПРОСРОЧЕНО'
-    : letter.daysLeft === 1
-      ? '⚠️ СРОЧНО'
-      : '⏰ НАПОМИНАНИЕ'
+  const urgency =
+    letter.daysLeft <= 0 ? '🔥 ПРОСРОЧЕНО' : letter.daysLeft === 1 ? '⚠️ СРОЧНО' : '⏰ НАПОМИНАНИЕ'
 
   return `${urgency}
 
@@ -142,9 +132,7 @@ export function formatNewCommentMessage(data: {
     ? '💬 <b>Вас упомянули в комментарии</b>'
     : '💬 <b>Новый комментарий</b>'
 
-  const preview = data.comment.length > 100
-    ? data.comment.substring(0, 100) + '...'
-    : data.comment
+  const preview = data.comment.length > 100 ? data.comment.substring(0, 100) + '...' : data.comment
 
   return `${title}
 
@@ -165,9 +153,8 @@ export function formatNewRequestMessage(data: {
   description: string
   filesCount?: number
 }): string {
-  const preview = data.description.length > 200
-    ? `${data.description.slice(0, 200)}...`
-    : data.description
+  const preview =
+    data.description.length > 200 ? `${data.description.slice(0, 200)}...` : data.description
   const safePreview = escapeTelegramHtml(preview)
   const safeOrg = escapeTelegramHtml(data.organization)
   const safeName = escapeTelegramHtml(data.contactName)
@@ -176,11 +163,14 @@ export function formatNewRequestMessage(data: {
   const safeTelegram = escapeTelegramHtml(data.contactTelegram)
   const baseUrl = APP_URL ? APP_URL.replace(/\/$/, '') : ''
   const link = baseUrl ? `${baseUrl}/requests/${data.id}` : `/requests/${data.id}`
-  const filesInfo = data.filesCount ? `
+  const filesInfo = data.filesCount
+    ? `
 
-Файлов: ${data.filesCount}` : ''
+Файлов: ${data.filesCount}`
+    : ''
 
-  return `<b>Новая заявка</b>
+  return (
+    `<b>Новая заявка</b>
 
 ` +
     `Организация: ${safeOrg}
@@ -198,6 +188,7 @@ export function formatNewRequestMessage(data: {
 
 ` +
     `Открыть: <a href="${link}">${link}</a>`
+  )
 }
 
 // Уведомление об изменении статуса заявки
@@ -214,10 +205,10 @@ export function formatRequestStatusChangeMessage(data: {
   const link = baseUrl ? `${baseUrl}/requests/${data.id}` : `/requests/${data.id}`
 
   const statusLabels: Record<string, string> = {
-    'NEW': 'Новая',
-    'IN_REVIEW': 'На рассмотрении',
-    'DONE': 'Завершена',
-    'SPAM': 'Спам',
+    NEW: 'Новая',
+    IN_REVIEW: 'На рассмотрении',
+    DONE: 'Завершена',
+    SPAM: 'Спам',
   }
 
   const oldLabel = statusLabels[data.oldStatus] || data.oldStatus
@@ -241,4 +232,3 @@ export function formatRequestStatusChangeMessage(data: {
 
   return message
 }
-
