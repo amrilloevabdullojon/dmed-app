@@ -881,9 +881,9 @@ function LettersPageContent() {
         </div>
 
         {/* Filters Row */}
-        <div className="panel panel-soft panel-glass relative z-20 mb-6 flex flex-col items-start gap-4 rounded-2xl p-4 lg:flex-row lg:flex-wrap lg:items-center xl:flex-nowrap">
+        <div className="panel panel-soft panel-glass relative z-20 mb-6 flex flex-col gap-4 rounded-2xl p-4 lg:flex-row lg:flex-wrap lg:items-center xl:flex-nowrap">
           {/* Search */}
-          <div className="relative flex-1">
+          <div className="relative w-full lg:min-w-[280px] lg:flex-1 xl:min-w-[320px]">
             {isSearching ? (
               <Loader2 className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin text-teal-400" />
             ) : (
