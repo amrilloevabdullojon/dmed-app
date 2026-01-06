@@ -361,7 +361,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
           userId: newValue,
           letterId: letter.id,
           type: 'ASSIGNMENT',
-          title: `Назначено письмо №${letter.number}`,
+          title: `Вам назначено письмо №${letter.number}`,
           body: letter.org,
         },
       })
@@ -380,7 +380,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
             userId,
             letterId: letter.id,
             type: 'STATUS',
-            title: `?????? ?????? ?${letter.number} ???????`,
+            title: `Статус письма №${letter.number} изменен`,
             body: `${STATUS_LABELS[letter.status]} -> ${STATUS_LABELS[newValue as LetterStatus]}`,
           })),
         })
@@ -396,21 +396,21 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
         const oldStatusLabel = oldValue ? STATUS_LABELS[oldValue as LetterStatus] : ''
         const newStatusLabel = newValue ? STATUS_LABELS[newValue as LetterStatus] : ''
 
-        const subject = `?????? ????????? ?${letter.number} ???????`
-        const text = `?????? ?????? ????????? ???????.
+        const subject = `Статус письма №${letter.number} изменен`
+        const text = `Статус письма изменен.
 
-?????: ${letter.number}
-???????????: ${letter.org}
-????: ${oldStatusLabel}
-?????: ${newStatusLabel}`
+Номер: ${letter.number}
+Организация: ${letter.org}
+Было: ${oldStatusLabel}
+Стало: ${newStatusLabel}`
         const telegram = `
-<b>?????? ????????? ???????</b>
+<b>Статус письма изменен</b>
 
-?${letter.number}
+№${letter.number}
 ${letter.org}
 
-????: ${oldStatusLabel}
-?????: ${newStatusLabel}`
+Было: ${oldStatusLabel}
+Стало: ${newStatusLabel}`
 
         await sendMultiChannelNotification(
           {

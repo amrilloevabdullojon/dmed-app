@@ -11,17 +11,21 @@ const updateSchema = z.object({
   all: z.boolean().optional(),
 })
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { searchParams } = new URL(request.url)
+    const limitParam = Number.parseInt(searchParams.get('limit') || '30', 10)
+    const limit = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 200) : 30
+
     const notifications = await prisma.notification.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: 'desc' },
-      take: 30,
+      take: limit,
       include: {
         letter: {
           select: {

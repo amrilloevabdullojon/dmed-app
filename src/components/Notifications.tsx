@@ -61,6 +61,8 @@ interface UnifiedNotification {
 type FilterKey = 'all' | 'unread' | 'deadlines' | 'comments' | 'statuses' | 'assignments' | 'system'
 
 const SNOOZE_KEY = 'notification-deadline-snoozes'
+const NOTIFICATIONS_LIMIT = 100
+const DEADLINES_LIMIT = 100
 
 const getTomorrowStartIso = () => {
   const now = new Date()
@@ -102,6 +104,31 @@ const getSectionTitle = (dateValue: string) => {
   if (diffDays === 0) return 'Сегодня'
   if (diffDays === 1) return 'Вчера'
   return formatDate(parsed)
+}
+
+const isCorruptedText = (value: string) => {
+  const trimmed = value.trim()
+  if (!trimmed) return true
+  const questionMarks = (trimmed.match(/\?/g) || []).length
+  return questionMarks >= Math.max(3, Math.ceil(trimmed.length * 0.3))
+}
+
+const buildFallbackTitle = (item: UnifiedNotification) => {
+  const number = item.letter?.number ? `№${item.letter.number}` : ''
+  const suffix = number ? ` ${number}` : ''
+
+  switch (item.kind) {
+    case 'COMMENT':
+      return `Новый комментарий к письму${suffix}`
+    case 'STATUS':
+      return `Статус письма${suffix} изменен`
+    case 'ASSIGNMENT':
+      return `Вам назначено письмо${suffix}`
+    case 'SYSTEM':
+      return 'Системное уведомление'
+    default:
+      return item.title || 'Уведомление'
+  }
 }
 
 export function Notifications() {
@@ -151,14 +178,17 @@ export function Notifications() {
 
   const refetchInterval = isOpen ? 60 * 1000 : 5 * 60 * 1000
 
-  const userNotificationsQuery = useFetch<UserNotification[]>('/api/notifications', {
-    initialData: [],
-    transform: (data) => (data as { notifications?: UserNotification[] }).notifications || [],
-    refetchInterval,
-    refetchOnFocus: true,
-  })
+  const userNotificationsQuery = useFetch<UserNotification[]>(
+    `/api/notifications?limit=${NOTIFICATIONS_LIMIT}`,
+    {
+      initialData: [],
+      transform: (data) => (data as { notifications?: UserNotification[] }).notifications || [],
+      refetchInterval,
+      refetchOnFocus: true,
+    }
+  )
   const overdueQuery = useFetch<{ letters?: DeadlineLetter[] }>(
-    '/api/letters?filter=overdue&limit=10',
+    `/api/letters?filter=overdue&limit=${DEADLINES_LIMIT}`,
     {
       initialData: { letters: [] },
       skip: !loadDeadlineNotifications,
@@ -166,7 +196,7 @@ export function Notifications() {
     }
   )
   const urgentQuery = useFetch<{ letters?: DeadlineLetter[] }>(
-    '/api/letters?filter=urgent&limit=10',
+    `/api/letters?filter=urgent&limit=${DEADLINES_LIMIT}`,
     {
       initialData: { letters: [] },
       skip: !loadDeadlineNotifications,
@@ -428,6 +458,9 @@ export function Notifications() {
 
   const renderNotificationTitle = (item: UnifiedNotification) => {
     if (!isDeadlineKind(item.kind)) {
+      if (!item.title || isCorruptedText(item.title)) {
+        return buildFallbackTitle(item)
+      }
       return item.title
     }
     const days = item.daysLeft ?? 0

@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
           userId: letter.ownerId,
           letterId: letter.id,
           type: 'ASSIGNMENT',
-          title: `????????? ????? ?????? ?${letter.number}`,
+          title: `Вам назначено письмо №${letter.number}`,
           body: letter.org,
         },
       })
@@ -250,22 +250,22 @@ export async function POST(request: NextRequest) {
 
     if (hasApplicantContact && applicantAccessToken) {
       const portalLink = buildApplicantPortalLink(applicantAccessToken)
-      const subject = `???? ????????? ?${letter.number} ????????????????`
-      const text = `???? ????????? ????????????????.
+      const subject = `Ваше обращение №${letter.number} зарегистрировано`
+      const text = `Ваше обращение зарегистрировано.
 
-?????: ${letter.number}
-???????????: ${letter.org}
-????: ${new Date(letter.deadlineDate).toLocaleDateString('ru-RU')}
+Номер: ${letter.number}
+Организация: ${letter.org}
+Дедлайн: ${new Date(letter.deadlineDate).toLocaleDateString('ru-RU')}
 
-??????: ${portalLink}`
+Ссылка: ${portalLink}`
       const telegram = `
-<b>????????? ????????????????</b>
+<b>Обращение зарегистрировано</b>
 
-?${letter.number}
+№${letter.number}
 ${letter.org}
-????: ${new Date(letter.deadlineDate).toLocaleDateString('ru-RU')}
+Дедлайн: ${new Date(letter.deadlineDate).toLocaleDateString('ru-RU')}
 
-<a href="${portalLink}">??????? ??????</a>`
+<a href="${portalLink}">Открыть обращение</a>`
 
       await sendMultiChannelNotification(
         {
