@@ -509,8 +509,14 @@ export function Notifications() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
 
-          <div className="absolute right-0 top-full z-50 mt-2 flex h-[72vh] max-h-[78vh] min-h-[420px] w-[30rem] flex-col overflow-hidden rounded-2xl border border-slate-700/70 bg-gradient-to-b from-slate-900/95 via-slate-900/95 to-slate-950/95 shadow-2xl shadow-black/40 backdrop-blur">
-            <div className="flex items-start justify-between border-b border-slate-700/70 px-4 py-3">
+          <div className="absolute right-0 top-full z-50 mt-2 flex h-[72vh] max-h-[78vh] min-h-[420px] w-[30rem] flex-col overflow-hidden rounded-2xl border border-slate-700/70 bg-gradient-to-b from-slate-900/95 via-slate-900/95 to-slate-950/95 shadow-2xl shadow-black/40 ring-1 ring-white/5 backdrop-blur">
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-emerald-500/10 blur-3xl" />
+              <div className="absolute -left-20 bottom-20 h-56 w-56 rounded-full bg-sky-500/10 blur-3xl" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(15,23,42,0.35),transparent_55%)]" />
+            </div>
+
+            <div className="relative z-10 flex items-start justify-between border-b border-slate-700/70 bg-slate-950/50 px-4 py-3 backdrop-blur">
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-semibold text-white">Уведомления</h3>
@@ -530,7 +536,7 @@ export function Notifications() {
                 {counts.unread > 0 && (
                   <button
                     onClick={markAllRead}
-                    className="rounded-md px-2 py-1 text-xs text-emerald-300 transition hover:bg-emerald-500/10 hover:text-emerald-200"
+                    className="rounded-md border border-emerald-500/20 px-2 py-1 text-xs text-emerald-200 transition hover:border-emerald-400/40 hover:bg-emerald-500/15"
                   >
                     Отметить все прочитанным
                   </button>
@@ -538,7 +544,7 @@ export function Notifications() {
                 {counts.deadlines > 0 && !hasActiveSnoozes && (
                   <button
                     onClick={snoozeAllDeadlines}
-                    className="rounded-md px-2 py-1 text-xs text-slate-300 transition hover:bg-slate-800/80 hover:text-slate-100"
+                    className="rounded-md border border-slate-700/60 px-2 py-1 text-xs text-slate-300 transition hover:border-slate-500/70 hover:bg-slate-800/80 hover:text-slate-100"
                   >
                     Скрыть дедлайны до завтра
                   </button>
@@ -546,7 +552,7 @@ export function Notifications() {
                 {hasActiveSnoozes && (
                   <button
                     onClick={clearSnoozes}
-                    className="rounded-md px-2 py-1 text-xs text-slate-300 transition hover:bg-slate-800/80 hover:text-slate-100"
+                    className="rounded-md border border-slate-700/60 px-2 py-1 text-xs text-slate-300 transition hover:border-slate-500/70 hover:bg-slate-800/80 hover:text-slate-100"
                   >
                     Показать дедлайны
                   </button>
@@ -561,14 +567,14 @@ export function Notifications() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 overflow-x-auto border-b border-slate-800/80 bg-slate-900/70 px-4 py-2">
+            <div className="relative z-10 flex items-center gap-2 overflow-x-auto border-b border-slate-800/80 bg-slate-900/70 px-4 py-2 shadow-inner shadow-black/20">
               {filterConfig.map((filter) => (
                 <button
                   key={filter.key}
                   onClick={() => setActiveFilter(filter.key)}
                   className={`shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition ${
                     activeFilter === filter.key
-                      ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-200 shadow-sm'
+                      ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-200 shadow-sm shadow-emerald-500/20'
                       : 'border-slate-700/60 text-slate-400 hover:border-slate-600/70 hover:text-slate-200'
                   }`}
                 >
@@ -588,7 +594,7 @@ export function Notifications() {
               ))}
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="relative z-10 flex-1 overflow-y-auto px-4 py-4">
               {isLoading ? (
                 <div className="flex flex-col items-center gap-2 p-10 text-slate-500">
                   <Bell className="h-6 w-6 text-slate-600" />
@@ -616,12 +622,19 @@ export function Notifications() {
                         const linkTarget = notif.letter?.id
                           ? `/letters/${notif.letter.id}`
                           : '/letters'
+                        const accentTone = isDeadlineKind(notif.kind)
+                          ? notif.kind === 'DEADLINE_OVERDUE'
+                            ? 'bg-red-500/70'
+                            : 'bg-yellow-400/70'
+                          : isUnread
+                            ? 'bg-emerald-400/70'
+                            : 'bg-slate-700/60'
                         const cardTone = isDeadlineKind(notif.kind)
                           ? notif.kind === 'DEADLINE_OVERDUE'
-                            ? 'border-red-500/35 bg-red-500/10'
-                            : 'border-yellow-500/35 bg-yellow-500/10'
+                            ? 'border-red-500/35 bg-red-500/10 shadow-[0_12px_30px_-20px_rgba(248,113,113,0.4)]'
+                            : 'border-yellow-500/35 bg-yellow-500/10 shadow-[0_12px_30px_-20px_rgba(250,204,21,0.35)]'
                           : isUnread
-                            ? 'border-emerald-500/35 bg-emerald-500/10'
+                            ? 'border-emerald-500/35 bg-emerald-500/10 shadow-[0_12px_30px_-22px_rgba(16,185,129,0.35)]'
                             : 'border-slate-800/70 bg-slate-900/50'
 
                         return (
@@ -634,8 +647,9 @@ export function Notifications() {
                               }
                               setIsOpen(false)
                             }}
-                            className={`group flex items-start gap-3 rounded-2xl border px-4 py-3 transition ${cardTone} hover:border-slate-600/70 hover:bg-slate-800/70`}
+                            className={`group relative flex items-start gap-3 overflow-hidden rounded-2xl border px-4 py-3 transition ${cardTone} hover:-translate-y-0.5 hover:border-slate-600/70 hover:bg-slate-800/70`}
                           >
+                            <span className={`absolute left-0 top-0 h-full w-1 ${accentTone}`} />
                             <div
                               className={`rounded-lg p-2 ring-1 ring-white/10 ${iconConfig.bg} ${iconConfig.color}`}
                             >
@@ -665,7 +679,7 @@ export function Notifications() {
                                 <span className="text-slate-600">•</span>
                                 {renderNotificationMeta(notif)}
                                 {notif.letter?.number && (
-                                  <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 font-mono text-[10px] text-emerald-200">
+                                  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[10px] text-emerald-200">
                                     №{notif.letter.number}
                                   </span>
                                 )}
