@@ -75,17 +75,17 @@ const isDeadlineKind = (kind: UnifiedKind) =>
 const getKindLabel = (kind: UnifiedKind) => {
   switch (kind) {
     case 'COMMENT':
-      return '\u041a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0439'
+      return 'Комментарий'
     case 'STATUS':
-      return '\u0421\u0442\u0430\u0442\u0443\u0441'
+      return 'Статус'
     case 'ASSIGNMENT':
-      return '\u041d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435'
+      return 'Назначение'
     case 'SYSTEM':
-      return '\u0421\u0438\u0441\u0442\u0435\u043c\u043d\u043e\u0435'
+      return 'Системное'
     case 'DEADLINE_OVERDUE':
-      return '\u041f\u0440\u043e\u0441\u0440\u043e\u0447\u0435\u043d\u043e'
+      return 'Просрочено'
     case 'DEADLINE_URGENT':
-      return '\u0421\u0440\u043e\u0447\u043d\u043e'
+      return 'Срочно'
     default:
       return ''
   }
@@ -355,50 +355,46 @@ export function Notifications() {
     })
 
     if (!res.ok) {
-      toast.error(
-        '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043d\u0430\u0437\u043d\u0430\u0447\u0438\u0442\u044c'
-      )
+      toast.error('Не удалось назначить')
       return
     }
 
-    toast.success(
-      '\u0412\u044b \u043d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u044b \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u0435\u043c'
-    )
+    toast.success('Вы назначены исполнителем')
     userNotificationsQuery.refetch()
     overdueQuery.refetch()
     urgentQuery.refetch()
   }
 
   const filterConfig: { key: FilterKey; label: string; count: number }[] = [
-    { key: 'all', label: '\u0412\u0441\u0435', count: counts.all },
+    { key: 'all', label: 'Все', count: counts.all },
     {
       key: 'unread',
-      label: '\u041d\u0435\u043f\u0440\u043e\u0447\u0438\u0442\u0430\u043d\u043d\u044b\u0435',
+      label: 'Непрочитанные',
       count: counts.unread,
     },
     {
       key: 'deadlines',
-      label: '\u0414\u0435\u0434\u043b\u0430\u0439\u043d\u044b',
+      label: 'Дедлайны',
       count: counts.deadlines,
     },
     {
       key: 'comments',
-      label: '\u041a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0438',
+      label: 'Комментарии',
       count: counts.comments,
     },
     {
       key: 'statuses',
-      label: '\u0421\u0442\u0430\u0442\u0443\u0441\u044b',
+      label: 'Статусы',
       count: counts.statuses,
     },
     {
       key: 'assignments',
-      label: '\u041d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f',
+      label: 'Назначения',
       count: counts.assignments,
     },
     {
       key: 'system',
-      label: '\u0421\u0438\u0441\u0442\u0435\u043c\u043d\u044b\u0435',
+      label: 'Системные',
       count: counts.system,
     },
   ]
@@ -414,18 +410,14 @@ export function Notifications() {
     }
     const days = item.daysLeft ?? 0
     if (item.kind === 'DEADLINE_OVERDUE') {
-      return `\u041f\u0440\u043e\u0441\u0440\u043e\u0447\u0435\u043d\u043e \u043d\u0430 ${Math.abs(
-        days
-      )} ${pluralizeDays(days)}`
+      return `Просрочено на ${Math.abs(days)} ${pluralizeDays(days)}`
     }
-    return `\u0414\u0435\u0434\u043b\u0430\u0439\u043d \u0447\u0435\u0440\u0435\u0437 ${days} ${pluralizeDays(
-      days
-    )}`
+    return `Дедлайн через ${days} ${pluralizeDays(days)}`
   }
 
   const renderNotificationMeta = (item: UnifiedNotification) => {
     if (isDeadlineKind(item.kind)) {
-      return <span>\u0421\u0440\u043e\u043a: {formatDate(item.letter?.deadlineDate || '')}</span>
+      return <span>Срок: {formatDate(item.letter?.deadlineDate || '')}</span>
     }
     return <span>{new Date(item.createdAt).toLocaleString('ru-RU')}</span>
   }
@@ -450,13 +442,13 @@ export function Notifications() {
           cls: commonClass,
         }
       case 'SYSTEM':
-        return { icon: Info, color: 'text-gray-300', bg: 'bg-gray-700', cls: commonClass }
+        return { icon: Info, color: 'text-slate-300', bg: 'bg-slate-800/80', cls: commonClass }
       case 'DEADLINE_OVERDUE':
         return { icon: AlertTriangle, color: 'text-red-400', bg: 'bg-red-500/20', cls: commonClass }
       case 'DEADLINE_URGENT':
         return { icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500/20', cls: commonClass }
       default:
-        return { icon: Bell, color: 'text-gray-300', bg: 'bg-gray-700', cls: commonClass }
+        return { icon: Bell, color: 'text-slate-300', bg: 'bg-slate-800/80', cls: commonClass }
     }
   }
 
@@ -477,8 +469,8 @@ export function Notifications() {
             return next
           })
         }}
-        className="relative p-2 text-gray-400 transition hover:text-white"
-        aria-label="Notifications"
+        className="relative p-2 text-slate-400 transition hover:text-white"
+        aria-label="Уведомления"
       >
         <Bell className="h-5 w-5" />
         {totalCount > 0 && (
@@ -492,75 +484,91 @@ export function Notifications() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
 
-          <div className="absolute right-0 top-full z-50 mt-2 flex max-h-[75vh] w-[28rem] flex-col overflow-hidden rounded-lg border border-gray-700 bg-gray-800 shadow-xl">
-            <div className="flex items-center justify-between border-b border-gray-700 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <h3 className="font-medium text-white">
-                  \u0423\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f
-                </h3>
-                {counts.unread > 0 && (
-                  <span className="text-xs text-emerald-400">{counts.unread}</span>
+          <div className="absolute right-0 top-full z-50 mt-2 flex max-h-[78vh] w-[30rem] flex-col overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-900/95 shadow-2xl shadow-black/40 backdrop-blur">
+            <div className="flex items-start justify-between border-b border-slate-700/70 px-4 py-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-semibold text-white">Уведомления</h3>
+                  {counts.unread > 0 && (
+                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-300">
+                      {counts.unread}
+                    </span>
+                  )}
+                </div>
+                {counts.all > 0 && (
+                  <div className="mt-1 text-xs text-slate-500">
+                    Непрочитанные: {counts.unread} · Дедлайны: {counts.deadlines}
+                  </div>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2 text-right">
                 {counts.unread > 0 && (
                   <button
                     onClick={markAllRead}
-                    className="text-xs text-emerald-400 transition hover:text-emerald-300"
+                    className="rounded-md px-2 py-1 text-xs text-emerald-300 transition hover:bg-emerald-500/10 hover:text-emerald-200"
                   >
-                    \u041f\u0440\u043e\u0447\u0438\u0442\u0430\u0442\u044c \u0432\u0441\u0435
+                    Прочитать все
                   </button>
                 )}
-                {counts.deadlines > 0 && (
+                {counts.deadlines > 0 && !hasActiveSnoozes && (
                   <button
                     onClick={snoozeAllDeadlines}
-                    className="text-xs text-gray-400 transition hover:text-gray-300"
+                    className="rounded-md px-2 py-1 text-xs text-slate-300 transition hover:bg-slate-800/80 hover:text-slate-100"
                   >
-                    \u0421\u043a\u0440\u044b\u0442\u044c
-                    \u0434\u0435\u0434\u043b\u0430\u0439\u043d\u044b
+                    Скрыть дедлайны
                   </button>
                 )}
                 {hasActiveSnoozes && (
                   <button
                     onClick={clearSnoozes}
-                    className="text-xs text-gray-400 transition hover:text-gray-300"
+                    className="rounded-md px-2 py-1 text-xs text-slate-300 transition hover:bg-slate-800/80 hover:text-slate-100"
                   >
-                    \u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c
-                    \u0434\u0435\u0434\u043b\u0430\u0439\u043d\u044b
+                    Показать дедлайны
                   </button>
                 )}
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="p-1 text-gray-400 transition hover:text-white"
-                  aria-label="Close notifications"
+                  className="rounded-md p-1 text-slate-400 transition hover:bg-slate-800/70 hover:text-white"
+                  aria-label="Закрыть уведомления"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 overflow-x-auto border-b border-gray-700 px-4 py-2">
+            <div className="flex items-center gap-2 overflow-x-auto border-b border-slate-800/80 bg-slate-900/70 px-4 py-2">
               {filterConfig.map((filter) => (
                 <button
                   key={filter.key}
                   onClick={() => setActiveFilter(filter.key)}
-                  className={`shrink-0 rounded-full border px-3 py-1 text-xs transition ${
+                  className={`shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition ${
                     activeFilter === filter.key
-                      ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300'
-                      : 'border-gray-700 text-gray-400 hover:text-gray-200'
+                      ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-200 shadow-sm'
+                      : 'border-slate-700/60 text-slate-400 hover:border-slate-600/70 hover:text-slate-200'
                   }`}
                 >
                   {filter.label}
-                  {filter.count > 0 && <span className="ml-1">({filter.count})</span>}
+                  {filter.count > 0 && (
+                    <span
+                      className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${
+                        activeFilter === filter.key
+                          ? 'bg-emerald-500/20 text-emerald-200'
+                          : 'bg-slate-800 text-slate-300'
+                      }`}
+                    >
+                      {filter.count}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
 
             <div ref={notificationsRef} className="flex-1 overflow-y-auto">
               {filteredNotifications.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  \u041d\u0435\u0442
-                  \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439
+                <div className="flex flex-col items-center gap-2 p-10 text-slate-500">
+                  <Bell className="h-6 w-6 text-slate-600" />
+                  <div className="text-sm">Пока нет уведомлений</div>
+                  <div className="text-xs text-slate-600">Новые события появятся здесь.</div>
                 </div>
               ) : (
                 <div className="relative" style={{ height: `${notificationsTotalSize}px` }}>
@@ -581,48 +589,52 @@ export function Notifications() {
                           }
                           setIsOpen(false)
                         }}
-                        className={`absolute left-0 right-0 flex items-start gap-3 border-b border-gray-700 px-4 py-3 transition ${
-                          isUnread ? 'bg-emerald-500/5' : 'bg-transparent'
-                        } hover:bg-gray-700/50`}
+                        className={`absolute left-3 right-3 flex items-start gap-3 rounded-xl border px-4 py-3 transition ${
+                          isUnread
+                            ? 'border-emerald-500/30 bg-emerald-500/10'
+                            : 'border-slate-800/60 bg-slate-900/40'
+                        } hover:border-slate-600/70 hover:bg-slate-800/70`}
                         style={{
                           top: `${virtualItem.start}px`,
                           height: `${virtualItem.size}px`,
                         }}
                       >
-                        <div className={`rounded-lg p-2 ${iconConfig.bg} ${iconConfig.color}`}>
+                        <div
+                          className={`rounded-lg p-2 ring-1 ring-white/10 ${iconConfig.bg} ${iconConfig.color}`}
+                        >
                           <Icon className={iconConfig.cls} />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm text-white">
+                            <span className="text-sm font-medium text-white">
                               {renderNotificationTitle(notif)}
                             </span>
                             {isUnread && <span className="h-2 w-2 rounded-full bg-emerald-400" />}
                           </div>
                           {notif.body && (
-                            <div className="mt-1 line-clamp-2 text-xs text-gray-400">
+                            <div className="mt-1 line-clamp-2 text-xs text-slate-300">
                               {notif.body}
                             </div>
                           )}
                           {notif.letter?.org && (
-                            <div className="mt-1 truncate text-xs text-gray-500">
+                            <div className="mt-1 truncate text-xs text-slate-400">
                               {notif.letter.org}
                             </div>
                           )}
-                          <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                          <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
                             <span>{getKindLabel(notif.kind)}</span>
                             <span>•</span>
                             {renderNotificationMeta(notif)}
                             {notif.letter?.number && (
                               <>
                                 <span>•</span>
-                                <span className="font-mono text-emerald-400">
+                                <span className="font-mono text-emerald-300">
                                   №{notif.letter.number}
                                 </span>
                               </>
                             )}
                           </div>
-                          <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                          <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
                             {!isDeadlineKind(notif.kind) && notif.isRead === false && (
                               <button
                                 onClick={(event) => {
@@ -630,10 +642,9 @@ export function Notifications() {
                                   event.stopPropagation()
                                   markNotificationRead(notif.id)
                                 }}
-                                className="rounded bg-gray-700 px-2 py-1 text-gray-300 transition hover:text-white"
+                                className="rounded-full bg-slate-800/80 px-2.5 py-1 text-slate-200 transition hover:bg-slate-700"
                               >
-                                \u041e\u0442\u043c\u0435\u0442\u0438\u0442\u044c
-                                \u043f\u0440\u043e\u0447\u0438\u0442\u0430\u043d\u043d\u044b\u043c
+                                Отметить прочитанным
                               </button>
                             )}
                             {isDeadlineKind(notif.kind) && notif.letter?.id && (
@@ -645,10 +656,9 @@ export function Notifications() {
                                     snoozeDeadline(notif.letter.id)
                                   }
                                 }}
-                                className="rounded bg-gray-700 px-2 py-1 text-gray-300 transition hover:text-white"
+                                className="rounded-full bg-slate-800/80 px-2.5 py-1 text-slate-200 transition hover:bg-slate-700"
                               >
-                                \u0421\u043a\u0440\u044b\u0442\u044c \u0434\u043e
-                                \u0437\u0430\u0432\u0442\u0440\u0430
+                                Скрыть до завтра
                               </button>
                             )}
                             {canManageLetters &&
@@ -661,15 +671,14 @@ export function Notifications() {
                                     event.stopPropagation()
                                     assignToMe(notif.letter!.id)
                                   }}
-                                  className="rounded bg-emerald-500/20 px-2 py-1 text-emerald-300 transition hover:text-emerald-200"
+                                  className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-emerald-200 transition hover:bg-emerald-500/25"
                                 >
-                                  \u041d\u0430\u0437\u043d\u0430\u0447\u0438\u0442\u044c
-                                  \u0441\u0435\u0431\u044f
+                                  Назначить себя
                                 </button>
                               )}
                           </div>
                         </div>
-                        <ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-500" />
+                        <ChevronRight className="h-4 w-4 flex-shrink-0 text-slate-500" />
                       </Link>
                     )
                   })}
@@ -677,14 +686,13 @@ export function Notifications() {
               )}
             </div>
 
-            <div className="border-t border-gray-700">
+            <div className="border-t border-slate-800/80">
               <Link
                 href="/settings"
                 onClick={() => setIsOpen(false)}
-                className="block px-4 py-3 text-center text-sm text-gray-400 transition hover:text-gray-300"
+                className="block px-4 py-3 text-center text-sm text-slate-400 transition hover:text-slate-200"
               >
-                \u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438
-                \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439
+                Настройки уведомлений
               </Link>
             </div>
           </div>
