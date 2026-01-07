@@ -2,15 +2,27 @@
 
 import { SessionProvider } from 'next-auth/react'
 import { ThemeProvider } from '@/contexts/ThemeContext'
-import { ReactNode } from 'react'
+import { ReactNode, useEffect } from 'react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ToastWrapper } from '@/components/Toast'
 import { QueryProvider } from '@/lib/react-query'
 import { installCsrfFetch } from '@/lib/csrf-client'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 installCsrfFetch()
 
 export function Providers({ children }: { children: ReactNode }) {
+  const [newYearVibe] = useLocalStorage<boolean>('new-year-vibe', false)
+
+  useEffect(() => {
+    const root = document.documentElement
+    if (newYearVibe) {
+      root.classList.add('new-year')
+    } else {
+      root.classList.remove('new-year')
+    }
+  }, [newYearVibe])
+
   return (
     <QueryProvider>
       <SessionProvider>

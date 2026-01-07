@@ -37,6 +37,7 @@ import { useToast } from '@/components/Toast'
 import { hasPermission } from '@/lib/permissions'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 import { PermissionsManager } from '@/components/PermissionsManager'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 interface User {
   id: string
@@ -225,6 +226,7 @@ export default function SettingsPage() {
   useAuthRedirect(authStatus)
   const router = useRouter()
   const isSuperAdmin = session?.user.role === 'SUPERADMIN'
+  const [newYearVibe, setNewYearVibe] = useLocalStorage<boolean>('new-year-vibe', false)
   const [activeTab, setActiveTab] = useState<'permissions' | 'users' | 'sync' | 'audit'>('users')
   const [users, setUsers] = useState<User[]>([])
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>([])
@@ -1260,6 +1262,59 @@ export default function SettingsPage() {
         <p className="text-muted mb-6 mt-2 text-sm">
           {'Роли, доступ, уведомления и журнал безопасности.'}
         </p>
+
+        <div className="panel panel-glass mb-6 rounded-2xl p-4 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 p-2 text-emerald-300">
+                <Crown className="h-4 w-4" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-white">
+                  {
+                    '\u041d\u043e\u0432\u043e\u0433\u043e\u0434\u043d\u0438\u0439 \u0432\u0430\u0439\u0431'
+                  }
+                </div>
+                <div className="text-xs text-gray-400">
+                  {
+                    '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043b\u0435\u0433\u043a\u0438\u0435 \u0437\u0438\u043c\u043d\u0438\u0435 \u0430\u043a\u0446\u0435\u043d\u0442\u044b \u0438 \u043d\u0435\u0436\u043d\u0443\u044e \u043f\u043e\u0434\u0441\u0432\u0435\u0442\u043a\u0443 \u043f\u043e \u0432\u0441\u0435\u043c\u0443 \u0441\u0430\u0439\u0442\u0443.'
+                  }
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={newYearVibe}
+              aria-label="Toggle new year vibe"
+              onClick={() => setNewYearVibe((prev) => !prev)}
+              className={`flex items-center gap-3 rounded-full border px-3 py-2 text-xs font-medium transition ${
+                newYearVibe
+                  ? 'border-emerald-400/50 bg-emerald-500/15 text-emerald-200 shadow-[0_0_18px_rgba(16,185,129,0.25)]'
+                  : 'border-white/10 bg-white/5 text-gray-300 hover:bg-white/10'
+              }`}
+            >
+              <span
+                className={`flex h-5 w-9 items-center rounded-full border transition ${
+                  newYearVibe
+                    ? 'border-emerald-400/60 bg-emerald-500/40'
+                    : 'border-white/10 bg-white/5'
+                }`}
+              >
+                <span
+                  className={`h-4 w-4 rounded-full bg-white transition ${
+                    newYearVibe ? 'translate-x-4' : 'translate-x-0.5'
+                  }`}
+                />
+              </span>
+              <span>
+                {newYearVibe
+                  ? '\u0412\u043a\u043b\u044e\u0447\u0435\u043d\u043e'
+                  : '\u0412\u044b\u043a\u043b\u044e\u0447\u0435\u043d\u043e'}
+              </span>
+            </button>
+          </div>
+        </div>
 
         {/* Tabs */}
         <div className="mb-6 flex flex-wrap gap-2 border-b border-white/10 pb-4">
