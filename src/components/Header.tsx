@@ -118,12 +118,7 @@ export function Header() {
 
   const isActive = (path: string) => pathname === path
 
-  const navLinkClass = (path: string) =>
-    `flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition whitespace-nowrap text-sm ${
-      isActive(path)
-        ? 'bg-teal-400/15 text-teal-200 border border-teal-400/20'
-        : 'text-slate-200/80 hover:bg-white/5 hover:text-white'
-    }`
+  const navLinkClass = 'app-nav-link whitespace-nowrap text-sm'
 
   return (
     <header className="app-header relative sticky top-0 z-[120] backdrop-blur">
@@ -159,19 +154,19 @@ export function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden items-center gap-1 md:flex">
-            <Link href="/" className={navLinkClass('/')}>
+            <Link href="/" className={navLinkClass} data-active={isActive('/')}>
               <Home className="h-4 w-4" />
               {'\u0413\u043b\u0430\u0432\u043d\u0430\u044f'}
             </Link>
-            <Link href="/letters" className={navLinkClass('/letters')}>
+            <Link href="/letters" className={navLinkClass} data-active={isActive('/letters')}>
               <FileText className="h-4 w-4" />
               {'\u041f\u0438\u0441\u044c\u043c\u0430'}
             </Link>
-            <Link href="/requests" className={navLinkClass('/requests')}>
+            <Link href="/requests" className={navLinkClass} data-active={isActive('/requests')}>
               <Inbox className="h-4 w-4" />
               {'\u0417\u0430\u044f\u0432\u043a\u0438'}
             </Link>
-            <Link href="/reports" className={navLinkClass('/reports')}>
+            <Link href="/reports" className={navLinkClass} data-active={isActive('/reports')}>
               <BarChart3 className="h-4 w-4" />
               {'\u041e\u0442\u0447\u0435\u0442\u044b'}
             </Link>
@@ -183,9 +178,8 @@ export function Header() {
                   disabled={syncing}
                   aria-haspopup="menu"
                   aria-expanded={syncMenuOpen}
-                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm transition ${
-                    syncing ? 'opacity-50' : 'text-slate-200/80 hover:bg-white/5 hover:text-white'
-                  }`}
+                  className={`${navLinkClass} ${syncing ? 'opacity-50' : ''}`}
+                  data-active={syncMenuOpen}
                 >
                   <Settings className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
                   <ChevronDown
@@ -234,7 +228,7 @@ export function Header() {
             <div className="relative">
               <button
                 onClick={() => setQuickCreateOpen(!quickCreateOpen)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500 text-white shadow-lg shadow-teal-500/30 transition hover:bg-teal-400"
+                className="app-icon-button app-icon-cta h-8 w-8"
                 title="Создать"
               >
                 <Plus className={`h-5 w-5 transition ${quickCreateOpen ? 'rotate-45' : ''}`} />
@@ -271,7 +265,7 @@ export function Header() {
                 <Notifications />
                 <Link
                   href="/profile"
-                  className="rounded-full bg-white/10 p-1.5 transition hover:bg-white/20"
+                  className="app-icon-button rounded-full p-1.5"
                   title={'Профиль'}
                 >
                   {session.user.image ? (
@@ -289,7 +283,7 @@ export function Header() {
                 </Link>
                 <button
                   onClick={() => signOut({ callbackUrl: '/login' })}
-                  className="rounded-lg p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"
+                  className="app-icon-button p-2"
                   title="Выйти"
                 >
                   <LogOut className="h-5 w-5" />
@@ -311,7 +305,7 @@ export function Header() {
               }
               aria-expanded={mobileMenuOpen}
               aria-controls="mobile-menu"
-              className="rounded-lg p-2 text-slate-300 transition hover:bg-white/10 hover:text-white"
+              className="app-icon-button p-2"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>

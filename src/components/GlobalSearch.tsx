@@ -243,10 +243,7 @@ export function GlobalSearch() {
             className="flex-1 bg-transparent text-base text-white placeholder-slate-400 outline-none"
           />
           {loading && <Loader2 className="h-5 w-5 animate-spin text-slate-400" />}
-          <button
-            onClick={() => setIsOpen(false)}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
-          >
+          <button onClick={() => setIsOpen(false)} className="app-icon-button p-1.5">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -296,15 +293,15 @@ export function GlobalSearch() {
         <div className="flex items-center justify-between border-t border-white/10 px-4 py-2 text-xs text-slate-500">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
-              <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-slate-400">↑↓</kbd>
+              <kbd className="app-kbd">↑↓</kbd>
               навигация
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-slate-400">Enter</kbd>
+              <kbd className="app-kbd">Enter</kbd>
               открыть
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-slate-400">Esc</kbd>
+              <kbd className="app-kbd">Esc</kbd>
               закрыть
             </span>
           </div>
@@ -340,12 +337,12 @@ export function SearchButton() {
   return (
     <button
       onClick={handleClick}
-      className="hidden items-center gap-2 rounded-lg bg-white/5 px-3 py-1.5 text-sm text-slate-400 transition hover:bg-white/10 hover:text-white md:flex"
+      className="app-pill hidden items-center gap-2 text-sm md:flex"
       title="Поиск (Ctrl+K)"
     >
       <Search className="h-4 w-4" />
       <span className="hidden lg:inline">Поиск</span>
-      <kbd className="hidden rounded bg-white/10 px-1.5 py-0.5 text-xs lg:inline">
+      <kbd className="app-kbd hidden lg:inline">
         <Command className="inline h-3 w-3" />K
       </kbd>
     </button>

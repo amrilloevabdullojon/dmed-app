@@ -4,7 +4,14 @@ import { ReactNode } from 'react'
 import { Inbox, FileText, Search, AlertCircle, FolderOpen, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type EmptyStateVariant = 'requests' | 'letters' | 'search' | 'error' | 'files' | 'comments' | 'default'
+type EmptyStateVariant =
+  | 'requests'
+  | 'letters'
+  | 'search'
+  | 'error'
+  | 'files'
+  | 'comments'
+  | 'default'
 
 interface EmptyStateProps {
   variant?: EmptyStateVariant
@@ -14,13 +21,16 @@ interface EmptyStateProps {
   className?: string
 }
 
-const VARIANTS: Record<EmptyStateVariant, {
-  icon: typeof Inbox
-  defaultTitle: string
-  defaultDescription: string
-  iconColor: string
-  bgColor: string
-}> = {
+const VARIANTS: Record<
+  EmptyStateVariant,
+  {
+    icon: typeof Inbox
+    defaultTitle: string
+    defaultDescription: string
+    iconColor: string
+    bgColor: string
+  }
+> = {
   requests: {
     icon: Inbox,
     defaultTitle: 'Заявок пока нет',
@@ -85,24 +95,16 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'panel panel-glass rounded-2xl p-8 flex flex-col items-center justify-center text-center animate-fadeIn',
+        'panel panel-glass app-empty animate-fadeIn flex flex-col items-center justify-center rounded-2xl p-8 text-center',
         className
       )}
     >
-      <div className={cn('rounded-full p-4 mb-4', config.bgColor)}>
-        <Icon className={cn('w-8 h-8', config.iconColor)} />
+      <div className={cn('mb-4 rounded-full p-4', config.bgColor)}>
+        <Icon className={cn('h-8 w-8', config.iconColor)} />
       </div>
-      <h3 className="text-lg font-medium text-white mb-2">
-        {title || config.defaultTitle}
-      </h3>
-      <p className="text-sm text-slate-400 max-w-sm">
-        {description || config.defaultDescription}
-      </p>
-      {action && (
-        <div className="mt-4">
-          {action}
-        </div>
-      )}
+      <h3 className="mb-2 text-lg font-medium text-white">{title || config.defaultTitle}</h3>
+      <p className="text-muted max-w-sm text-sm">{description || config.defaultDescription}</p>
+      {action && <div className="mt-4">{action}</div>}
     </div>
   )
 }
@@ -124,13 +126,9 @@ export function EmptyStateCompact({
 
   return (
     <div
-      className={cn(
-        'flex items-center gap-3 p-4 rounded-lg text-slate-400',
-        config.bgColor,
-        className
-      )}
+      className={cn('text-muted flex items-center gap-3 rounded-lg p-4', config.bgColor, className)}
     >
-      <Icon className={cn('w-5 h-5', config.iconColor)} />
+      <Icon className={cn('h-5 w-5', config.iconColor)} />
       <span className="text-sm">{message || config.defaultTitle}</span>
     </div>
   )
