@@ -525,14 +525,13 @@ export default function LetterDetailPage() {
     !!typeValue && !letterTypeOptions.some((option) => option.value === typeValue)
   const canEditIdentity = session.user.role === 'ADMIN' || session.user.role === 'SUPERADMIN'
   const notifyDisabledReason = !canManageLetters
-  const notifyDisabled =
-    notifyingOwner || !!notifyDisabledReason
-      ? '\u041d\u0435\u0434\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e \u043f\u0440\u0430\u0432 \u0434\u043b\u044f \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439'
-      : !letter.owner?.id
-        ? '\u041d\u0435\u0442 \u043d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u043d\u043e\u0433\u043e \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a\u0430'
-        : !letter.owner?.telegramChatId
-          ? '\u0423 \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f \u043d\u0435\u0442 Telegram ID'
-          : null
+    ? '\u041d\u0435\u0434\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e \u043f\u0440\u0430\u0432 \u0434\u043b\u044f \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439'
+    : !letter.owner?.id
+      ? '\u041d\u0435\u0442 \u043d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u043d\u043e\u0433\u043e \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a\u0430'
+      : !letter.owner?.telegramChatId
+        ? '\u0423 \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f \u043d\u0435\u0442 Telegram ID'
+        : null
+  const notifyDisabled = notifyingOwner || !!notifyDisabledReason
 
   const renderComment = (comment: CommentItem, depth = 0) => {
     const author =
