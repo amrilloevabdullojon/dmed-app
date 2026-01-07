@@ -175,6 +175,8 @@ function LettersPageContent() {
   const savedViewsRef = useRef<HTMLDivElement>(null)
   const applyingViewRef = useRef(false)
   const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([])
+  const [recentSearches, setRecentSearches] = useState<string[]>([])
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [suggestionsOpen, setSuggestionsOpen] = useState(false)
   const [suggestionsLoading, setSuggestionsLoading] = useState(false)
   const suggestionsAbortRef = useRef<AbortController | null>(null)
@@ -186,6 +188,8 @@ function LettersPageContent() {
     }
   )
   const [isMobile, setIsMobile] = useState(false)
+  const isInitialLoading = loading && letters.length === 0
+  const filtersDisabled = isInitialLoading
   const effectiveViewMode = isMobile && viewMode !== 'kanban' ? 'cards' : viewMode
   const [filtersOpen, setFiltersOpen] = useState(true)
   const [showBulkCreate, setShowBulkCreate] = useState(false)
@@ -376,6 +380,68 @@ function LettersPageContent() {
   }, [])
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const stored = localStorage.getItem('letters-recent-searches')
+      if (stored) {
+        const parsed = JSON.parse(stored) as string[]
+        if (Array.isArray(parsed)) {
+          setRecentSearches(parsed.slice(0, 6))
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  const saveRecentSearch = useCallback((value: string) => {
+    const trimmed = value.trim()
+    if (!trimmed || trimmed.length < 2 || typeof window === 'undefined') return
+    setRecentSearches((prev) => {
+      const normalized = trimmed.toLowerCase()
+      const next = [trimmed, ...prev.filter((item) => item.toLowerCase() !== normalized)].slice(
+        0,
+        6
+      )
+      try {
+        localStorage.setItem('letters-recent-searches', JSON.stringify(next))
+      } catch {
+        // ignore
+      }
+      return next
+    })
+  }, [])
+
+  const clearRecentSearches = useCallback(() => {
+    setRecentSearches([])
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.removeItem('letters-recent-searches')
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  const renderHighlightedText = useCallback((value: string, query: string) => {
+    const trimmed = query.trim()
+    if (!trimmed) return value
+    const lowerValue = value.toLowerCase()
+    const lowerQuery = trimmed.toLowerCase()
+    const index = lowerValue.indexOf(lowerQuery)
+    if (index === -1) return value
+    const before = value.slice(0, index)
+    const match = value.slice(index, index + trimmed.length)
+    const after = value.slice(index + trimmed.length)
+    return (
+      <>
+        {before}
+        <span className="text-emerald-200">{match}</span>
+        {after}
+      </>
+    )
+  }, [])
+
+  useEffect(() => {
     setFiltersOpen(!isMobile)
   }, [isMobile])
 
@@ -525,7 +591,10 @@ function LettersPageContent() {
   }, 250)
 
   const debouncedSearch = useDebouncedCallback(() => {
-    if (session) loadLetters(false)
+    if (session) {
+      saveRecentSearch(searchRef.current)
+      loadLetters(false)
+    }
   }, 300)
 
   const resetFilters = useCallback(() => {
@@ -871,7 +940,9 @@ function LettersPageContent() {
                   }
                   goToPage(1)
                 }}
-                className={`app-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition ${quickFilter === filter.value ? 'app-chip-active' : ''}`}
+                className={`app-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition focus-visible:ring-2 focus-visible:ring-teal-400/50 ${quickFilter === filter.value ? 'app-chip-active' : ''}`}
+                aria-pressed={quickFilter === filter.value}
+                aria-label={filter.label}
               >
                 <Icon className="h-4 w-4" />
                 {filter.label}
@@ -881,31 +952,40 @@ function LettersPageContent() {
         </div>
 
         {/* Filters Row */}
-        <div className="panel panel-soft panel-glass relative z-20 mb-6 flex flex-col gap-4 rounded-2xl p-4 lg:flex-row lg:flex-wrap lg:items-center xl:flex-nowrap">
+        <div className="panel panel-soft panel-glass relative z-20 mb-6 flex flex-col gap-4 rounded-2xl p-4 lg:sticky lg:top-20 lg:z-30 lg:flex-row lg:flex-wrap lg:items-center xl:flex-nowrap">
           {/* Search */}
-          <div className="relative w-full lg:min-w-[280px] lg:flex-1 xl:min-w-[320px]">
+          <div className="relative w-full min-w-0 lg:min-w-[360px] lg:flex-[2_1_420px] xl:min-w-[420px]">
             {isSearching ? (
               <Loader2 className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin text-teal-400" />
             ) : (
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             )}
-            <input
-              ref={searchInputRef}
-              type="text"
-              placeholder="Поиск по номеру, организации, содержанию, Jira и ответам..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onFocus={() => {
-                if (searchSuggestions.length > 0) {
-                  setSuggestionsOpen(true)
-                }
-              }}
-              onBlur={() => {
-                window.setTimeout(() => setSuggestionsOpen(false), 150)
-              }}
-              className="w-full rounded-xl border border-white/10 bg-white/5 py-2 pl-10 pr-10 text-white placeholder-slate-400 focus:border-teal-400/80 focus:outline-none focus:ring-1 focus:ring-teal-400/40"
-              aria-label="Поиск"
-            />
+            {isInitialLoading ? (
+              <div
+                className="animate-shimmer h-10 w-full rounded-xl bg-white/5"
+                aria-hidden="true"
+              />
+            ) : (
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Поиск по номеру, организации, содержанию, Jira и ответам..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onFocus={() => {
+                  setIsSearchFocused(true)
+                  if (searchSuggestions.length > 0 || recentSearches.length > 0) {
+                    setSuggestionsOpen(true)
+                  }
+                }}
+                onBlur={() => {
+                  setIsSearchFocused(false)
+                  window.setTimeout(() => setSuggestionsOpen(false), 150)
+                }}
+                className="h-10 w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-10 text-white placeholder-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/50"
+                aria-label="Поиск"
+              />
+            )}
             {search && (
               <button
                 onClick={() => setSearch('')}
@@ -916,15 +996,56 @@ function LettersPageContent() {
               </button>
             )}
 
-            {(suggestionsOpen || suggestionsLoading) && search.trim() && (
+            {(suggestionsOpen ||
+              suggestionsLoading ||
+              (isSearchFocused && !search.trim() && recentSearches.length > 0)) && (
               <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-slate-800/70 bg-slate-950/95 shadow-2xl shadow-black/40 backdrop-blur">
                 <div className="flex items-center justify-between border-b border-slate-800/70 px-3 py-2 text-xs text-slate-400">
-                  <span>Подсказки</span>
+                  <span>{search.trim() ? 'Подсказки' : 'Последние поиски'}</span>
                   {suggestionsLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 </div>
                 <div className="max-h-64 overflow-auto">
-                  {searchSuggestions.length === 0 ? (
-                    <div className="px-3 py-4 text-xs text-slate-500">Ничего не найдено</div>
+                  {!search.trim() ? (
+                    recentSearches.length === 0 ? (
+                      <div className="px-3 py-4 text-xs text-slate-500">
+                        {'Пока нет истории поиска'}
+                      </div>
+                    ) : (
+                      <div className="space-y-1 px-3 py-2">
+                        {recentSearches.map((item) => (
+                          <button
+                            key={item}
+                            type="button"
+                            onMouseDown={(event) => {
+                              event.preventDefault()
+                              setSearch(item)
+                              setSuggestionsOpen(false)
+                            }}
+                            className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-sm text-slate-200 transition hover:bg-slate-900/60"
+                          >
+                            <span className="truncate">{item}</span>
+                            <span className="text-[10px] text-slate-500">{'Поиск'}</span>
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onMouseDown={(event) => {
+                            event.preventDefault()
+                            clearRecentSearches()
+                          }}
+                          className="mt-1 w-full rounded-lg px-2 py-1.5 text-left text-[11px] text-slate-500 transition hover:text-slate-200"
+                        >
+                          {'Очистить историю'}
+                        </button>
+                      </div>
+                    )
+                  ) : searchSuggestions.length === 0 ? (
+                    <div className="px-3 py-4 text-xs text-slate-500">
+                      <div>{'Ничего не найдено'}</div>
+                      <div className="mt-2 text-[11px] text-slate-600">
+                        {'Попробуйте: номер, организация, Jira'}
+                      </div>
+                    </div>
                   ) : (
                     searchSuggestions.map((item) => {
                       const daysLeft = getWorkingDaysUntilDeadline(item.deadlineDate)
@@ -947,12 +1068,14 @@ function LettersPageContent() {
                           className="flex w-full flex-col gap-1 border-b border-slate-900/60 px-3 py-2 text-left text-sm transition hover:bg-slate-900/70"
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <span className="font-mono text-teal-300">№{item.number}</span>
+                            <span className="font-mono text-teal-300">№-{item.number}</span>
                             <span className={`text-[11px] ${tone}`}>
                               {daysLeft} раб. {pluralizeDays(daysLeft)}
                             </span>
                           </div>
-                          <div className="truncate text-xs text-slate-300">{item.org}</div>
+                          <div className="truncate text-xs text-slate-300">
+                            {renderHighlightedText(item.org, search)}
+                          </div>
                           <div className="text-[11px] text-slate-500">
                             {STATUS_LABELS[item.status]}
                           </div>
@@ -971,7 +1094,7 @@ function LettersPageContent() {
 
           <button
             onClick={() => setFiltersOpen((prev) => !prev)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-slate-200 transition hover:bg-white/10 hover:text-white sm:hidden"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-slate-200 transition hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-teal-400/50 sm:hidden"
             aria-expanded={filtersOpen}
             aria-controls="letters-filters"
           >
@@ -979,12 +1102,53 @@ function LettersPageContent() {
             {activeFiltersCount > 0 ? `Фильтры (${activeFiltersCount})` : 'Фильтры'}
           </button>
 
+          {!filtersOpen && activeFiltersCount > 0 && (
+            <div className="flex w-full flex-wrap gap-2 sm:hidden">
+              {search && (
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
+                  {'Поиск'}: {search}
+                </span>
+              )}
+              {statusFilter !== 'all' && (
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
+                  {STATUS_LABELS[statusFilter as LetterStatus]}
+                </span>
+              )}
+              {quickFilter && (
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
+                  {FILTERS.find((item) => item.value === quickFilter)?.label || quickFilter}
+                </span>
+              )}
+              {ownerFilter && (
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
+                  {'Исполнитель'}:{' '}
+                  {users.find((user) => user.id === ownerFilter)?.name ||
+                    users.find((user) => user.id === ownerFilter)?.email ||
+                    ownerFilter}
+                </span>
+              )}
+              {typeFilter && (
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
+                  {'Тип'}:{' '}
+                  {LETTER_TYPES.find((item) => item.value === typeFilter)?.label || typeFilter}
+                </span>
+              )}
+              <button
+                onClick={resetFilters}
+                className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300 transition hover:text-white"
+                aria-label="Сбросить фильтры"
+              >
+                {'Сбросить'}
+              </button>
+            </div>
+          )}
+
           <div
             id="letters-filters"
-            className={`${filtersOpen ? 'flex' : 'hidden'} w-full flex-col gap-4 sm:flex sm:w-full sm:flex-row sm:flex-wrap lg:w-auto lg:flex-nowrap`}
+            className={`${filtersOpen ? 'flex' : 'hidden'} w-full flex-col gap-4 sm:flex sm:w-full sm:flex-row sm:flex-wrap lg:w-auto xl:flex-nowrap`}
           >
             {/* Status filter */}
-            <div className="flex w-full items-center gap-2 sm:w-auto">
+            <div className="flex w-full items-center gap-2 sm:w-auto sm:min-w-[190px]">
               <Filter className="h-5 w-5 text-slate-400" />
               <select
                 value={statusFilter}
@@ -993,7 +1157,8 @@ function LettersPageContent() {
                   setQuickFilter('')
                   goToPage(1)
                 }}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white focus:border-teal-400/80 focus:outline-none focus:ring-1 focus:ring-teal-400/40 sm:w-auto"
+                disabled={filtersDisabled}
+                className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/50 sm:w-auto"
                 aria-label="Статус"
               >
                 <option value="all">Все статусы</option>
@@ -1005,7 +1170,7 @@ function LettersPageContent() {
               </select>
             </div>
 
-            <div className="flex w-full items-center gap-2 sm:w-auto">
+            <div className="flex w-full items-center gap-2 sm:w-auto sm:min-w-[210px]">
               <Users className="h-5 w-5 text-slate-400" />
               <select
                 value={ownerFilter}
@@ -1016,7 +1181,8 @@ function LettersPageContent() {
                   }
                   goToPage(1)
                 }}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white focus:border-teal-400/80 focus:outline-none focus:ring-1 focus:ring-teal-400/40 sm:w-auto"
+                disabled={filtersDisabled}
+                className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/50 sm:w-auto"
                 aria-label="Исполнитель"
               >
                 <option value="">Все исполнители</option>
@@ -1028,7 +1194,7 @@ function LettersPageContent() {
               </select>
             </div>
 
-            <div className="flex w-full items-center gap-2 sm:w-auto">
+            <div className="flex w-full items-center gap-2 sm:w-auto sm:min-w-[190px]">
               <FileText className="h-5 w-5 text-slate-400" />
               <select
                 value={typeFilter}
@@ -1036,7 +1202,8 @@ function LettersPageContent() {
                   setTypeFilter(e.target.value)
                   goToPage(1)
                 }}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white focus:border-teal-400/80 focus:outline-none focus:ring-1 focus:ring-teal-400/40 sm:w-auto"
+                disabled={filtersDisabled}
+                className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/50 sm:w-auto"
                 aria-label="Тип"
               >
                 <option value="">Все типы</option>
@@ -1051,7 +1218,7 @@ function LettersPageContent() {
             {activeFiltersCount > 0 && (
               <button
                 onClick={resetFilters}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-slate-200 transition hover:bg-white/10 hover:text-white sm:w-auto"
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-slate-200 transition hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-teal-400/50 sm:w-auto"
                 aria-label="Сбросить фильтры"
               >
                 <XCircle className="h-4 w-4" />
@@ -1141,7 +1308,7 @@ function LettersPageContent() {
             <div className="panel-soft panel-glass hidden rounded-xl p-1 sm:flex">
               <button
                 onClick={() => setViewMode('table')}
-                className={`rounded-lg p-2 transition ${viewMode === 'table' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
+                className={`rounded-lg p-2 transition focus-visible:ring-2 focus-visible:ring-teal-400/50 ${viewMode === 'table' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
                 title="Таблица"
                 aria-label="Табличный вид"
               >
@@ -1149,7 +1316,7 @@ function LettersPageContent() {
               </button>
               <button
                 onClick={() => setViewMode('cards')}
-                className={`rounded-lg p-2 transition ${viewMode === 'cards' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
+                className={`rounded-lg p-2 transition focus-visible:ring-2 focus-visible:ring-teal-400/50 ${viewMode === 'cards' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
                 title="Карточки"
                 aria-label="Карточный вид"
               >
@@ -1157,7 +1324,7 @@ function LettersPageContent() {
               </button>
               <button
                 onClick={() => setViewMode('kanban')}
-                className={`rounded-lg p-2 transition ${viewMode === 'kanban' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
+                className={`rounded-lg p-2 transition focus-visible:ring-2 focus-visible:ring-teal-400/50 ${viewMode === 'kanban' ? 'bg-white/10 text-white' : 'text-slate-300 hover:text-white'}`}
                 title="Канбан"
                 aria-label="Канбан"
               >
