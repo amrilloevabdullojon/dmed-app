@@ -901,12 +901,13 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
                             placeholder="7941"
                           />
                           {isDuplicate && (
-                            <AlertCircle
-                              className="h-4 w-4 text-amber-400"
+                            <span
                               title={
                                 '\u0414\u0443\u0431\u043b\u0438\u043a\u0430\u0442 \u043d\u043e\u043c\u0435\u0440\u0430'
                               }
-                            />
+                            >
+                              <AlertCircle className="h-4 w-4 text-amber-400" />
+                            </span>
                           )}
                         </div>
                       </td>
