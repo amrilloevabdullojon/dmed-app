@@ -120,6 +120,42 @@ h3,
   background-color: #f3f4f6 !important;
 }
 
+.light .bg-gray-900\/60 {
+  background-color: rgba(248, 250, 252, 0.92) !important;
+}
+
+.light .bg-gray-900\/50 {
+  background-color: rgba(248, 250, 252, 0.88) !important;
+}
+
+.light .bg-gray-900\/40 {
+  background-color: rgba(248, 250, 252, 0.8) !important;
+}
+
+.light .bg-gray-800\/80 {
+  background-color: rgba(248, 250, 252, 0.95) !important;
+}
+
+.light .bg-gray-800\/60 {
+  background-color: rgba(248, 250, 252, 0.9) !important;
+}
+
+.light .bg-gray-800\/50 {
+  background-color: rgba(248, 250, 252, 0.88) !important;
+}
+
+.light .bg-gray-800\/40 {
+  background-color: rgba(248, 250, 252, 0.8) !important;
+}
+
+.light .bg-gray-700\/50 {
+  background-color: rgba(241, 245, 249, 0.85) !important;
+}
+
+.light .bg-gray-700\/40 {
+  background-color: rgba(241, 245, 249, 0.75) !important;
+}
+
 .light .bg-slate-900 {
   background-color: #f8fafc !important;
 }
@@ -184,12 +220,84 @@ h3,
   color: #64748b !important;
 }
 
+.light .text-teal-200 {
+  color: #0f766e !important;
+}
+
+.light .text-teal-300 {
+  color: #0f766e !important;
+}
+
+.light .text-teal-400 {
+  color: #0f766e !important;
+}
+
+.light .text-emerald-300 {
+  color: #047857 !important;
+}
+
+.light .text-emerald-400 {
+  color: #059669 !important;
+}
+
+.light .text-cyan-400 {
+  color: #0e7490 !important;
+}
+
+.light .text-sky-400 {
+  color: #0284c7 !important;
+}
+
+.light .text-blue-400 {
+  color: #2563eb !important;
+}
+
+.light .text-purple-400 {
+  color: #7c3aed !important;
+}
+
+.light .text-amber-300 {
+  color: #b45309 !important;
+}
+
+.light .text-amber-400 {
+  color: #b45309 !important;
+}
+
+.light .text-yellow-400 {
+  color: #a16207 !important;
+}
+
+.light .text-red-300 {
+  color: #b91c1c !important;
+}
+
+.light .text-red-400 {
+  color: #dc2626 !important;
+}
+
 .light .border-gray-700 {
   border-color: #e5e7eb !important;
 }
 
 .light .border-gray-600 {
   border-color: #d1d5db !important;
+}
+
+.light .border-gray-700\/60 {
+  border-color: rgba(148, 163, 184, 0.5) !important;
+}
+
+.light .border-gray-700\/50 {
+  border-color: rgba(148, 163, 184, 0.45) !important;
+}
+
+.light .border-gray-600\/60 {
+  border-color: rgba(148, 163, 184, 0.45) !important;
+}
+
+.light .border-gray-800\/80 {
+  border-color: rgba(148, 163, 184, 0.55) !important;
 }
 
 .light .border-slate-800\/80 {
@@ -206,6 +314,18 @@ h3,
 
 .light .border-slate-700\/60 {
   border-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+.light .bg-teal-400\/15 {
+  background-color: rgba(13, 148, 136, 0.12) !important;
+}
+
+.light .bg-teal-500\/15 {
+  background-color: rgba(13, 148, 136, 0.12) !important;
+}
+
+.light .border-teal-400\/20 {
+  border-color: rgba(13, 148, 136, 0.35) !important;
 }
 
 .light .border-slate-600\/70 {
@@ -456,11 +576,15 @@ h3,
 }
 
 .light .bg-white\/5 {
-  background-color: rgba(15, 23, 42, 0.04) !important;
+  background-color: rgba(15, 23, 42, 0.06) !important;
 }
 
 .light .bg-white\/10 {
-  background-color: rgba(15, 23, 42, 0.08) !important;
+  background-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+.light .bg-white\/20 {
+  background-color: rgba(15, 23, 42, 0.14) !important;
 }
 
 .light .border-white\/10 {
@@ -471,8 +595,28 @@ h3,
   border-color: rgba(15, 23, 42, 0.18) !important;
 }
 
+.light .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.light .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
 .light .text-slate-200\/80 {
   color: rgba(15, 23, 42, 0.8) !important;
+}
+
+.light .text-slate-200\/70 {
+  color: rgba(15, 23, 42, 0.7) !important;
+}
+
+.light .text-slate-200\/60 {
+  color: rgba(15, 23, 42, 0.6) !important;
+}
+
+.light .text-slate-200\/50 {
+  color: rgba(15, 23, 42, 0.5) !important;
 }
 
 .light .text-slate-300\/70 {
@@ -481,6 +625,10 @@ h3,
 
 .light .text-slate-300\/80 {
   color: rgba(15, 23, 42, 0.8) !important;
+}
+
+.light .text-amber-300\/80 {
+  color: rgba(180, 83, 9, 0.85) !important;
 }
 
 .light .text-white\/80 {

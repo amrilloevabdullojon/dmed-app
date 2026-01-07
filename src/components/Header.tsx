@@ -24,6 +24,7 @@ import { ThemeToggle } from './ThemeToggle'
 import { MobileBottomNav } from './MobileBottomNav'
 import { useToast } from '@/components/Toast'
 import { GlobalSearch, SearchButton } from './GlobalSearch'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 export function Header() {
   const { data: session } = useSession()
@@ -33,6 +34,7 @@ export function Header() {
   const [syncing, setSyncing] = useState(false)
   const [syncMenuOpen, setSyncMenuOpen] = useState(false)
   const [quickCreateOpen, setQuickCreateOpen] = useState(false)
+  const [newYearVibe] = useLocalStorage<boolean>('new-year-vibe', false)
   const isAdminRole = session?.user.role === 'ADMIN' || session?.user.role === 'SUPERADMIN'
   const roleLabel =
     session?.user.role === 'SUPERADMIN'
@@ -126,13 +128,21 @@ export function Header() {
   return (
     <header className="app-header relative sticky top-0 z-[120] backdrop-blur">
       {/* Christmas lights */}
-      <div className="pointer-events-none absolute left-0 right-0 top-0 hidden justify-around overflow-hidden sm:flex">
-        {Array.from({ length: 15 }).map((_, i) => (
-          <span key={i} className={`animate-twinkle text-xs twinkle-delay-${i}`}>
-            {['🔴', '🟢', '🟡', '🔵'][i % 4]}
-          </span>
-        ))}
-      </div>
+      {newYearVibe && (
+        <div className="pointer-events-none absolute left-0 right-0 top-0 hidden justify-around overflow-hidden sm:flex">
+          {Array.from({ length: 15 }).map((_, i) => {
+            const colors = ['#ef4444', '#22c55e', '#f59e0b', '#3b82f6']
+            const color = colors[i % colors.length]
+            return (
+              <span
+                key={i}
+                className={`animate-twinkle twinkle-delay-${i} inline-block h-2.5 w-2.5 rounded-full`}
+                style={{ backgroundColor: color, boxShadow: `0 0 8px ${color}` }}
+              />
+            )
+          })}
+        </div>
+      )}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center justify-between sm:h-16">
           {/* Logo */}
