@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 interface Snowflake {
   id: number
@@ -12,10 +13,15 @@ interface Snowflake {
 }
 
 export function Snowfall() {
+  const [newYearVibe] = useLocalStorage<boolean>('new-year-vibe', false)
   const [snowflakes, setSnowflakes] = useState<Snowflake[]>([])
 
   useEffect(() => {
-    // Создаём снежинки
+    if (!newYearVibe) {
+      setSnowflakes([])
+      return
+    }
+
     const flakeCount = typeof window !== 'undefined' && window.innerWidth < 768 ? 24 : 50
     const flakes: Snowflake[] = Array.from({ length: flakeCount }, (_, i) => ({
       id: i,
@@ -26,25 +32,29 @@ export function Snowfall() {
       wobble: Math.random() * 10,
     }))
     setSnowflakes(flakes)
-  }, [])
+  }, [newYearVibe])
+
+  if (!newYearVibe) return null
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-50">
+    <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
       {snowflakes.map((flake) => (
         <div
           key={flake.id}
-          className="absolute animate-snowfall"
-          style={{
-            left: `${flake.x}%`,
-            width: `${flake.size}px`,
-            height: `${flake.size}px`,
-            opacity: flake.opacity,
-            animationDuration: `${flake.speed + 5}s`,
-            animationDelay: `${-Math.random() * 10}s`,
-            '--wobble': `${flake.wobble}px`,
-          } as React.CSSProperties}
+          className="animate-snowfall absolute"
+          style={
+            {
+              left: `${flake.x}%`,
+              width: `${flake.size}px`,
+              height: `${flake.size}px`,
+              opacity: flake.opacity,
+              animationDuration: `${flake.speed + 5}s`,
+              animationDelay: `${-Math.random() * 10}s`,
+              '--wobble': `${flake.wobble}px`,
+            } as React.CSSProperties
+          }
         >
-          ❄
+          {'\u2744'}
         </div>
       ))}
     </div>
@@ -54,12 +64,12 @@ export function Snowfall() {
 // Новогодние украшения для хедера
 export function ChristmasLights() {
   return (
-    <div className="absolute top-0 left-0 right-0 h-1 overflow-hidden">
-      <div className="flex animate-lights">
+    <div className="absolute left-0 right-0 top-0 h-1 overflow-hidden">
+      <div className="animate-lights flex">
         {Array.from({ length: 30 }).map((_, i) => (
           <div
             key={i}
-            className="w-2 h-2 rounded-full mx-2"
+            className="mx-2 h-2 w-2 rounded-full"
             style={{
               backgroundColor: ['#ff0000', '#00ff00', '#ffff00', '#0000ff', '#ff00ff'][i % 5],
               animationDelay: `${i * 0.1}s`,
@@ -74,20 +84,32 @@ export function ChristmasLights() {
 
 // Новогодний баннер
 export function NewYearBanner() {
+  const [newYearVibe] = useLocalStorage<boolean>('new-year-vibe', false)
   const [show, setShow] = useState(true)
 
+  useEffect(() => {
+    if (newYearVibe) {
+      setShow(true)
+    } else {
+      setShow(false)
+    }
+  }, [newYearVibe])
+
+  if (!newYearVibe) return null
   if (!show) return null
 
   return (
-    <div className="bg-gradient-to-r from-red-600 via-green-600 to-red-600 text-white py-1.5 sm:py-2 px-3 sm:px-4 text-center relative">
-      <span className="text-xs sm:text-sm md:text-base font-medium">
-        🎄 С Новым 2025 годом! 🎅 Желаем успехов и отличного настроения! 🎁
+    <div className="relative bg-gradient-to-r from-red-600 via-green-600 to-red-600 px-3 py-1.5 text-center text-white sm:px-4 sm:py-2">
+      <span className="text-xs font-medium sm:text-sm md:text-base">
+        {
+          '\u0421 \u041d\u043e\u0432\u044b\u043c 2025 \u0433\u043e\u0434\u043e\u043c! \u0416\u0435\u043b\u0430\u0435\u043c \u0443\u0441\u043f\u0435\u0445\u043e\u0432 \u0438 \u043e\u0442\u043b\u0438\u0447\u043d\u043e\u0433\u043e \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043d\u0438\u044f!'
+        }
       </span>
       <button
         onClick={() => setShow(false)}
-        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white"
+        className="absolute right-2 top-1/2 -translate-y-1/2 text-white/70 hover:text-white sm:right-4"
       >
-        ✕
+        {'\u2715'}
       </button>
     </div>
   )
