@@ -76,6 +76,11 @@ function getIcon(field: string) {
   }
 }
 
+const decodeUnicodeEscapes = (value: string) =>
+  value.replace(/\\u([0-9a-fA-F]{4})/g, (_, code) => String.fromCharCode(Number.parseInt(code, 16)))
+
+const normalizeHistoryText = (value: string) => decodeUnicodeEscapes(value).replace(/\\n/g, '\n')
+
 function formatValue(field: string, value: string | null): string {
   if (!value) return '—'
 
@@ -86,9 +91,10 @@ function formatValue(field: string, value: string | null): string {
   if (field === 'created') {
     try {
       const data = JSON.parse(value)
-      return `#${data.number} · ${data.org}`
+      const orgValue = data.org ? normalizeHistoryText(String(data.org)) : ''
+      return `\u2116${data.number} \u0438 ${orgValue}`.trim()
     } catch {
-      return value
+      return normalizeHistoryText(value)
     }
   }
 
@@ -96,15 +102,16 @@ function formatValue(field: string, value: string | null): string {
     try {
       return new Date(value).toLocaleDateString('ru-RU')
     } catch {
-      return value
+      return normalizeHistoryText(value)
     }
   }
 
-  if (value.length > 100) {
-    return value.slice(0, 100) + '...'
+  const normalized = normalizeHistoryText(value)
+  if (normalized.length > 100) {
+    return normalized.slice(0, 100) + '...'
   }
 
-  return value
+  return normalized
 }
 
 export function ActivityFeed({

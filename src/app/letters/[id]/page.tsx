@@ -47,6 +47,7 @@ import Link from 'next/link'
 import { useToast } from '@/components/Toast'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 import { useOptimisticList } from '@/hooks/useOptimistic'
+import { hasPermission } from '@/lib/permissions'
 
 interface CommentItem {
   id: string
@@ -88,6 +89,7 @@ interface Letter {
     id: string
     name: string | null
     email: string | null
+    telegramChatId?: string | null
   } | null
   files: Array<{
     id: string
@@ -126,6 +128,7 @@ const STATUSES: LetterStatus[] = [
 export default function LetterDetailPage() {
   const { data: session, status: authStatus } = useSession()
   useAuthRedirect(authStatus)
+  const canManageLetters = hasPermission(session?.user.role, 'MANAGE_LETTERS')
   const params = useParams()
   const router = useRouter()
   const { confirm: confirmDialog, Dialog } = useConfirmDialog()
@@ -314,9 +317,21 @@ export default function LetterDetailPage() {
 
   const handleNotifyOwner = async () => {
     if (!letter) return
-    if (!letter.owner?.id) {
+    if (!canManageLetters) {
+      toast.error(
+        '\u041d\u0435\u0434\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e \u043f\u0440\u0430\u0432 \u0434\u043b\u044f \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0438 \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f'
+      )
+      return
+    }
+    if (!letter.owner || !letter.owner.id) {
       toast.error(
         '\u041d\u0435\u0442 \u043d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u043d\u043e\u0433\u043e \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a\u0430'
+      )
+      return
+    }
+    if (!letter.owner.telegramChatId) {
+      toast.error(
+        '\u0423 \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f \u043d\u0435\u0442 Telegram ID'
       )
       return
     }
@@ -509,9 +524,21 @@ export default function LetterDetailPage() {
   const hasCustomType =
     !!typeValue && !letterTypeOptions.some((option) => option.value === typeValue)
   const canEditIdentity = session.user.role === 'ADMIN' || session.user.role === 'SUPERADMIN'
+  const notifyDisabledReason = !canManageLetters
+  const notifyDisabled =
+    notifyingOwner || !!notifyDisabledReason
+      ? '\u041d\u0435\u0434\u043e\u0441\u0442\u0430\u0442\u043e\u0447\u043d\u043e \u043f\u0440\u0430\u0432 \u0434\u043b\u044f \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439'
+      : !letter.owner?.id
+        ? '\u041d\u0435\u0442 \u043d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u043d\u043e\u0433\u043e \u0441\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a\u0430'
+        : !letter.owner?.telegramChatId
+          ? '\u0423 \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f \u043d\u0435\u0442 Telegram ID'
+          : null
 
   const renderComment = (comment: CommentItem, depth = 0) => {
-    const author = comment.author.name || comment.author.email || 'Пользователь'
+    const author =
+      comment.author.name ||
+      comment.author.email ||
+      '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0439'
     const replies = comment.replies ?? []
     return (
       <div
@@ -610,12 +637,7 @@ export default function LetterDetailPage() {
           {/* Main Content */}
           <div className="space-y-6 lg:col-span-2">
             <div className="rounded-lg border border-gray-700 bg-gray-800 p-6">
-              <ActivityFeed
-                letterId={letter.id}
-                maxItems={3}
-                title="\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044f"
-                compact
-              />
+              <ActivityFeed letterId={letter.id} maxItems={3} title="Последние действия" compact />
             </div>
 
             {/* Header Card */}
@@ -836,11 +858,6 @@ export default function LetterDetailPage() {
                 </div>
               </form>
             </div>
-
-            {/* History */}
-            <div className="rounded-lg border border-gray-700 bg-gray-800 p-6">
-              <ActivityFeed letterId={letter.id} />
-            </div>
           </div>
 
           {/* Sidebar */}
@@ -918,7 +935,8 @@ export default function LetterDetailPage() {
 
                 <button
                   onClick={handleNotifyOwner}
-                  disabled={notifyingOwner || !letter.owner?.id}
+                  disabled={notifyDisabled}
+                  title={notifyDisabledReason || 'Отправить уведомление'}
                   className="inline-flex items-center gap-2 rounded-lg bg-gray-700 px-3 py-2 text-white transition hover:bg-gray-600 disabled:opacity-50"
                 >
                   {notifyingOwner ? (
@@ -930,6 +948,9 @@ export default function LetterDetailPage() {
                     '\u0423\u0432\u0435\u0434\u043e\u043c\u0438\u0442\u044c \u0438\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044f'
                   }
                 </button>
+                {notifyDisabledReason && (
+                  <div className="text-xs text-gray-500">{notifyDisabledReason}</div>
+                )}
 
                 <div className="flex items-center gap-3">
                   <AlertTriangle className="h-5 w-5 text-gray-500" />

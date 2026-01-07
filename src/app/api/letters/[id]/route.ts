@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       where: { id: params.id },
       include: {
         owner: {
-          select: { id: true, name: true, email: true, image: true },
+          select: { id: true, name: true, email: true, image: true, telegramChatId: true },
         },
         files: true,
         tags: true,
