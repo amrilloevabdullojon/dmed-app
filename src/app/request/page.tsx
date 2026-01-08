@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Script from 'next/script'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Header } from '@/components/Header'
 import { useToast } from '@/components/Toast'
 import {
@@ -144,6 +145,7 @@ export default function RequestPage() {
   const [filePreviews, setFilePreviews] = useState<Record<number, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [submittedId, setSubmittedId] = useState('')
   const [honeypot, setHoneypot] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
   const [step, setStep] = useState(1)
@@ -312,6 +314,7 @@ export default function RequestPage() {
     setForm(initialForm)
     setFiles([])
     setSubmitted(false)
+    setSubmittedId('')
     setTurnstileToken('')
     setStep(1)
     setTouched({})
@@ -405,6 +408,7 @@ export default function RequestPage() {
       }
 
       toast.success('Заявка отправлена!', { id: toastId })
+      setSubmittedId(typeof data.requestId === 'string' ? data.requestId : '')
       setSubmitted(true)
     } catch (error) {
       console.error('Request submit failed:', error)
@@ -419,6 +423,15 @@ export default function RequestPage() {
           // Ignore Turnstile reset errors in the UI.
         }
       }
+    }
+  }
+
+  const copyRequestId = async () => {
+    if (!submittedId) return
+    try {
+      await navigator.clipboard.writeText(submittedId)
+    } catch {
+      // Ignore clipboard errors
     }
   }
 
@@ -533,6 +546,36 @@ export default function RequestPage() {
               </div>
               <h2 className="mb-2 text-2xl font-semibold text-white">Заявка отправлена!</h2>
               <p className="mb-6 text-slate-300">Спасибо! Мы свяжемся с вами в ближайшее время.</p>
+              {submittedId && (
+                <div className="mb-6 rounded-lg border border-white/10 bg-white/5 p-4 text-left">
+                  <div className="text-xs text-slate-400">
+                    {'\u041d\u043e\u043c\u0435\u0440 \u0437\u0430\u044f\u0432\u043a\u0438'}
+                  </div>
+                  <div className="mt-1 break-all text-sm text-emerald-200">{submittedId}</div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={copyRequestId}
+                      className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs text-white transition hover:bg-white/20"
+                    >
+                      {'\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c'}
+                    </button>
+                    <Link
+                      href="/portal/request"
+                      className="inline-flex items-center gap-2 rounded-lg bg-emerald-500/20 px-3 py-2 text-xs text-emerald-200 transition hover:bg-emerald-500/30"
+                    >
+                      {
+                        '\u041e\u0442\u0441\u043b\u0435\u0436\u0438\u0432\u0430\u0442\u044c \u0437\u0430\u044f\u0432\u043a\u0443'
+                      }
+                    </Link>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-400">
+                    {
+                      '\u0414\u043b\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0441\u0442\u0430\u0442\u0443\u0441\u0430 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u043d\u043e\u043c\u0435\u0440 \u0438 \u0432\u0430\u0448 \u043a\u043e\u043d\u0442\u0430\u043a\u0442.'
+                    }
+                  </p>
+                </div>
+              )}
               <button
                 type="button"
                 onClick={resetForm}
