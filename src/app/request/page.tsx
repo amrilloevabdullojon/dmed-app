@@ -149,7 +149,6 @@ export default function RequestPage() {
   const [submittedId, setSubmittedId] = useState('')
   const [honeypot, setHoneypot] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
-  const [turnstileReady, setTurnstileReady] = useState(false)
   const [step, setStep] = useState(1)
   const [errors, setErrors] = useState<ValidationErrors>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
@@ -231,7 +230,7 @@ export default function RequestPage() {
   }, [step])
 
   useEffect(() => {
-    if (step !== 4 || !turnstileSiteKey || !turnstileReady) return
+    if (step !== 4 || !turnstileSiteKey) return
     if (!turnstileRef.current || turnstileWidgetId.current) return
 
     const renderWidget = () => {
@@ -251,13 +250,13 @@ export default function RequestPage() {
     let attempts = 0
     const timer = setInterval(() => {
       attempts += 1
-      if (renderWidget() || attempts > 10) {
+      if (renderWidget() || attempts > 20) {
         clearInterval(timer)
       }
     }, 200)
 
     return () => clearInterval(timer)
-  }, [step, turnstileReady, turnstileSiteKey])
+  }, [step, turnstileSiteKey])
 
   // Validate on form change
   useEffect(() => {
@@ -559,7 +558,6 @@ export default function RequestPage() {
           async
           defer
           strategy="afterInteractive"
-          onLoad={() => setTurnstileReady(true)}
         />
       )}
       <Header />
