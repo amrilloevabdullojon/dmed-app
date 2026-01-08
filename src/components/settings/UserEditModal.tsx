@@ -111,10 +111,10 @@ export function UserEditModal({
     >
       <div
         ref={modalRef}
-        className="panel panel-glass max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl p-6"
+        className="panel panel-glass flex max-h-[85vh] w-full max-w-lg flex-col rounded-2xl"
       >
         {/* Header */}
-        <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="flex flex-shrink-0 items-start justify-between gap-4 p-6 pb-0">
           <div className="flex items-center gap-3">
             {user.image ? (
               <Image
@@ -146,8 +146,8 @@ export function UserEditModal({
           </button>
         </div>
 
-        {/* Form */}
-        <div className="space-y-4">
+        {/* Form - Scrollable */}
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
           {/* Basic Info Section */}
           <section>
             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-300">
@@ -376,8 +376,8 @@ export function UserEditModal({
           </section>
         </div>
 
-        {/* Footer */}
-        <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4">
+        {/* Footer - Fixed */}
+        <div className="flex flex-shrink-0 items-center justify-between border-t border-white/10 p-6 pt-4">
           <span className="text-xs text-gray-500">
             {saving ? 'Сохранение...' : isDirty ? 'Есть несохранённые изменения' : 'Нет изменений'}
           </span>

@@ -21,7 +21,7 @@ export default function SettingsPage() {
   const toast = useToast()
 
   const [activeTab, setActiveTab] = useState<TabType>('users')
-  const [newYearVibe, setNewYearVibe] = useLocalStorage('dmed-new-year-vibe', true)
+  const [newYearVibe, setNewYearVibe] = useLocalStorage<boolean>('new-year-vibe', false)
 
   const isSuperAdmin = session?.user?.role === 'SUPERADMIN'
 
@@ -51,7 +51,8 @@ export default function SettingsPage() {
 
       <main
         id="main-content"
-        className="animate-pageIn relative mx-auto max-w-[1600px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
+        tabIndex={-1}
+        className="animate-pageIn relative mx-auto max-w-[1600px] px-4 py-6 outline-none sm:px-6 sm:py-8 lg:px-8"
       >
         <h1 className="font-display text-2xl font-semibold text-white sm:text-3xl md:text-4xl">
           Настройки

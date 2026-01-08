@@ -87,7 +87,7 @@ export function SyncTab({ onSuccess, onError }: SyncTabProps) {
   }, [loadSyncLogs])
 
   const triggerSync = useCallback(
-    async (direction: 'TO_SHEETS' | 'FROM_SHEETS') => {
+    async (direction: 'to_sheets' | 'from_sheets') => {
       setSyncing(true)
       try {
         const res = await fetch('/api/sync', {
@@ -97,7 +97,7 @@ export function SyncTab({ onSuccess, onError }: SyncTabProps) {
         })
         if (res.ok) {
           onSuccess?.(
-            direction === 'TO_SHEETS'
+            direction === 'to_sheets'
               ? 'Синхронизация в Sheets запущена'
               : 'Синхронизация из Sheets запущена'
           )
@@ -128,7 +128,7 @@ export function SyncTab({ onSuccess, onError }: SyncTabProps) {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => triggerSync('TO_SHEETS')}
+            onClick={() => triggerSync('to_sheets')}
             disabled={syncing}
             className="inline-flex items-center gap-2 rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm text-blue-300 transition hover:bg-blue-500/20 disabled:opacity-50"
             title="Синхронизировать в Sheets"
@@ -141,7 +141,7 @@ export function SyncTab({ onSuccess, onError }: SyncTabProps) {
             В Sheets
           </button>
           <button
-            onClick={() => triggerSync('FROM_SHEETS')}
+            onClick={() => triggerSync('from_sheets')}
             disabled={syncing}
             className="inline-flex items-center gap-2 rounded-lg border border-purple-400/30 bg-purple-500/10 px-3 py-2 text-sm text-purple-300 transition hover:bg-purple-500/20 disabled:opacity-50"
             title="Синхронизировать из Sheets"

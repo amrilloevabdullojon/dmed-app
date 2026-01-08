@@ -70,19 +70,19 @@ export function LoginAuditTab({ onError }: LoginAuditTabProps) {
           params.set('cursor', loginAuditCursor)
         }
         if (loginAuditStatus !== 'all') {
-          params.set('success', loginAuditStatus === 'success' ? 'true' : 'false')
+          params.set('status', loginAuditStatus)
         }
         if (loginAuditQuery.trim()) {
           params.set('q', loginAuditQuery.trim())
         }
 
-        const res = await fetch(`/api/login-audit?${params.toString()}`)
+        const res = await fetch(`/api/security/logins?${params.toString()}`)
         if (res.ok) {
           const data = await res.json()
           if (mode === 'more') {
-            setLoginAudits((prev) => [...prev, ...(data.audits || [])])
+            setLoginAudits((prev) => [...prev, ...(data.events || [])])
           } else {
-            setLoginAudits(data.audits || [])
+            setLoginAudits(data.events || [])
             setLoginAuditSummary(data.summary || [])
           }
           setLoginAuditCursor(data.nextCursor || null)

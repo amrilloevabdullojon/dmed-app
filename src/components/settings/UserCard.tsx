@@ -202,34 +202,34 @@ export function UserCard({
 
   return (
     <div
-      className={`panel-soft panel-glass rounded-2xl p-4 transition ${
+      className={`panel-soft panel-glass overflow-hidden rounded-2xl p-4 transition ${
         isSelected ? 'ring-2 ring-emerald-400/40' : ''
       } ${isRoyal ? 'border-yellow-400/40 bg-gradient-to-br from-yellow-500/10 via-white/5 to-transparent' : ''}`}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           {user.image ? (
             <Image
               src={user.image}
               alt={user.name || user.email || 'User'}
               width={44}
               height={44}
-              className="h-11 w-11 rounded-full"
+              className="h-11 w-11 flex-shrink-0 rounded-full"
               unoptimized
             />
           ) : (
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10">
+            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-white/10">
               <span className="text-sm font-semibold text-gray-300">
                 {(user.name || user.email || '?')[0].toUpperCase()}
               </span>
             </div>
           )}
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-white">{user.name || 'Без имени'}</h3>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="truncate font-semibold text-white">{user.name || 'Без имени'}</h3>
               <span
-                className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs ${ROLE_BADGE_CLASSES[user.role]}`}
+                className={`inline-flex flex-shrink-0 items-center gap-1 rounded px-2 py-0.5 text-xs ${ROLE_BADGE_CLASSES[user.role]}`}
               >
                 {user.role === 'SUPERADMIN' ? (
                   <Crown className="h-3 w-3 text-yellow-200" />
@@ -240,8 +240,8 @@ export function UserCard({
               </span>
             </div>
             <div className="flex items-center gap-2 text-xs text-gray-400">
-              <Mail className="h-3.5 w-3.5" />
-              <span>{user.email || '-'}</span>
+              <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="truncate">{user.email || '-'}</span>
             </div>
           </div>
         </div>
@@ -249,7 +249,7 @@ export function UserCard({
           type="checkbox"
           checked={isSelected}
           onChange={() => onToggleSelect(user.id)}
-          className={`${controlBase} mt-1`}
+          className={`${controlBase} mt-1 flex-shrink-0`}
           aria-label={`Выбрать ${user.name || user.email || 'пользователя'}`}
         />
       </div>
