@@ -46,7 +46,8 @@ declare global {
     onTurnstileExpired?: () => void
     onTurnstileError?: () => void
     turnstile?: {
-      reset: () => void
+      reset: (widgetId?: string) => void
+      render?: (container: HTMLElement, options: Record<string, unknown>) => string
     }
   }
 }
@@ -148,12 +149,15 @@ export default function RequestPage() {
   const [submittedId, setSubmittedId] = useState('')
   const [honeypot, setHoneypot] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
+  const [turnstileReady, setTurnstileReady] = useState(false)
   const [step, setStep] = useState(1)
   const [errors, setErrors] = useState<ValidationErrors>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const [isDragging, setIsDragging] = useState(false)
   const [draftRestored, setDraftRestored] = useState(false)
   const dropZoneRef = useRef<HTMLDivElement>(null)
+  const turnstileRef = useRef<HTMLDivElement>(null)
+  const turnstileWidgetId = useRef<string | null>(null)
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
   const TOTAL_STEPS = 4
@@ -219,6 +223,41 @@ export default function RequestPage() {
       delete window.onTurnstileError
     }
   }, [turnstileSiteKey])
+
+  useEffect(() => {
+    if (step !== 4) {
+      turnstileWidgetId.current = null
+    }
+  }, [step])
+
+  useEffect(() => {
+    if (step !== 4 || !turnstileSiteKey || !turnstileReady) return
+    if (!turnstileRef.current || turnstileWidgetId.current) return
+
+    const renderWidget = () => {
+      if (!window.turnstile?.render || !turnstileRef.current) return false
+      turnstileWidgetId.current = window.turnstile.render(turnstileRef.current, {
+        sitekey: turnstileSiteKey,
+        callback: (token: string) => setTurnstileToken(token),
+        'expired-callback': () => setTurnstileToken(''),
+        'error-callback': () => setTurnstileToken(''),
+        theme: 'dark',
+      })
+      return true
+    }
+
+    if (renderWidget()) return
+
+    let attempts = 0
+    const timer = setInterval(() => {
+      attempts += 1
+      if (renderWidget() || attempts > 10) {
+        clearInterval(timer)
+      }
+    }, 200)
+
+    return () => clearInterval(timer)
+  }, [step, turnstileReady, turnstileSiteKey])
 
   // Validate on form change
   useEffect(() => {
@@ -516,10 +555,11 @@ export default function RequestPage() {
     <div className="app-shell min-h-screen bg-gray-900">
       {turnstileSiteKey && (
         <Script
-          src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
           async
           defer
           strategy="afterInteractive"
+          onLoad={() => setTurnstileReady(true)}
         />
       )}
       <Header />
@@ -808,15 +848,7 @@ export default function RequestPage() {
 
                   {turnstileSiteKey ? (
                     <div className="flex justify-center">
-                      <div
-                        className="cf-turnstile"
-                        data-sitekey={turnstileSiteKey}
-                        data-callback="onTurnstileSuccess"
-                        data-expired-callback="onTurnstileExpired"
-                        data-error-callback="onTurnstileError"
-                        data-response-field="false"
-                        data-theme="dark"
-                      />
+                      <div ref={turnstileRef} className="cf-turnstile" />
                     </div>
                   ) : (
                     <p className="text-center text-xs text-amber-300">
