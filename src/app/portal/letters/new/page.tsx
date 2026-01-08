@@ -12,7 +12,8 @@ declare global {
     onTurnstileExpired?: () => void
     onTurnstileError?: () => void
     turnstile?: {
-      reset: () => void
+      reset: (widgetId?: string) => void
+      render?: (container: HTMLElement, options: Record<string, unknown>) => string
     }
   }
 }
