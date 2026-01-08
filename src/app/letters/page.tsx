@@ -789,7 +789,10 @@ function LettersPageContent() {
     <div className="app-shell min-h-screen">
       <Header />
 
-      <main className="animate-pageIn relative mx-auto max-w-[1600px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <main
+        id="main-content"
+        className="animate-pageIn relative mx-auto max-w-[1600px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
+      >
         {/* Header */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>

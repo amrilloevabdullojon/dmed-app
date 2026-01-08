@@ -159,7 +159,10 @@ export default function HomePage() {
     <div className="app-shell min-h-screen">
       <Header />
 
-      <main className="animate-pageIn mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <main
+        id="main-content"
+        className="animate-pageIn mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
+      >
         {/* Welcome */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>

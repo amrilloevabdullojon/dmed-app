@@ -564,7 +564,7 @@ export default function LetterDetailPage() {
     <div className="app-shell min-h-screen overflow-auto bg-gray-900">
       <Header />
 
-      <main className="mx-auto max-w-5xl px-4 py-6 pb-16 sm:px-6 sm:py-8 lg:px-8">
+      <main id="main-content" className="mx-auto max-w-5xl px-4 py-6 pb-16 sm:px-6 sm:py-8 lg:px-8">
         {/* Back button */}
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between print:hidden">
           <Link
