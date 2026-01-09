@@ -111,10 +111,14 @@ export function UserEditModal({
     >
       <div
         ref={modalRef}
-        className="panel panel-glass flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl"
+        className="panel panel-glass grid w-full max-w-lg overflow-hidden rounded-2xl"
+        style={{
+          maxHeight: 'min(90vh, 700px)',
+          gridTemplateRows: 'auto 1fr auto',
+        }}
       >
         {/* Header */}
-        <div className="flex shrink-0 items-start justify-between gap-4 p-6 pb-4">
+        <div className="flex items-start justify-between gap-4 p-6 pb-4">
           <div className="flex items-center gap-3">
             {user.image ? (
               <Image
@@ -147,7 +151,7 @@ export function UserEditModal({
         </div>
 
         {/* Form */}
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
+        <div className="min-h-0 space-y-4 overflow-y-auto px-6 py-4">
           {/* Basic Info Section */}
           <section>
             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-300">
