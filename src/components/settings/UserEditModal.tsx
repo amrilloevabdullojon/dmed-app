@@ -80,14 +80,6 @@ export function UserEditModal({
     }
   }, [onCancel])
 
-  // Prevent body scroll
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [])
-
   const handleBackdropClick = useCallback(
     (e: React.MouseEvent) => {
       if (e.target === e.currentTarget) {
@@ -109,10 +101,10 @@ export function UserEditModal({
       aria-modal="true"
       aria-labelledby="edit-modal-title"
     >
-      <div className="flex min-h-full items-start justify-center p-4 sm:items-center">
+      <div className="flex min-h-full items-start justify-center p-4">
         <div
           ref={modalRef}
-          className="panel panel-glass relative max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl"
+          className="panel panel-glass relative w-full max-w-lg rounded-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
