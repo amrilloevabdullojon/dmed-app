@@ -103,7 +103,7 @@ export function UserEditModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
@@ -111,7 +111,7 @@ export function UserEditModal({
     >
       <div
         ref={modalRef}
-        className="panel panel-glass my-auto w-full max-w-lg overflow-hidden rounded-2xl"
+        className="panel panel-glass flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl"
       >
         {/* Header */}
         <div className="flex shrink-0 items-start justify-between gap-4 p-6 pb-4">
@@ -147,7 +147,7 @@ export function UserEditModal({
         </div>
 
         {/* Form */}
-        <div className="max-h-[50vh] space-y-4 overflow-y-auto px-6 py-4">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
           {/* Basic Info Section */}
           <section>
             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-gray-300">
