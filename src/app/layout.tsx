@@ -5,6 +5,7 @@ import { Providers } from '@/components/Providers'
 import { Snowfall, NewYearBanner } from '@/components/Snowfall'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 import { AuthGuard } from '@/components/AuthGuard'
+import { SkipToContent } from '@/components/SkipToContent'
 
 const manrope = Manrope({
   subsets: ['latin', 'cyrillic'],
@@ -37,12 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${manrope.variable} ${spaceGrotesk.variable} app-body min-h-screen text-white`}
       >
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-teal-500 focus:px-4 focus:py-2 focus:text-white focus:outline-none"
-        >
-          Перейти к основному содержимому
-        </a>
+        <SkipToContent />
         <Providers>
           <AuthGuard>
             <NewYearBanner />
