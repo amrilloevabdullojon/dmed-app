@@ -20,7 +20,8 @@
       "Bash(powershell -Command \"echo ''1'' | npx shadcn@latest init\")",
       "Bash(npx shadcn@latest add button card dialog select input label textarea badge tooltip)",
       "Bash(npx shadcn@latest add:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
