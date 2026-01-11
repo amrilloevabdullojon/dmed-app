@@ -637,7 +637,7 @@ export function UsersTab({ session, isSuperAdmin, onSuccess, onError }: UsersTab
             const isLastAdmin = user.role === 'ADMIN' && adminCount <= 1
             const isLastSuperAdmin = user.role === 'SUPERADMIN' && superAdminCount <= 1
 
-            const items: JSX.Element[] = []
+            const items: React.JSX.Element[] = []
             if (showHeading) {
               items.push(
                 <div

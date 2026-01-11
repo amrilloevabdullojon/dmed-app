@@ -12,8 +12,9 @@ const createCommentSchema = z.object({
 })
 
 // GET /api/requests/[id]/comments - список комментариев
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -23,8 +24,6 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     if (permissionError) {
       return permissionError
     }
-
-    const { id } = params
 
     // Проверяем существование заявки
     const request = await prisma.request.findUnique({
@@ -59,8 +58,9 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 }
 
 // POST /api/requests/[id]/comments - добавить комментарий
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -75,8 +75,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     if (permissionError) {
       return permissionError
     }
-
-    const { id } = params
     const body = await request.json()
 
     const validation = createCommentSchema.safeParse(body)

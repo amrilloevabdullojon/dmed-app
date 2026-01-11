@@ -78,7 +78,7 @@ interface UseVirtualListOptions<T> {
  * ```
  */
 export function useVirtualList<T>(options: UseVirtualListOptions<T>): {
-  containerRef: React.RefObject<HTMLDivElement>
+  containerRef: React.RefObject<HTMLDivElement | null>
   virtualItems: VirtualItem[]
   totalSize: number
   scrollToIndex: (index: number, align?: 'start' | 'center' | 'end') => void

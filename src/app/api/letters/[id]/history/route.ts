@@ -5,8 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { requirePermission } from '@/lib/permission-guard'
 import { logger } from '@/lib/logger.server'
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     // Проверяем существование письма
     const letter = await prisma.letter.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { id: true },
     })
 
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     // Получаем историю изменений
     const history = await prisma.history.findMany({
-      where: { letterId: params.id },
+      where: { letterId: id },
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset,
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     // Общее количество записей
     const total = await prisma.history.count({
-      where: { letterId: params.id },
+      where: { letterId: id },
     })
 
     return NextResponse.json({

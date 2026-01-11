@@ -12,7 +12,15 @@
       "Bash(node:*)",
       "Bash(xxd:*)",
       "Bash(npm run build:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npm outdated:*)",
+      "Bash(npx eslint:*)",
+      "Bash(timeout 120 npm run build:*)",
+      "Bash(npx shadcn@latest init:*)",
+      "Bash(powershell -Command \"echo ''1'' | npx shadcn@latest init\")",
+      "Bash(npx shadcn@latest add button card dialog select input label textarea badge tooltip)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }

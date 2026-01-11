@@ -15,8 +15,9 @@ const commentSchema = z.object({
   parentId: z.string().optional().nullable(),
 })
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     const letter = await prisma.letter.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         number: true,
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     if (result.data.parentId) {
       const parent = await prisma.comment.findFirst({
-        where: { id: result.data.parentId, letterId: params.id },
+        where: { id: result.data.parentId, letterId: id },
         select: { id: true },
       })
       if (!parent) {
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const comment = await prisma.comment.create({
       data: {
         text,
-        letterId: params.id,
+        letterId: id,
         authorId: session.user.id,
         parentId: result.data.parentId || null,
       },
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     })
 
     const createdBy = await prisma.history.findFirst({
-      where: { letterId: params.id, field: 'created' },
+      where: { letterId: id, field: 'created' },
       orderBy: { createdAt: 'asc' },
       include: {
         user: {

@@ -6,8 +6,9 @@ import { Role } from '@prisma/client'
 import { csrfGuard } from '@/lib/security'
 import { logger } from '@/lib/logger.server'
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -30,7 +31,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
 
     const approval = await prisma.adminApproval.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         targetUser: {
           select: {

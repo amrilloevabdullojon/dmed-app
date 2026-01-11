@@ -14,24 +14,25 @@ import type { Role } from '@prisma/client'
 const CONTEXT = 'API:Users:[id]'
 
 // GET /api/users/[id] - получить пользователя по ID
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const paramResult = idParamSchema.safeParse({ id: params.id })
+    const paramResult = idParamSchema.safeParse({ id })
     if (!paramResult.success) {
       return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
     }
 
-    if (!hasPermission(session.user.role, 'MANAGE_USERS') && session.user.id !== params.id) {
+    if (!hasPermission(session.user.role, 'MANAGE_USERS') && session.user.id !== id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         name: true,
@@ -79,14 +80,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     return NextResponse.json(normalizedUser)
   } catch (error) {
-    logger.error(CONTEXT, error, { method: 'GET', userId: params.id })
+    const { id } = await params
+    logger.error(CONTEXT, error, { method: 'GET', userId: id })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 // PATCH /api/users/[id] - обновить пользователя (только админ)
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -103,7 +106,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return csrfError
     }
 
-    const paramResult = idParamSchema.safeParse({ id: params.id })
+    const paramResult = idParamSchema.safeParse({ id })
     if (!paramResult.success) {
       return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
     }
@@ -123,7 +126,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const isSuperAdmin = session.user.role === 'SUPERADMIN'
 
     const currentUser = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         name: true,
@@ -259,7 +262,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     if (Object.keys(updateData).length > 0) {
       user = await prisma.user.update({
-        where: { id: params.id },
+        where: { id },
         data: updateData,
         select: {
           id: true,
@@ -377,27 +380,29 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
 
     logger.info(CONTEXT, 'User updated', {
-      userId: params.id,
+      userId: id,
       actorId: session.user.id,
       changedFields: auditEntries.map((e) => e.field),
     })
 
     return NextResponse.json({ success: true, user }, { status: 200 })
   } catch (error) {
-    logger.error(CONTEXT, error, { method: 'PATCH', userId: params.id })
+    const { id } = await params
+    logger.error(CONTEXT, error, { method: 'PATCH', userId: id })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 // DELETE /api/users/[id] - удалить пользователя (только админ)
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const paramResult = idParamSchema.safeParse({ id: params.id })
+    const paramResult = idParamSchema.safeParse({ id })
     if (!paramResult.success) {
       return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 })
     }
@@ -416,12 +421,12 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     // Нельзя удалить себя
-    if (params.id === session.user.id) {
+    if (id === session.user.id) {
       return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 })
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         id: true,
         role: true,
@@ -469,7 +474,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     await prisma.userAudit.create({
       data: {
-        userId: params.id,
+        userId: id,
         actorId: session.user.id,
         action: 'DELETE',
         oldValue: JSON.stringify({
@@ -490,14 +495,15 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     })
 
     await prisma.user.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
-    logger.info(CONTEXT, 'User deleted', { userId: params.id, actorId: session.user.id })
+    logger.info(CONTEXT, 'User deleted', { userId: id, actorId: session.user.id })
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    logger.error(CONTEXT, error, { method: 'DELETE', userId: params.id })
+    const { id } = await params
+    logger.error(CONTEXT, error, { method: 'DELETE', userId: id })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

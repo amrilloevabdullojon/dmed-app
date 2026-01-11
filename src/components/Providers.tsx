@@ -5,7 +5,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 import { ReactNode, useEffect } from 'react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ToastWrapper } from '@/components/Toast'
-import { QueryProvider } from '@/lib/react-query'
+import { TRPCProvider } from '@/lib/trpc'
 import { installCsrfFetch } from '@/lib/csrf-client'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 
@@ -24,7 +24,7 @@ export function Providers({ children }: { children: ReactNode }) {
   }, [newYearVibe])
 
   return (
-    <QueryProvider>
+    <TRPCProvider>
       <SessionProvider>
         <ThemeProvider>
           <ErrorBoundary>
@@ -32,6 +32,6 @@ export function Providers({ children }: { children: ReactNode }) {
           </ErrorBoundary>
         </ThemeProvider>
       </SessionProvider>
-    </QueryProvider>
+    </TRPCProvider>
   )
 }

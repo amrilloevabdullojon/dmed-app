@@ -12,8 +12,9 @@ import { csrfGuard } from '@/lib/security'
 import { logger } from '@/lib/logger.server'
 
 // GET /api/letters/[id] - получить письмо по ID
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const letter = await prisma.letter.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         owner: {
           select: { id: true, name: true, email: true, image: true, telegramChatId: true },
@@ -125,8 +126,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PATCH /api/letters/[id] - обновить письмо
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -142,7 +144,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const canEditIdentity = session.user.role === 'ADMIN' || session.user.role === 'SUPERADMIN'
 
     const letter = await prisma.letter.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         owner: true,
         watchers: {
@@ -182,7 +184,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
             where: {
               number: { equals: sanitizedNumber, mode: 'insensitive' },
               deletedAt: null,
-              NOT: { id: params.id },
+              NOT: { id },
             },
             select: { id: true },
           })
@@ -235,12 +237,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
           await prisma.watcher.upsert({
             where: {
               letterId_userId: {
-                letterId: params.id,
+                letterId: id,
                 userId: value,
               },
             },
             create: {
-              letterId: params.id,
+              letterId: id,
               userId: value,
             },
             update: {},
@@ -346,7 +348,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     // Обновить письмо
     const updatedLetter = await prisma.letter.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         owner: {
@@ -358,7 +360,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     // Записать в историю
     await prisma.history.create({
       data: {
-        letterId: params.id,
+        letterId: id,
         userId: session.user.id,
         field,
         oldValue,
@@ -459,8 +461,9 @@ ${letter.org}
 }
 
 // DELETE /api/letters/[id] - удалить письмо (только админ, soft delete)
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -473,14 +476,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     // Soft delete - помечаем как удалённое
     await prisma.letter.update({
-      where: { id: params.id },
+      where: { id },
       data: { deletedAt: new Date() },
     })
 
     // Записать в историю
     await prisma.history.create({
       data: {
-        letterId: params.id,
+        letterId: id,
         userId: session.user.id,
         field: 'deleted',
         newValue: 'true',

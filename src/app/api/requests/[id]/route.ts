@@ -11,8 +11,9 @@ import type { Prisma } from '@prisma/client'
 
 const CONTEXT = 'API:Requests:[id]'
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -23,13 +24,13 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       return permissionError
     }
 
-    const paramResult = idParamSchema.safeParse(params)
+    const paramResult = idParamSchema.safeParse({ id })
     if (!paramResult.success) {
       return NextResponse.json({ error: 'Invalid request id.' }, { status: 400 })
     }
 
     const requestRecord = await prisma.request.findUnique({
-      where: { id: params.id, deletedAt: null },
+      where: { id, deletedAt: null },
       include: {
         assignedTo: { select: { id: true, name: true, email: true, image: true } },
         files: true,
@@ -49,13 +50,15 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 
     return NextResponse.json({ request: requestRecord })
   } catch (error) {
-    logger.error(CONTEXT, error, { method: 'GET', requestId: params.id })
+    const { id } = await params
+    logger.error(CONTEXT, error, { method: 'GET', requestId: id })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -71,7 +74,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return permissionError
     }
 
-    const paramResult = idParamSchema.safeParse(params)
+    const paramResult = idParamSchema.safeParse({ id })
     if (!paramResult.success) {
       return NextResponse.json({ error: 'Invalid request id.' }, { status: 400 })
     }
@@ -87,7 +90,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     // Получаем текущую заявку для аудита
     const currentRequest = await prisma.request.findUnique({
-      where: { id: params.id, deletedAt: null },
+      where: { id, deletedAt: null },
       select: {
         id: true,
         organization: true,
@@ -174,7 +177,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     // Обновляем заявку и записываем историю в одной транзакции
     const [updated] = await prisma.$transaction([
       prisma.request.update({
-        where: { id: params.id },
+        where: { id },
         data: updateData,
         include: {
           assignedTo: { select: { id: true, name: true, email: true, image: true } },
@@ -192,7 +195,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       ...historyRecords.map((record) =>
         prisma.requestHistory.create({
           data: {
-            requestId: params.id,
+            requestId: id,
             userId: session.user.id,
             field: record.field,
             oldValue: record.oldValue,
@@ -203,7 +206,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     ])
 
     logger.info(CONTEXT, 'Request updated', {
-      requestId: params.id,
+      requestId: id,
       actorId: session.user.id,
       changes: historyRecords.map((r) => `${r.field}: ${r.oldValue} -> ${r.newValue}`),
     })
@@ -215,7 +218,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
       if (chatId) {
         const message = formatRequestStatusChangeMessage({
-          id: params.id,
+          id,
           organization: currentRequest.organization,
           oldStatus: statusChange.oldValue || '',
           newStatus: statusChange.newValue || '',
@@ -225,20 +228,22 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
         // Отправляем асинхронно, не блокируя ответ
         sendTelegramMessage(chatId, message).catch((err) => {
-          logger.error(CONTEXT, err, { action: 'telegram_notification', requestId: params.id })
+          logger.error(CONTEXT, err, { action: 'telegram_notification', requestId: id })
         })
       }
     }
 
     return NextResponse.json({ success: true, request: updated })
   } catch (error) {
-    logger.error(CONTEXT, error, { method: 'PATCH', requestId: params.id })
+    const { id } = await params
+    logger.error(CONTEXT, error, { method: 'PATCH', requestId: id })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -255,13 +260,13 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
       return permissionError
     }
 
-    const paramResult = idParamSchema.safeParse(params)
+    const paramResult = idParamSchema.safeParse({ id })
     if (!paramResult.success) {
       return NextResponse.json({ error: 'Invalid request id.' }, { status: 400 })
     }
 
     const requestRecord = await prisma.request.findUnique({
-      where: { id: params.id, deletedAt: null },
+      where: { id, deletedAt: null },
       select: {
         id: true,
         organization: true,
@@ -279,12 +284,12 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
     // Soft delete - помечаем как удалённую и записываем в историю
     await prisma.$transaction([
       prisma.request.update({
-        where: { id: params.id },
+        where: { id },
         data: { deletedAt: new Date() },
       }),
       prisma.requestHistory.create({
         data: {
-          requestId: params.id,
+          requestId: id,
           userId: session.user.id,
           field: 'deletedAt',
           oldValue: null,
@@ -294,7 +299,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
     ])
 
     logger.info(CONTEXT, 'Request soft deleted', {
-      requestId: params.id,
+      requestId: id,
       actorId: session.user.id,
       organization: requestRecord.organization,
       filesCount: requestRecord._count.files,
@@ -302,7 +307,8 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    logger.error(CONTEXT, error, { method: 'DELETE', requestId: params.id })
+    const { id } = await params
+    logger.error(CONTEXT, error, { method: 'DELETE', requestId: id })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

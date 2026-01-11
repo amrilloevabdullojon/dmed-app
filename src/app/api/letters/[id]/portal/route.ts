@@ -8,8 +8,9 @@ import { csrfGuard } from '@/lib/security'
 import { logger } from '@/lib/logger.server'
 import { randomUUID } from 'crypto'
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     const letter = await prisma.letter.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!letter) {
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 90)
 
     const updated = await prisma.letter.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         applicantAccessToken: token,
         applicantAccessTokenExpiresAt: expiresAt,

@@ -6,8 +6,9 @@ import { hasPermission } from '@/lib/permissions'
 import { logger } from '@/lib/logger.server'
 
 // GET /api/users/[id]/audit - audit log for a user
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const canViewAudit =
       hasPermission(session.user.role, 'VIEW_AUDIT') ||
       hasPermission(session.user.role, 'MANAGE_USERS')
-    if (!canViewAudit && session.user.id !== params.id) {
+    if (!canViewAudit && session.user.id !== id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       }
     }
 
-    const where: any = { userId: params.id }
+    const where: any = { userId: id }
     const andFilters: any[] = []
 
     if (action && action !== 'all') {

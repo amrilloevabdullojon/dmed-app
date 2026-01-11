@@ -12,8 +12,9 @@ import { createReadStream, existsSync } from 'fs'
 import { Readable } from 'stream'
 
 // GET /api/files/[id] - скачать файл через backend
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const file = await prisma.file.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { letter: { select: { id: true, ownerId: true, deletedAt: true } } },
     })
 
@@ -75,8 +76,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE /api/files/[id] - удалить файл
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await getServerSession(authOptions)
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -93,7 +95,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     const file = await prisma.file.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { letter: { select: { id: true, ownerId: true, deletedAt: true } } },
     })
 
@@ -123,7 +125,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     // Удалить запись из базы данных
     await prisma.file.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     // Записать в историю
