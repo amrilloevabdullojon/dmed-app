@@ -2,6 +2,7 @@ import { LetterFormExample } from '@/components/examples/LetterFormExample'
 import { LettersDataTableExample } from '@/components/examples/LettersDataTableExample'
 import { LettersTableExample } from '@/components/examples/LettersTableExample'
 import { ZustandExample } from '@/components/examples/ZustandExample'
+import { OptimisticUpdatesExample } from '@/components/examples/OptimisticUpdatesExample'
 import { TRPCExample } from '@/components/examples/TRPCExample'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -110,12 +111,15 @@ export default function DemoPage() {
 
         <TabsContent value="state" className="space-y-4 mt-6">
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold">Zustand</h2>
+            <h2 className="text-2xl font-bold">Zustand + Optimistic Updates</h2>
             <p className="text-muted-foreground">
-              Легковесный state management с persist middleware
+              Легковесный state management с мгновенным откликом UI
             </p>
           </div>
-          <ZustandExample />
+          <div className="space-y-6">
+            <OptimisticUpdatesExample />
+            <ZustandExample />
+          </div>
         </TabsContent>
       </Tabs>
 
