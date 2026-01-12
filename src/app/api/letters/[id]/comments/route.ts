@@ -19,9 +19,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     const { id } = await params
     const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const authorId =
-      session?.user?.id ||
-      (session?.user?.email
+      session.user.id ||
+      (session.user.email
         ? (
             await prisma.user.findUnique({
               where: { email: session.user.email },
