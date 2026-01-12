@@ -25,6 +25,7 @@ import { MobileBottomNav } from './MobileBottomNav'
 import { useToast } from '@/components/Toast'
 import { GlobalSearch, SearchButton } from './GlobalSearch'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { hapticLight, hapticMedium } from '@/lib/haptic'
 
 export function Header() {
   const { data: session } = useSession()
@@ -192,25 +193,34 @@ export function Header() {
                     <div className="panel panel-glass animate-scaleIn absolute right-0 top-full z-50 mt-2 min-w-48 origin-top-right rounded-xl shadow-xl">
                       <Link
                         href="/settings"
-                        className="flex w-full items-center gap-2 rounded-t-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 hover:text-white"
-                        onClick={() => setSyncMenuOpen(false)}
+                        className="tap-highlight flex w-full items-center gap-2 rounded-t-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 hover:text-white"
+                        onClick={() => {
+                          hapticLight()
+                          setSyncMenuOpen(false)
+                        }}
                       >
                         <Settings className="h-4 w-4" />
                         {'Настройки'}
                       </Link>
                       <div className="border-t border-white/10" />
                       <button
-                        onClick={() => handleSync('from_sheets')}
+                        onClick={() => {
+                          hapticMedium()
+                          handleSync('from_sheets')
+                        }}
                         disabled={syncing}
-                        className="flex w-full items-center gap-2 px-4 py-3 text-slate-200/80 transition hover:bg-white/5 hover:text-white"
+                        className="tap-highlight flex w-full items-center gap-2 px-4 py-3 text-slate-200/80 transition hover:bg-white/5 hover:text-white"
                       >
                         <RefreshCw className="h-4 w-4" />
                         {'Импорт из Sheets'}
                       </button>
                       <button
-                        onClick={() => handleSync('to_sheets')}
+                        onClick={() => {
+                          hapticMedium()
+                          handleSync('to_sheets')
+                        }}
                         disabled={syncing}
-                        className="flex w-full items-center gap-2 rounded-b-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 hover:text-white"
+                        className="tap-highlight flex w-full items-center gap-2 rounded-b-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 hover:text-white"
                       >
                         <RefreshCw className="h-4 w-4" />
                         {'Экспорт в Sheets'}
@@ -227,8 +237,11 @@ export function Header() {
             {/* Quick Create Button */}
             <div className="relative">
               <button
-                onClick={() => setQuickCreateOpen(!quickCreateOpen)}
-                className="app-icon-button app-icon-cta h-8 w-8"
+                onClick={() => {
+                  hapticLight()
+                  setQuickCreateOpen(!quickCreateOpen)
+                }}
+                className="tap-highlight app-icon-button app-icon-cta h-8 w-8"
                 title="Создать"
               >
                 <Plus className={`h-5 w-5 transition ${quickCreateOpen ? 'rotate-45' : ''}`} />
@@ -239,8 +252,11 @@ export function Header() {
                   <div className="panel panel-glass animate-scaleIn absolute right-0 top-full z-50 mt-2 min-w-48 origin-top-right rounded-xl shadow-xl">
                     <Link
                       href="/letters/new"
-                      className="flex w-full items-center gap-2 rounded-t-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 hover:text-white"
-                      onClick={() => setQuickCreateOpen(false)}
+                      className="tap-highlight flex w-full items-center gap-2 rounded-t-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 hover:text-white"
+                      onClick={() => {
+                        hapticLight()
+                        setQuickCreateOpen(false)
+                      }}
                     >
                       <FileText className="h-4 w-4 text-blue-400" />
                       {'Новое письмо'}
@@ -248,8 +264,11 @@ export function Header() {
                     <div className="border-t border-white/10" />
                     <Link
                       href="/request"
-                      className="flex w-full items-center gap-2 rounded-b-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 hover:text-white"
-                      onClick={() => setQuickCreateOpen(false)}
+                      className="tap-highlight flex w-full items-center gap-2 rounded-b-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 hover:text-white"
+                      onClick={() => {
+                        hapticLight()
+                        setQuickCreateOpen(false)
+                      }}
                     >
                       <Inbox className="h-4 w-4 text-emerald-400" />
                       {'Подать заявку'}
@@ -265,7 +284,8 @@ export function Header() {
                 <Notifications />
                 <Link
                   href="/profile"
-                  className="app-icon-button rounded-full p-1.5"
+                  onClick={() => hapticLight()}
+                  className="tap-highlight app-icon-button rounded-full p-1.5"
                   title={'Профиль'}
                 >
                   {session.user.image ? (
@@ -282,8 +302,11 @@ export function Header() {
                   )}
                 </Link>
                 <button
-                  onClick={() => signOut({ callbackUrl: '/login' })}
-                  className="app-icon-button p-2"
+                  onClick={() => {
+                    hapticMedium()
+                    signOut({ callbackUrl: '/login' })
+                  }}
+                  className="tap-highlight app-icon-button p-2"
                   title="Выйти"
                 >
                   <LogOut className="h-5 w-5" />
@@ -297,7 +320,10 @@ export function Header() {
             <ThemeToggle />
             {session?.user && <Notifications />}
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              onClick={() => {
+                hapticLight()
+                setMobileMenuOpen(!mobileMenuOpen)
+              }}
               aria-label={
                 mobileMenuOpen
                   ? '\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u043c\u0435\u043d\u044e'
@@ -305,7 +331,7 @@ export function Header() {
               }
               aria-expanded={mobileMenuOpen}
               aria-controls="mobile-menu"
-              className="app-icon-button p-2"
+              className="tap-highlight touch-target app-icon-button"
             >
               {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -338,14 +364,16 @@ export function Header() {
           <div className="grid grid-cols-2 gap-3">
             <Link
               href="/letters/new"
-              className="flex flex-col items-start gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-slate-200/80 transition hover:bg-white/10"
+              onClick={() => hapticLight()}
+              className="tap-highlight touch-target flex flex-col items-start gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-slate-200/80 transition hover:bg-white/10"
             >
               <FileText className="h-5 w-5 text-blue-400" />
               <span className="leading-tight">{'Новое письмо'}</span>
             </Link>
             <Link
               href="/request"
-              className="flex flex-col items-start gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-slate-200/80 transition hover:bg-white/10"
+              onClick={() => hapticLight()}
+              className="tap-highlight touch-target flex flex-col items-start gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-slate-200/80 transition hover:bg-white/10"
             >
               <Inbox className="h-5 w-5 text-emerald-400" />
               <span className="leading-tight">{'Подать заявку'}</span>
@@ -374,7 +402,8 @@ export function Header() {
               </div>
               <Link
                 href="/profile"
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-white/10 px-2.5 py-1.5 text-xs text-teal-200 transition hover:bg-teal-500/20"
+                onClick={() => hapticLight()}
+                className="tap-highlight inline-flex shrink-0 items-center gap-1.5 rounded-md bg-white/10 px-2.5 py-1.5 text-xs text-teal-200 transition hover:bg-teal-500/20"
               >
                 <User className="h-3.5 w-3.5" />
                 {'\u041f\u0440\u043e\u0444\u0438\u043b\u044c'}
@@ -384,7 +413,8 @@ export function Header() {
 
           <Link
             href="/"
-            className={`flex items-center gap-3 rounded-lg px-4 py-3 transition ${
+            onClick={() => hapticLight()}
+            className={`tap-highlight touch-target flex items-center gap-3 rounded-lg px-4 py-3 transition ${
               isActive('/')
                 ? 'border border-teal-400/20 bg-teal-400/15 text-teal-200'
                 : 'text-slate-200/80 hover:bg-white/5'
@@ -396,7 +426,8 @@ export function Header() {
 
           <Link
             href="/letters"
-            className={`flex items-center gap-3 rounded-lg px-4 py-3 transition ${
+            onClick={() => hapticLight()}
+            className={`tap-highlight touch-target flex items-center gap-3 rounded-lg px-4 py-3 transition ${
               isActive('/letters')
                 ? 'border border-teal-400/20 bg-teal-400/15 text-teal-200'
                 : 'text-slate-200/80 hover:bg-white/5'
@@ -408,7 +439,8 @@ export function Header() {
 
           <Link
             href="/requests"
-            className={`flex items-center gap-3 rounded-lg px-4 py-3 transition ${
+            onClick={() => hapticLight()}
+            className={`tap-highlight touch-target flex items-center gap-3 rounded-lg px-4 py-3 transition ${
               isActive('/requests')
                 ? 'border border-teal-400/20 bg-teal-400/15 text-teal-200'
                 : 'text-slate-200/80 hover:bg-white/5'
@@ -420,7 +452,8 @@ export function Header() {
 
           <Link
             href="/reports"
-            className={`flex items-center gap-3 rounded-lg px-4 py-3 transition ${
+            onClick={() => hapticLight()}
+            className={`tap-highlight touch-target flex items-center gap-3 rounded-lg px-4 py-3 transition ${
               isActive('/reports')
                 ? 'border border-teal-400/20 bg-teal-400/15 text-teal-200'
                 : 'text-slate-200/80 hover:bg-white/5'
@@ -435,18 +468,24 @@ export function Header() {
               <div className="my-2 border-t border-white/10" />
 
               <button
-                onClick={() => handleSync('from_sheets')}
+                onClick={() => {
+                  hapticMedium()
+                  handleSync('from_sheets')
+                }}
                 disabled={syncing}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 disabled:opacity-50"
+                className="tap-highlight touch-target flex items-center gap-3 rounded-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 disabled:opacity-50"
               >
                 <RefreshCw className="h-5 w-5" />
                 {'\u0418\u043c\u043f\u043e\u0440\u0442 \u0438\u0437 Sheets'}
               </button>
 
               <button
-                onClick={() => handleSync('to_sheets')}
+                onClick={() => {
+                  hapticMedium()
+                  handleSync('to_sheets')
+                }}
                 disabled={syncing}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 disabled:opacity-50"
+                className="tap-highlight touch-target flex items-center gap-3 rounded-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5 disabled:opacity-50"
               >
                 <RefreshCw className="h-5 w-5" />
                 {'\u042d\u043a\u0441\u043f\u043e\u0440\u0442 \u0432 Sheets'}
@@ -454,7 +493,8 @@ export function Header() {
 
               <Link
                 href="/settings"
-                className={`flex items-center gap-3 rounded-lg px-4 py-3 transition ${
+                onClick={() => hapticLight()}
+                className={`tap-highlight touch-target flex items-center gap-3 rounded-lg px-4 py-3 transition ${
                   isActive('/settings')
                     ? 'border border-teal-400/20 bg-teal-400/15 text-teal-200'
                     : 'text-slate-200/80 hover:bg-white/5'
@@ -469,8 +509,11 @@ export function Header() {
           <div className="my-2 border-t border-white/10" />
 
           <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
-            className="flex items-center gap-3 rounded-lg px-4 py-3 text-red-400 transition hover:bg-red-500/10"
+            onClick={() => {
+              hapticMedium()
+              signOut({ callbackUrl: '/login' })
+            }}
+            className="tap-highlight touch-target flex items-center gap-3 rounded-lg px-4 py-3 text-red-400 transition hover:bg-red-500/10"
           >
             <LogOut className="h-5 w-5" />
             Выйти
