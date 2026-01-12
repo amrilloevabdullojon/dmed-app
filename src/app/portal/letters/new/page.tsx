@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Script from 'next/script'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, Check, FileText, Loader2, Send, Upload, X, Copy } from 'lucide-react'
 import { ALLOWED_FILE_EXTENSIONS, MAX_FILE_SIZE, MAX_FILE_SIZE_LABEL } from '@/lib/constants'
+import { portalLetterSchema, type PortalLetterInput } from '@/lib/schemas'
 
 declare global {
   interface Window {
@@ -67,31 +70,31 @@ const formatFileSize = (bytes: number) => {
 export default function PublicLetterSubmission() {
   const [files, setFiles] = useState<File[]>([])
   const [turnstileToken, setTurnstileToken] = useState('')
-  const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [error, setError] = useState('')
+  const [globalError, setGlobalError] = useState('')
   const [portalLink, setPortalLink] = useState('')
   const [filesFailed, setFilesFailed] = useState<Array<{ name: string; reason: string }>>([])
-  const [form, setForm] = useState({
-    number: '',
-    org: '',
-    date: new Date().toISOString().split('T')[0],
-    content: '',
-    contacts: '',
-    applicantName: '',
-    applicantEmail: '',
-    applicantPhone: '',
-    applicantTelegramChatId: '',
-  })
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 
-  const contactProvided = useMemo(
-    () =>
-      Boolean(form.applicantEmail.trim()) ||
-      Boolean(form.applicantPhone.trim()) ||
-      Boolean(form.applicantTelegramChatId.trim()),
-    [form.applicantEmail, form.applicantPhone, form.applicantTelegramChatId]
-  )
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<PortalLetterInput>({
+    resolver: zodResolver(portalLetterSchema),
+    mode: 'onChange',
+    defaultValues: {
+      number: '',
+      org: '',
+      date: new Date().toISOString().split('T')[0],
+      content: '',
+      contacts: '',
+      applicantName: '',
+      applicantEmail: '',
+      applicantPhone: '',
+      applicantTelegramChatId: '',
+    },
+  })
 
   useEffect(() => {
     if (!turnstileSiteKey) return
@@ -129,40 +132,25 @@ export default function PublicLetterSubmission() {
     setFiles((prev) => prev.filter((_, idx) => idx !== index))
   }
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = event.target
-    setForm((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
-    if (submitting) return
-
-    setError('')
+  const onSubmit = async (data: PortalLetterInput) => {
+    setGlobalError('')
     setFilesFailed([])
 
-    if (!contactProvided) {
-      setError(copy.contactMissing)
-      return
-    }
-
     if (turnstileSiteKey && !turnstileToken) {
-      setError(copy.captchaMissing)
+      setGlobalError(copy.captchaMissing)
       return
     }
-
-    setSubmitting(true)
     try {
       const formData = new FormData()
-      formData.append('number', form.number.trim())
-      formData.append('org', form.org.trim())
-      formData.append('date', form.date)
-      formData.append('content', form.content.trim())
-      formData.append('contacts', form.contacts.trim())
-      formData.append('applicantName', form.applicantName.trim())
-      formData.append('applicantEmail', form.applicantEmail.trim())
-      formData.append('applicantPhone', form.applicantPhone.trim())
-      formData.append('applicantTelegramChatId', form.applicantTelegramChatId.trim())
+      formData.append('number', data.number.trim())
+      formData.append('org', data.org.trim())
+      formData.append('date', data.date)
+      formData.append('content', data.content?.trim() || '')
+      formData.append('contacts', data.contacts?.trim() || '')
+      formData.append('applicantName', data.applicantName.trim())
+      formData.append('applicantEmail', data.applicantEmail?.trim() || '')
+      formData.append('applicantPhone', data.applicantPhone?.trim() || '')
+      formData.append('applicantTelegramChatId', data.applicantTelegramChatId?.trim() || '')
       formData.append('website', '')
       if (turnstileToken) {
         formData.append('cf-turnstile-response', turnstileToken)
@@ -173,19 +161,18 @@ export default function PublicLetterSubmission() {
         method: 'POST',
         body: formData,
       })
-      const data = await response.json()
+      const result = await response.json()
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Submit failed')
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Submit failed')
       }
 
-      setPortalLink(data.portalLink || '')
-      setFilesFailed(Array.isArray(data.filesFailed) ? data.filesFailed : [])
+      setPortalLink(result.portalLink || '')
+      setFilesFailed(Array.isArray(result.filesFailed) ? result.filesFailed : [])
       setSubmitted(true)
     } catch (err) {
-      setError((err as Error).message || 'Submit failed')
+      setGlobalError((err as Error).message || 'Submit failed')
     } finally {
-      setSubmitting(false)
       setTurnstileToken('')
       if (typeof window !== 'undefined' && window.turnstile?.reset) {
         try {
@@ -279,10 +266,15 @@ export default function PublicLetterSubmission() {
           <h1 className="text-2xl font-semibold text-white">{copy.title}</h1>
           <p className="mt-2 text-sm text-slate-400">{copy.subtitle}</p>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-            {error && (
+          <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5">
+            {globalError && (
               <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-                {error}
+                {globalError}
+              </div>
+            )}
+            {errors.applicantEmail && (
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                {errors.applicantEmail.message}
               </div>
             )}
 
@@ -290,56 +282,74 @@ export default function PublicLetterSubmission() {
               <div>
                 <label className="mb-1.5 block text-sm text-slate-300">{copy.number}</label>
                 <input
-                  name="number"
-                  required
-                  value={form.number}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none"
+                  {...register('number')}
+                  className={`w-full rounded-lg border px-3 py-2 text-sm text-white focus:outline-none ${
+                    errors.number
+                      ? 'border-rose-500/50 bg-rose-500/10 focus:border-rose-500'
+                      : 'border-white/10 bg-white/5 focus:border-emerald-400'
+                  }`}
                 />
+                {errors.number && (
+                  <p className="mt-1 text-xs text-rose-300">{errors.number.message}</p>
+                )}
               </div>
               <div>
                 <label className="mb-1.5 block text-sm text-slate-300">{copy.date}</label>
                 <input
                   type="date"
-                  name="date"
-                  required
-                  value={form.date}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none"
+                  {...register('date')}
+                  className={`w-full rounded-lg border px-3 py-2 text-sm text-white focus:outline-none ${
+                    errors.date
+                      ? 'border-rose-500/50 bg-rose-500/10 focus:border-rose-500'
+                      : 'border-white/10 bg-white/5 focus:border-emerald-400'
+                  }`}
                 />
+                {errors.date && <p className="mt-1 text-xs text-rose-300">{errors.date.message}</p>}
               </div>
             </div>
 
             <div>
               <label className="mb-1.5 block text-sm text-slate-300">{copy.org}</label>
               <input
-                name="org"
-                required
-                value={form.org}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none"
+                {...register('org')}
+                className={`w-full rounded-lg border px-3 py-2 text-sm text-white focus:outline-none ${
+                  errors.org
+                    ? 'border-rose-500/50 bg-rose-500/10 focus:border-rose-500'
+                    : 'border-white/10 bg-white/5 focus:border-emerald-400'
+                }`}
               />
+              {errors.org && <p className="mt-1 text-xs text-rose-300">{errors.org.message}</p>}
             </div>
 
             <div>
               <label className="mb-1.5 block text-sm text-slate-300">{copy.content}</label>
               <textarea
-                name="content"
+                {...register('content')}
                 rows={4}
-                value={form.content}
-                onChange={handleChange}
-                className="w-full resize-none rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none"
+                className={`w-full resize-none rounded-lg border px-3 py-2 text-sm text-white focus:outline-none ${
+                  errors.content
+                    ? 'border-rose-500/50 bg-rose-500/10 focus:border-rose-500'
+                    : 'border-white/10 bg-white/5 focus:border-emerald-400'
+                }`}
               />
+              {errors.content && (
+                <p className="mt-1 text-xs text-rose-300">{errors.content.message}</p>
+              )}
             </div>
 
             <div>
               <label className="mb-1.5 block text-sm text-slate-300">{copy.contacts}</label>
               <input
-                name="contacts"
-                value={form.contacts}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none"
+                {...register('contacts')}
+                className={`w-full rounded-lg border px-3 py-2 text-sm text-white focus:outline-none ${
+                  errors.contacts
+                    ? 'border-rose-500/50 bg-rose-500/10 focus:border-rose-500'
+                    : 'border-white/10 bg-white/5 focus:border-emerald-400'
+                }`}
               />
+              {errors.contacts && (
+                <p className="mt-1 text-xs text-rose-300">{errors.contacts.message}</p>
+              )}
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -350,23 +360,29 @@ export default function PublicLetterSubmission() {
                     {copy.applicantName}
                   </label>
                   <input
-                    name="applicantName"
-                    required
-                    value={form.applicantName}
-                    onChange={handleChange}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none"
+                    {...register('applicantName')}
+                    className={`w-full rounded-lg border px-3 py-2 text-sm text-white focus:outline-none ${
+                      errors.applicantName
+                        ? 'border-rose-500/50 bg-rose-500/10 focus:border-rose-500'
+                        : 'border-white/10 bg-white/5 focus:border-emerald-400'
+                    }`}
                   />
+                  {errors.applicantName && (
+                    <p className="mt-1 text-xs text-rose-300">{errors.applicantName.message}</p>
+                  )}
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs text-slate-400">
                     {copy.applicantEmail}
                   </label>
                   <input
-                    name="applicantEmail"
                     type="email"
-                    value={form.applicantEmail}
-                    onChange={handleChange}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none"
+                    {...register('applicantEmail')}
+                    className={`w-full rounded-lg border px-3 py-2 text-sm text-white focus:outline-none ${
+                      errors.applicantEmail
+                        ? 'border-rose-500/50 bg-rose-500/10 focus:border-rose-500'
+                        : 'border-white/10 bg-white/5 focus:border-emerald-400'
+                    }`}
                   />
                 </div>
                 <div>
@@ -374,22 +390,34 @@ export default function PublicLetterSubmission() {
                     {copy.applicantPhone}
                   </label>
                   <input
-                    name="applicantPhone"
-                    value={form.applicantPhone}
-                    onChange={handleChange}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none"
+                    {...register('applicantPhone')}
+                    className={`w-full rounded-lg border px-3 py-2 text-sm text-white focus:outline-none ${
+                      errors.applicantPhone
+                        ? 'border-rose-500/50 bg-rose-500/10 focus:border-rose-500'
+                        : 'border-white/10 bg-white/5 focus:border-emerald-400'
+                    }`}
                   />
+                  {errors.applicantPhone && (
+                    <p className="mt-1 text-xs text-rose-300">{errors.applicantPhone.message}</p>
+                  )}
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs text-slate-400">
                     {copy.applicantTelegram}
                   </label>
                   <input
-                    name="applicantTelegramChatId"
-                    value={form.applicantTelegramChatId}
-                    onChange={handleChange}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none"
+                    {...register('applicantTelegramChatId')}
+                    className={`w-full rounded-lg border px-3 py-2 text-sm text-white focus:outline-none ${
+                      errors.applicantTelegramChatId
+                        ? 'border-rose-500/50 bg-rose-500/10 focus:border-rose-500'
+                        : 'border-white/10 bg-white/5 focus:border-emerald-400'
+                    }`}
                   />
+                  {errors.applicantTelegramChatId && (
+                    <p className="mt-1 text-xs text-rose-300">
+                      {errors.applicantTelegramChatId.message}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -450,10 +478,10 @@ export default function PublicLetterSubmission() {
 
             <button
               type="submit"
-              disabled={submitting}
+              disabled={isSubmitting}
               className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {submitting ? (
+              {isSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Send className="h-4 w-4" />
