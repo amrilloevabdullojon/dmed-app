@@ -33,10 +33,11 @@
 
 - **React Hook Form v7** - производительные формы
 - **Zod** - schema validation
-  - 6 форм мигрированы (включая самую сложную - BulkCreateLetters 1100+ строк)
-  - Inline validation
-  - Type-safe
+  - 7 форм мигрированы (включая самую сложную - BulkCreateLetters 1100+ строк)
+  - Inline validation с визуальными индикаторами
+  - Type-safe с полной типизацией
   - useFieldArray для динамических массивов
+  - Кастомная валидация с .refine()
 
 ### Data Tables
 
@@ -223,6 +224,67 @@
   - ✅ File attachments с загрузкой к созданным письмам
   - ✅ Duplicate detection с подсветкой
   - ✅ Success screen после создания
+
+### Phase 7: Публичная форма портала (текущая сессия)
+
+- ✅ **portal/letters/new/page.tsx** - публичная форма подачи письма
+
+  ```tsx
+  // Схема с кастомной валидацией
+  export const portalLetterSchema = z
+    .object({
+      number: z.string().min(1, 'Номер письма обязателен').max(50),
+      org: z.string().min(1, 'Организация обязательна').max(500),
+      date: z.string().min(1, 'Дата обязательна'),
+      content: z.string().max(10000).optional(),
+      contacts: z.string().max(500).optional(),
+      applicantName: z.string().min(1, 'Имя обязательно').max(200),
+      applicantEmail: z.string().email('Некорректный email').optional().or(z.literal('')),
+      applicantPhone: z.string().max(50).optional(),
+      applicantTelegramChatId: z.string().max(50).optional(),
+    })
+    .refine(
+      (data) => {
+        // Хотя бы один контакт должен быть указан
+        return (
+          (data.applicantEmail && data.applicantEmail.trim() !== '') ||
+          (data.applicantPhone && data.applicantPhone.trim() !== '') ||
+          (data.applicantTelegramChatId && data.applicantTelegramChatId.trim() !== '')
+        )
+      },
+      {
+        message: 'Укажите email, телефон или Telegram',
+        path: ['applicantEmail'],
+      }
+    )
+
+  // React Hook Form
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(portalLetterSchema),
+    mode: 'onChange',
+  })
+  ```
+
+  **Ключевые особенности:**
+  - Публичная форма для граждан (без авторизации)
+  - Кастомная Zod валидация с `.refine()` для проверки контактов
+  - Интеграция с Cloudflare Turnstile капчей
+  - Загрузка файлов (до 5 файлов)
+  - Success screen с ссылкой на портал отслеживания
+  - Copy to clipboard для portal link
+  - Inline validation errors с визуальным выделением
+  - Real-time валидация (onChange mode)
+
+  **Сохранено 100% функциональности:**
+  - ✅ Cloudflare Turnstile captcha интеграция
+  - ✅ File uploads с проверкой размера и типа
+  - ✅ Success screen с portal tracking link
+  - ✅ Files failed feedback
+  - ✅ Все визуальные индикаторы и сообщения
 
 ---
 
