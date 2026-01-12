@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import Script from 'next/script'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Header } from '@/components/Header'
 import { useToast } from '@/components/Toast'
 import {
@@ -12,6 +14,7 @@ import {
   REQUEST_ALLOWED_FILE_EXTENSIONS,
   REQUEST_MAX_FILES,
 } from '@/lib/constants'
+import { publicRequestSchema, type PublicRequestInput } from '@/lib/schemas'
 import {
   Paperclip,
   Send,
@@ -30,16 +33,6 @@ import {
   Sparkles,
 } from 'lucide-react'
 
-interface RequestFormState {
-  requestType: string
-  organization: string
-  contactName: string
-  contactEmail: string
-  contactPhone: string
-  contactTelegram: string
-  description: string
-}
-
 declare global {
   interface Window {
     onTurnstileSuccess?: (token: string) => void
@@ -50,16 +43,6 @@ declare global {
       render?: (container: HTMLElement, options: Record<string, unknown>) => string
     }
   }
-}
-
-const initialForm: RequestFormState = {
-  requestType: '',
-  organization: '',
-  contactName: '',
-  contactEmail: '',
-  contactPhone: '',
-  contactTelegram: '',
-  description: '',
 }
 
 const REQUEST_TYPES = [
@@ -90,70 +73,44 @@ const formatPhone = (value: string) => {
 
 const isImageFile = (file: File) => file.type.startsWith('image/')
 
-interface ValidationErrors {
-  requestType?: string
-  organization?: string
-  contactName?: string
-  contactEmail?: string
-  contactPhone?: string
-  contactTelegram?: string
-  description?: string
-}
-
-const validateStep = (step: number, form: RequestFormState): ValidationErrors => {
-  const errors: ValidationErrors = {}
-
-  if (step === 1) {
-    if (!form.requestType) errors.requestType = 'Выберите тип заявки'
-    if (!form.organization.trim()) errors.organization = 'Введите название организации'
-  }
-
-  if (step === 2) {
-    if (!form.contactName.trim()) errors.contactName = 'Введите имя контактного лица'
-    if (!form.contactEmail.trim()) {
-      errors.contactEmail = 'Введите email'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contactEmail)) {
-      errors.contactEmail = 'Неверный формат email'
-    }
-    const phoneDigits = form.contactPhone.replace(/\D/g, '')
-    if (!phoneDigits) {
-      errors.contactPhone = 'Введите номер телефона'
-    } else if (phoneDigits.length < 12) {
-      errors.contactPhone = 'Номер слишком короткий'
-    }
-    if (!form.contactTelegram.trim()) {
-      errors.contactTelegram = 'Введите Telegram'
-    } else if (!form.contactTelegram.startsWith('@') && !form.contactTelegram.startsWith('+')) {
-      errors.contactTelegram = 'Начните с @ или +'
-    }
-  }
-
-  if (step === 3) {
-    if (!form.description.trim()) {
-      errors.description = 'Опишите вашу проблему'
-    } else if (form.description.trim().length < 20) {
-      errors.description = 'Слишком короткое описание (минимум 20 символов)'
-    }
-  }
-
-  return errors
-}
-
 export default function RequestPage() {
   const toast = useToast()
-  const [form, setForm] = useState<RequestFormState>(initialForm)
+
+  // React Hook Form setup
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    trigger,
+    formState: { errors, isSubmitting },
+  } = useForm<PublicRequestInput>({
+    resolver: zodResolver(publicRequestSchema),
+    mode: 'onChange',
+    defaultValues: {
+      requestType: '',
+      organization: '',
+      contactName: '',
+      contactEmail: '',
+      contactPhone: '',
+      contactTelegram: '',
+      description: '',
+    },
+  })
+
+  const formValues = watch()
+
+  // Other state
   const [files, setFiles] = useState<File[]>([])
   const [filePreviews, setFilePreviews] = useState<Record<number, string>>({})
-  const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [submittedId, setSubmittedId] = useState('')
   const [honeypot, setHoneypot] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
   const [step, setStep] = useState(1)
-  const [errors, setErrors] = useState<ValidationErrors>({})
-  const [touched, setTouched] = useState<Record<string, boolean>>({})
   const [isDragging, setIsDragging] = useState(false)
   const [draftRestored, setDraftRestored] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const dropZoneRef = useRef<HTMLDivElement>(null)
   const turnstileRef = useRef<HTMLDivElement>(null)
   const turnstileWidgetId = useRef<string | null>(null)
@@ -168,7 +125,10 @@ export default function RequestPage() {
       try {
         const draft = JSON.parse(saved)
         if (draft.form) {
-          setForm(draft.form)
+          // Load saved data into React Hook Form
+          Object.entries(draft.form).forEach(([key, value]) => {
+            setValue(key as keyof PublicRequestInput, value as string)
+          })
           setDraftRestored(true)
           setTimeout(() => setDraftRestored(false), 3000)
         }
@@ -176,15 +136,16 @@ export default function RequestPage() {
         // Ignore invalid JSON
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Save draft to localStorage
   useEffect(() => {
-    const hasData = Object.values(form).some((v) => v.trim() !== '')
+    const hasData = Object.values(formValues).some((v) => v && v.trim() !== '')
     if (hasData && !submitted) {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ form, savedAt: Date.now() }))
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ form: formValues, savedAt: Date.now() }))
     }
-  }, [form, submitted])
+  }, [formValues, submitted])
 
   // Clear draft on successful submit
   useEffect(() => {
@@ -258,29 +219,18 @@ export default function RequestPage() {
     return () => clearInterval(timer)
   }, [step, turnstileSiteKey])
 
-  // Validate on form change
-  useEffect(() => {
-    const newErrors = validateStep(step, form)
-    setErrors(newErrors)
-  }, [form, step])
-
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = event.target
-
-    if (name === 'contactPhone') {
-      setForm((prev) => ({ ...prev, [name]: formatPhone(value) }))
-    } else if (name === 'contactTelegram') {
-      // Auto-add @ if user starts typing without it
-      const formatted =
-        value.startsWith('@') || value.startsWith('+') || value === '' ? value : `@${value}`
-      setForm((prev) => ({ ...prev, [name]: formatted }))
-    } else {
-      setForm((prev) => ({ ...prev, [name]: value }))
-    }
+  // Phone formatting helper
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhone(e.target.value)
+    setValue('contactPhone', formatted)
   }
 
-  const handleBlur = (field: string) => {
-    setTouched((prev) => ({ ...prev, [field]: true }))
+  // Telegram formatting helper
+  const handleTelegramChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    const formatted =
+      value.startsWith('@') || value.startsWith('+') || value === '' ? value : `@${value}`
+    setValue('contactTelegram', formatted)
   }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -349,14 +299,18 @@ export default function RequestPage() {
   )
 
   const resetForm = () => {
-    setForm(initialForm)
+    setValue('requestType', '')
+    setValue('organization', '')
+    setValue('contactName', '')
+    setValue('contactEmail', '')
+    setValue('contactPhone', '')
+    setValue('contactTelegram', '')
+    setValue('description', '')
     setFiles([])
     setSubmitted(false)
     setSubmittedId('')
     setTurnstileToken('')
     setStep(1)
-    setTouched({})
-    setErrors({})
     localStorage.removeItem(DRAFT_KEY)
     if (typeof window !== 'undefined' && window.turnstile?.reset) {
       try {
@@ -367,28 +321,21 @@ export default function RequestPage() {
     }
   }
 
-  const canProceed = () => {
-    const stepErrors = validateStep(step, form)
-    return Object.keys(stepErrors).length === 0
-  }
+  const nextStep = async () => {
+    // Validate current step fields
+    let fieldsToValidate: (keyof PublicRequestInput)[] = []
 
-  const nextStep = () => {
-    // Mark all fields in current step as touched
     if (step === 1) {
-      setTouched((prev) => ({ ...prev, requestType: true, organization: true }))
+      fieldsToValidate = ['requestType', 'organization']
     } else if (step === 2) {
-      setTouched((prev) => ({
-        ...prev,
-        contactName: true,
-        contactEmail: true,
-        contactPhone: true,
-        contactTelegram: true,
-      }))
+      fieldsToValidate = ['contactName', 'contactEmail', 'contactPhone', 'contactTelegram']
     } else if (step === 3) {
-      setTouched((prev) => ({ ...prev, description: true }))
+      fieldsToValidate = ['description']
     }
 
-    if (canProceed() && step < TOTAL_STEPS) {
+    const isValid = await trigger(fieldsToValidate)
+
+    if (isValid && step < TOTAL_STEPS) {
       setStep(step + 1)
     }
   }
@@ -397,8 +344,7 @@ export default function RequestPage() {
     if (step > 1) setStep(step - 1)
   }
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  const onSubmit = async (data: PublicRequestInput) => {
     if (submitting) return
 
     if (!turnstileSiteKey) {
@@ -416,13 +362,13 @@ export default function RequestPage() {
 
     try {
       const formData = new FormData()
-      formData.append('requestType', form.requestType)
-      formData.append('organization', form.organization)
-      formData.append('contactName', form.contactName)
-      formData.append('contactEmail', form.contactEmail)
-      formData.append('contactPhone', form.contactPhone)
-      formData.append('contactTelegram', form.contactTelegram)
-      formData.append('description', form.description)
+      formData.append('requestType', data.requestType)
+      formData.append('organization', data.organization)
+      formData.append('contactName', data.contactName)
+      formData.append('contactEmail', data.contactEmail)
+      formData.append('contactPhone', data.contactPhone)
+      formData.append('contactTelegram', data.contactTelegram)
+      formData.append('description', data.description)
       formData.append('website', honeypot)
       formData.append('cf-turnstile-response', turnstileToken)
 
@@ -435,18 +381,18 @@ export default function RequestPage() {
         body: formData,
       })
 
-      const data = await response.json()
+      const result = await response.json()
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Request failed')
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Request failed')
       }
 
-      if (Array.isArray(data.filesFailed) && data.filesFailed.length > 0) {
+      if (Array.isArray(result.filesFailed) && result.filesFailed.length > 0) {
         toast.warning('Часть файлов не загрузилась. Заявка все равно создана.')
       }
 
       toast.success('Заявка отправлена!', { id: toastId })
-      setSubmittedId(typeof data.requestId === 'string' ? data.requestId : '')
+      setSubmittedId(typeof result.requestId === 'string' ? result.requestId : '')
       setSubmitted(true)
     } catch (error) {
       console.error('Request submit failed:', error)
@@ -509,43 +455,6 @@ export default function RequestPage() {
         <p className="mt-1 text-sm text-slate-400">
           Шаг {step} из {TOTAL_STEPS}
         </p>
-      </div>
-    )
-  }
-
-  const renderField = (
-    name: keyof ValidationErrors,
-    label: string,
-    icon: React.ReactNode,
-    inputProps: React.InputHTMLAttributes<HTMLInputElement>
-  ) => {
-    const hasError = touched[name] && errors[name]
-    return (
-      <div>
-        <label className="mb-2 block text-sm font-medium text-gray-300">{label}</label>
-        <div className="relative">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{icon}</div>
-          <input
-            {...inputProps}
-            name={name}
-            value={form[name]}
-            onChange={handleChange}
-            onBlur={() => handleBlur(name)}
-            className={`w-full rounded-lg border bg-gray-700 py-2.5 pl-10 pr-4 text-white placeholder-gray-400 transition focus:outline-none ${
-              hasError
-                ? 'border-red-500 focus:border-red-500'
-                : 'border-gray-600 focus:border-emerald-500'
-            }`}
-          />
-          {hasError && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400">
-              <AlertCircle className="h-4 w-4" />
-            </div>
-          )}
-        </div>
-        {hasError && (
-          <p className="mt-1.5 flex items-center gap-1 text-sm text-red-400">{errors[name]}</p>
-        )}
       </div>
     )
   }
@@ -623,7 +532,7 @@ export default function RequestPage() {
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit(onSubmit)}>
               {renderStepIndicator()}
               {renderStepTitle()}
 
@@ -637,14 +546,14 @@ export default function RequestPage() {
                     <div className="grid grid-cols-2 gap-3">
                       {REQUEST_TYPES.map((type) => {
                         const Icon = type.icon
-                        const isSelected = form.requestType === type.value
+                        const isSelected = formValues.requestType === type.value
                         return (
                           <button
                             key={type.value}
                             type="button"
                             onClick={() => {
-                              setForm((prev) => ({ ...prev, requestType: type.value }))
-                              setTouched((prev) => ({ ...prev, requestType: true }))
+                              setValue('requestType', type.value)
+                              trigger('requestType')
                             }}
                             className={`rounded-xl border-2 p-4 text-left transition-all ${
                               isSelected
@@ -664,52 +573,176 @@ export default function RequestPage() {
                         )
                       })}
                     </div>
-                    {touched.requestType && errors.requestType && (
-                      <p className="mt-2 text-sm text-red-400">{errors.requestType}</p>
+                    {errors.requestType && (
+                      <p className="mt-2 text-sm text-red-400">{errors.requestType.message}</p>
                     )}
                   </div>
 
-                  {renderField('organization', 'Организация *', <Building2 className="h-4 w-4" />, {
-                    type: 'text',
-                    required: true,
-                    placeholder: 'Наименование организации',
-                  })}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-300">
+                      Организация *
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <Building2 className="h-4 w-4" />
+                      </div>
+                      <input
+                        {...register('organization')}
+                        type="text"
+                        placeholder="Наименование организации"
+                        className={`w-full rounded-lg border bg-gray-700 py-2.5 pl-10 pr-4 text-white placeholder-gray-400 transition focus:outline-none ${
+                          errors.organization
+                            ? 'border-red-500 focus:border-red-500'
+                            : 'border-gray-600 focus:border-emerald-500'
+                        }`}
+                      />
+                      {errors.organization && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400">
+                          <AlertCircle className="h-4 w-4" />
+                        </div>
+                      )}
+                    </div>
+                    {errors.organization && (
+                      <p className="mt-1.5 text-sm text-red-400">{errors.organization.message}</p>
+                    )}
+                  </div>
                 </div>
               )}
 
               {/* Step 2: Contacts */}
               {step === 2 && (
                 <div className="animate-fadeIn space-y-5">
-                  {renderField('contactName', 'Контактное лицо *', <User className="h-4 w-4" />, {
-                    type: 'text',
-                    required: true,
-                    placeholder: 'Ваше имя',
-                  })}
-
-                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    {renderField('contactPhone', 'Телефон *', <Phone className="h-4 w-4" />, {
-                      type: 'tel',
-                      required: true,
-                      placeholder: '+998 90 000 00 00',
-                    })}
-
-                    {renderField('contactEmail', 'Email *', <Mail className="h-4 w-4" />, {
-                      type: 'email',
-                      required: true,
-                      placeholder: 'name@example.com',
-                    })}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-300">
+                      Контактное лицо *
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <input
+                        {...register('contactName')}
+                        type="text"
+                        placeholder="Ваше имя"
+                        className={`w-full rounded-lg border bg-gray-700 py-2.5 pl-10 pr-4 text-white placeholder-gray-400 transition focus:outline-none ${
+                          errors.contactName
+                            ? 'border-red-500 focus:border-red-500'
+                            : 'border-gray-600 focus:border-emerald-500'
+                        }`}
+                      />
+                      {errors.contactName && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400">
+                          <AlertCircle className="h-4 w-4" />
+                        </div>
+                      )}
+                    </div>
+                    {errors.contactName && (
+                      <p className="mt-1.5 text-sm text-red-400">{errors.contactName.message}</p>
+                    )}
                   </div>
 
-                  {renderField(
-                    'contactTelegram',
-                    'Telegram *',
-                    <MessageCircle className="h-4 w-4" />,
-                    {
-                      type: 'text',
-                      required: true,
-                      placeholder: '@username',
-                    }
-                  )}
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-300">
+                        Телефон *
+                      </label>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                          <Phone className="h-4 w-4" />
+                        </div>
+                        <input
+                          {...register('contactPhone')}
+                          type="tel"
+                          placeholder="+998 90 000 00 00"
+                          onChange={(e) => {
+                            const formatted = formatPhone(e.target.value)
+                            setValue('contactPhone', formatted)
+                          }}
+                          className={`w-full rounded-lg border bg-gray-700 py-2.5 pl-10 pr-4 text-white placeholder-gray-400 transition focus:outline-none ${
+                            errors.contactPhone
+                              ? 'border-red-500 focus:border-red-500'
+                              : 'border-gray-600 focus:border-emerald-500'
+                          }`}
+                        />
+                        {errors.contactPhone && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400">
+                            <AlertCircle className="h-4 w-4" />
+                          </div>
+                        )}
+                      </div>
+                      {errors.contactPhone && (
+                        <p className="mt-1.5 text-sm text-red-400">{errors.contactPhone.message}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-300">
+                        Email *
+                      </label>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                          <Mail className="h-4 w-4" />
+                        </div>
+                        <input
+                          {...register('contactEmail')}
+                          type="email"
+                          placeholder="name@example.com"
+                          className={`w-full rounded-lg border bg-gray-700 py-2.5 pl-10 pr-4 text-white placeholder-gray-400 transition focus:outline-none ${
+                            errors.contactEmail
+                              ? 'border-red-500 focus:border-red-500'
+                              : 'border-gray-600 focus:border-emerald-500'
+                          }`}
+                        />
+                        {errors.contactEmail && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400">
+                            <AlertCircle className="h-4 w-4" />
+                          </div>
+                        )}
+                      </div>
+                      {errors.contactEmail && (
+                        <p className="mt-1.5 text-sm text-red-400">{errors.contactEmail.message}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-300">
+                      Telegram *
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <MessageCircle className="h-4 w-4" />
+                      </div>
+                      <input
+                        {...register('contactTelegram')}
+                        type="text"
+                        placeholder="@username"
+                        onChange={(e) => {
+                          const value = e.target.value
+                          const formatted =
+                            value.startsWith('@') || value.startsWith('+') || value === ''
+                              ? value
+                              : `@${value}`
+                          setValue('contactTelegram', formatted)
+                        }}
+                        className={`w-full rounded-lg border bg-gray-700 py-2.5 pl-10 pr-4 text-white placeholder-gray-400 transition focus:outline-none ${
+                          errors.contactTelegram
+                            ? 'border-red-500 focus:border-red-500'
+                            : 'border-gray-600 focus:border-emerald-500'
+                        }`}
+                      />
+                      {errors.contactTelegram && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400">
+                          <AlertCircle className="h-4 w-4" />
+                        </div>
+                      )}
+                    </div>
+                    {errors.contactTelegram && (
+                      <p className="mt-1.5 text-sm text-red-400">
+                        {errors.contactTelegram.message}
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -722,25 +755,21 @@ export default function RequestPage() {
                     </label>
                     <div className="relative">
                       <textarea
-                        name="description"
-                        required
-                        value={form.description}
-                        onChange={handleChange}
-                        onBlur={() => handleBlur('description')}
+                        {...register('description')}
                         rows={6}
                         className={`w-full resize-none rounded-lg border bg-gray-700 px-4 py-3 text-white placeholder-gray-400 transition focus:outline-none ${
-                          touched.description && errors.description
+                          errors.description
                             ? 'border-red-500 focus:border-red-500'
                             : 'border-gray-600 focus:border-emerald-500'
                         }`}
                         placeholder="Опишите подробно, что нужно сделать и какой результат ожидается..."
                       />
                       <div className="absolute bottom-3 right-3 text-xs text-gray-500">
-                        {form.description.length} / 20 мин.
+                        {formValues.description.length} / 20 мин.
                       </div>
                     </div>
-                    {touched.description && errors.description && (
-                      <p className="mt-1.5 text-sm text-red-400">{errors.description}</p>
+                    {errors.description && (
+                      <p className="mt-1.5 text-sm text-red-400">{errors.description.message}</p>
                     )}
                   </div>
 
@@ -876,7 +905,6 @@ export default function RequestPage() {
                   <button
                     type="button"
                     onClick={nextStep}
-                    disabled={!canProceed()}
                     className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-2.5 text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Далее
