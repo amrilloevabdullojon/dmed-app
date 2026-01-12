@@ -100,12 +100,12 @@ interface ActivityData {
 }
 
 const ROLE_LABELS: Record<UserSummary['role'], string> = {
-  SUPERADMIN: '\С\у\п\е\р\а\д\м\и\н',
-  ADMIN: '\А\д\м\и\н',
-  MANAGER: '\М\е\н\е\д\ж\е\р',
-  AUDITOR: '\А\у\д\и\т\о\р',
-  EMPLOYEE: '\С\о\т\р\у\д\н\и\к',
-  VIEWER: '\Н\а\б\л\ю\д\а\т\е\л\ь',
+  SUPERADMIN: 'Суперадмин',
+  ADMIN: 'Админ',
+  MANAGER: 'Менеджер',
+  AUDITOR: 'Аудитор',
+  EMPLOYEE: 'Сотрудник',
+  VIEWER: 'Наблюдатель',
 }
 
 const ROLE_BADGE_CLASSES: Record<UserSummary['role'], string> = {
@@ -226,10 +226,10 @@ export default function ProfilePage() {
       const data = await res.json()
       setProfile(data.profile || payload)
       setSkillsInput((data.profile?.skills || payload.skills).join(', '))
-      toast.success('\П\р\о\ф\и\л\ь \о\б\н\о\в\л\е\н')
+      toast.success('Профиль обновлен')
     } catch (error) {
       console.error('Failed to save profile:', error)
-      toast.error('\Н\е \у\д\а\л\о\с\ь \с\о\х\р\а\н\и\т\ь \п\р\о\ф\и\л\ь')
+      toast.error('Не удалось сохранить профиль')
     } finally {
       setSaving(false)
     }
@@ -255,12 +255,10 @@ export default function ProfilePage() {
       if (type === 'avatar' && updateSession) {
         await updateSession({ image: data.profile?.avatarUrl || null })
       }
-      toast.success(
-        type === 'avatar' ? '\А\в\а\т\а\р \о\б\н\о\в\л\ё\н' : '\О\б\л\о\ж\к\а \о\б\н\о\в\л\е\н\а'
-      )
+      toast.success(type === 'avatar' ? 'Аватар обновлён' : 'Обложка обновлена')
     } catch (error) {
       console.error('Failed to upload asset:', error)
-      toast.error('\Н\е \у\д\а\л\о\с\ь \з\а\г\р\у\з\и\т\ь \ф\а\й\л')
+      toast.error('Не удалось загрузить файл')
     } finally {
       setUploading(false)
     }
@@ -279,10 +277,10 @@ export default function ProfilePage() {
       }
       const data = await res.json()
       setProfile((prev) => ({ ...prev, ...data.profile }))
-      toast.success('\С\с\ы\л\к\а \о\б\н\о\в\л\е\н\а')
+      toast.success('Ссылка обновлена')
     } catch (error) {
       console.error('Failed to rotate token:', error)
-      toast.error('\Н\е \у\д\а\л\о\с\ь \о\б\н\о\в\и\т\ь \с\с\ы\л\к\у')
+      toast.error('Не удалось обновить ссылку')
     }
   }
 
@@ -290,10 +288,10 @@ export default function ProfilePage() {
     if (!publicProfileUrl) return
     try {
       await navigator.clipboard.writeText(publicProfileUrl)
-      toast.success('\С\с\ы\л\к\а \с\к\о\п\и\р\о\в\а\н\а')
+      toast.success('Ссылка скопирована')
     } catch (error) {
       console.error('Failed to copy link:', error)
-      toast.error('\Н\е \у\д\а\л\о\с\ь \с\к\о\п\и\р\о\в\а\т\ь')
+      toast.error('Не удалось скопировать')
     }
   }
 
@@ -324,12 +322,10 @@ export default function ProfilePage() {
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-display text-3xl font-semibold text-white md:text-4xl">
-              {'\П\р\о\ф\и\л\ь'}
+              {'\Ð\Ñ\Ð¾\Ñ\Ð¸\Ð»\Ñ'}
             </h1>
-            <p className="text-muted mt-2 text-sm">
-              {
-                '\О\б\н\о\в\и\т\е \д\а\н\н\ы\е \и \н\а\с\т\р\о\й\т\е \в\и\д\и\м\о\с\т\ь \д\л\я \к\о\л\л\е\г.'
-              }
+            <p className="mt-2 text-sm text-muted">
+              {'Обновите данные и настройте видимость для коллег.'}
             </p>
           </div>
           <button
@@ -338,7 +334,7 @@ export default function ProfilePage() {
             className="btn-primary hidden items-center justify-center gap-2 rounded-lg px-4 py-2 text-white disabled:opacity-60 sm:inline-flex"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            {'\С\о\х\р\а\н\и\т\ь'}
+            {'\Ð¡\Ð¾\Ñ\Ñ\Ð°\Ð½\Ð¸\Ñ\Ñ'}
           </button>
         </div>
 
@@ -360,9 +356,7 @@ export default function ProfilePage() {
                 </div>
               )}
               <div>
-                <div className="text-lg font-semibold text-white">
-                  {user.name || '\Б\е\з \и\м\е\н\и'}
-                </div>
+                <div className="text-lg font-semibold text-white">{user.name || 'Без имени'}</div>
                 <div className="flex items-center gap-2 text-xs text-gray-400">
                   <Mail className="h-3.5 w-3.5" />
                   <span className="truncate">{user.email || '-'}</span>
@@ -385,24 +379,24 @@ export default function ProfilePage() {
               <div className="panel-soft panel-glass rounded-xl p-2 text-center">
                 <FileText className="mx-auto mb-1 h-4 w-4 text-emerald-300" />
                 <div className="text-white">{user._count.letters}</div>
-                <div className="text-gray-500">{'\П\и\с\ь\м\а'}</div>
+                <div className="text-gray-500">{'\Ð\Ð¸\Ñ\Ñ\Ð¼\Ð°'}</div>
               </div>
               <div className="panel-soft panel-glass rounded-xl p-2 text-center">
                 <MessageSquare className="mx-auto mb-1 h-4 w-4 text-blue-300" />
                 <div className="text-white">{user._count.comments}</div>
-                <div className="text-gray-500">{'\К\о\м\м\е\н\т\ы'}</div>
+                <div className="text-gray-500">{'\Ð\Ð¾\Ð¼\Ð¼\Ðµ\Ð½\Ñ\Ñ'}</div>
               </div>
               <div className="panel-soft panel-glass rounded-xl p-2 text-center">
                 <Clock className="mx-auto mb-1 h-4 w-4 text-amber-300" />
                 <div className="text-white">{user._count.sessions}</div>
-                <div className="text-gray-500">{'\С\е\с\с\и\и'}</div>
+                <div className="text-gray-500">{'\Ð¡\Ðµ\Ñ\Ñ\Ð¸\Ð¸'}</div>
               </div>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-xs text-gray-400">
                 <Upload className="h-3.5 w-3.5 text-emerald-400" />
-                {'\О\ф\о\р\м\л\е\н\и\е'}
+                {'\Ð\Ñ\Ð¾\Ñ\Ð¼\Ð»\Ðµ\Ð½\Ð¸\Ðµ'}
               </div>
               <div className="h-20 overflow-hidden rounded-xl border border-white/10 bg-white/10">
                 {coverUrl ? (
@@ -416,7 +410,7 @@ export default function ProfilePage() {
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">
-                    {'\Н\е\т \о\б\л\о\ж\к\и'}
+                    {'\Ð\Ðµ\Ñ \Ð¾\Ð±\Ð»\Ð¾\Ð¶\Ðº\Ð¸'}
                   </div>
                 )}
               </div>
@@ -427,7 +421,7 @@ export default function ProfilePage() {
                   ) : (
                     <Upload className="h-3.5 w-3.5" />
                   )}
-                  {'\А\в\а\т\а\р'}
+                  {'\Ð\Ð²\Ð°\Ñ\Ð°\Ñ'}
                   <input
                     type="file"
                     accept="image/*"
@@ -445,7 +439,7 @@ export default function ProfilePage() {
                   ) : (
                     <Upload className="h-3.5 w-3.5" />
                   )}
-                  {'\О\б\л\о\ж\к\а'}
+                  {'\Ð\Ð±\Ð»\Ð¾\Ð¶\Ðº\Ð°'}
                   <input
                     type="file"
                     accept="image/*"
@@ -462,20 +456,20 @@ export default function ProfilePage() {
 
             <div className="flex items-center gap-2 text-xs text-gray-400">
               <Clock className="h-4 w-4" />
-              {'\П\о\с\л\е\д\н\и\й \в\х\о\д:'} {formatDate(user.lastLoginAt)}
+              {'\Ð\Ð¾\Ñ\Ð»\Ðµ\Ð´\Ð½\Ð¸\Ð¹ \Ð²\Ñ\Ð¾\Ð´:'} {formatDate(user.lastLoginAt)}
             </div>
           </div>
 
           <div className="panel panel-glass space-y-6 rounded-2xl p-6 lg:col-span-2">
             <div className="flex items-center gap-2 text-sm text-gray-300">
               <UserCircle className="h-4 w-4 text-emerald-400" />
-              {'\О\с\н\о\в\н\о\е'}
+              {'\Ð\Ñ\Ð½\Ð¾\Ð²\Ð½\Ð¾\Ðµ'}
             </div>
             <textarea
               value={profile.bio || ''}
               onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
               className={`${fieldBase} min-h-[120px] w-full px-3 py-2`}
-              placeholder={'\К\о\р\о\т\к\о \о \с\е\б\е'}
+              placeholder={'\Ð\Ð¾\Ñ\Ð¾\Ñ\Ðº\Ð¾ \Ð¾ \Ñ\Ðµ\Ð±\Ðµ'}
               aria-label="Bio"
             />
 
@@ -483,46 +477,46 @@ export default function ProfilePage() {
               <div>
                 <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
                   <Briefcase className="h-4 w-4 text-emerald-400" />
-                  {'\Д\о\л\ж\н\о\с\т\ь'}
+                  {'\Ð\Ð¾\Ð»\Ð¶\Ð½\Ð¾\Ñ\Ñ\Ñ'}
                 </div>
                 <input
                   value={profile.position || ''}
                   onChange={(e) => setProfile({ ...profile, position: e.target.value })}
                   className={`${fieldBase} w-full px-3 py-2`}
-                  placeholder={'\Д\о\л\ж\н\о\с\т\ь'}
+                  placeholder={'\Ð\Ð¾\Ð»\Ð¶\Ð½\Ð¾\Ñ\Ñ\Ñ'}
                   aria-label="Position"
                 />
               </div>
               <div>
                 <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
                   <Building2 className="h-4 w-4 text-emerald-400" />
-                  {'\О\т\д\е\л'}
+                  {'\Ð\Ñ\Ð´\Ðµ\Ð»'}
                 </div>
                 <input
                   value={profile.department || ''}
                   onChange={(e) => setProfile({ ...profile, department: e.target.value })}
                   className={`${fieldBase} w-full px-3 py-2`}
-                  placeholder={'\О\т\д\е\л'}
+                  placeholder={'\Ð\Ñ\Ð´\Ðµ\Ð»'}
                   aria-label="Department"
                 />
               </div>
               <div>
                 <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
                   <MapPin className="h-4 w-4 text-emerald-400" />
-                  {'\Л\о\к\а\ц\и\я'}
+                  {'\Ð\Ð¾\Ðº\Ð°\Ñ\Ð¸\Ñ'}
                 </div>
                 <input
                   value={profile.location || ''}
                   onChange={(e) => setProfile({ ...profile, location: e.target.value })}
                   className={`${fieldBase} w-full px-3 py-2`}
-                  placeholder={'\Г\о\р\о\д, \с\т\р\а\н\а'}
+                  placeholder={'\Ð\Ð¾\Ñ\Ð¾\Ð´, \Ñ\Ñ\Ñ\Ð°\Ð½\Ð°'}
                   aria-label="Location"
                 />
               </div>
               <div>
                 <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
                   <Globe2 className="h-4 w-4 text-emerald-400" />
-                  {'\Ч\а\с\о\в\о\й \п\о\я\с'}
+                  {'\Ð§\Ð°\Ñ\Ð¾\Ð²\Ð¾\Ð¹ \Ð¿\Ð¾\Ñ\Ñ'}
                 </div>
                 <input
                   value={profile.timezone || ''}
@@ -535,7 +529,7 @@ export default function ProfilePage() {
               <div>
                 <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
                   <Phone className="h-4 w-4 text-emerald-400" />
-                  {'\Т\е\л\е\ф\о\н'}
+                  {'\Ð¢\Ðµ\Ð»\Ðµ\Ñ\Ð¾\Ð½'}
                 </div>
                 <input
                   value={profile.phone || ''}
@@ -548,7 +542,7 @@ export default function ProfilePage() {
               <div>
                 <div className="mb-1 flex items-center gap-2 text-xs text-gray-400">
                   <Mail className="h-4 w-4 text-emerald-400" />
-                  {'\О\т\к\р\ы\т\ы\й email'}
+                  {'\Ð\Ñ\Ðº\Ñ\Ñ\Ñ\Ñ\Ð¹ email'}
                 </div>
                 <input
                   value={user.email || ''}
@@ -562,13 +556,15 @@ export default function ProfilePage() {
             <div>
               <div className="mb-2 flex items-center gap-2 text-xs text-gray-400">
                 <ListChecks className="h-4 w-4 text-emerald-400" />
-                {'\Н\а\в\ы\к\и'}
+                {'\Ð\Ð°\Ð²\Ñ\Ðº\Ð¸'}
               </div>
               <input
                 value={skillsInput}
                 onChange={(e) => setSkillsInput(e.target.value)}
                 className={`${fieldBase} w-full px-3 py-2`}
-                placeholder={'\И\с\п\о\л\ь\з\у\й\т\е \з\а\п\я\т\ы\е \д\л\я \р\а\з\д\е\л\е\н\и\я'}
+                placeholder={
+                  '\Ð\Ñ\Ð¿\Ð¾\Ð»\Ñ\Ð·\Ñ\Ð¹\Ñ\Ðµ \Ð·\Ð°\Ð¿\Ñ\Ñ\Ñ\Ðµ \Ð´\Ð»\Ñ \Ñ\Ð°\Ð·\Ð´\Ðµ\Ð»\Ðµ\Ð½\Ð¸\Ñ'
+                }
                 aria-label="Skills"
               />
               {parsedSkills.length > 0 && (
@@ -588,11 +584,11 @@ export default function ProfilePage() {
             <div className="panel-soft panel-glass rounded-2xl p-4">
               <div className="mb-4 flex items-center gap-2 text-sm text-gray-300">
                 <Eye className="h-4 w-4 text-emerald-400" />
-                {'\В\и\д\и\м\о\с\т\ь \п\р\о\ф\и\л\я'}
+                {'\Ð\Ð¸\Ð´\Ð¸\Ð¼\Ð¾\Ñ\Ñ\Ñ \Ð¿\Ñ\Ð¾\Ñ\Ð¸\Ð»\Ñ'}
               </div>
               <div className="grid gap-4 lg:grid-cols-3">
                 <div className="space-y-3">
-                  <label className="block text-xs text-gray-400">{'\У\р\о\в\е\н\ь'}</label>
+                  <label className="block text-xs text-gray-400">{'\Ð£\Ñ\Ð¾\Ð²\Ðµ\Ð½\Ñ'}</label>
                   <select
                     value={profile.visibility}
                     onChange={(e) =>
@@ -604,8 +600,10 @@ export default function ProfilePage() {
                     className={`${fieldCompact} w-full px-3 py-2`}
                     aria-label="Profile visibility"
                   >
-                    <option value="INTERNAL">{'\В\и\д\н\о \в\н\у\т\р\и \с\и\с\т\е\м\ы'}</option>
-                    <option value="PRIVATE">{'\Т\о\л\ь\к\о \я'}</option>
+                    <option value="INTERNAL">
+                      {'\Ð\Ð¸\Ð´\Ð½\Ð¾ \Ð²\Ð½\Ñ\Ñ\Ñ\Ð¸ \Ñ\Ð¸\Ñ\Ñ\Ðµ\Ð¼\Ñ'}
+                    </option>
+                    <option value="PRIVATE">{'\Ð¢\Ð¾\Ð»\Ñ\Ðº\Ð¾ \Ñ'}</option>
                   </select>
                   <label className="inline-flex items-center gap-2 text-xs text-gray-300">
                     <input
@@ -618,10 +616,12 @@ export default function ProfilePage() {
                       aria-label="Public profile link"
                     />
                     <Link2 className="h-3.5 w-3.5" />
-                    {'\П\у\б\л\и\ч\н\а\я \с\с\ы\л\к\а'}
+                    {'\Ð\Ñ\Ð±\Ð»\Ð¸\Ñ\Ð½\Ð°\Ñ \Ñ\Ñ\Ñ\Ð»\Ðº\Ð°'}
                   </label>
                   <p className="text-[11px] text-gray-500">
-                    {'\С\с\ы\л\к\у \м\о\ж\н\о \р\а\с\п\р\о\с\т\р\а\н\я\т\ь \в\н\е \с\и\с\т\е\м\ы.'}
+                    {
+                      '\Ð¡\Ñ\Ñ\Ð»\Ðº\Ñ \Ð¼\Ð¾\Ð¶\Ð½\Ð¾ \Ñ\Ð°\Ñ\Ð¿\Ñ\Ð¾\Ñ\Ñ\Ñ\Ð°\Ð½\Ñ\Ñ\Ñ \Ð²\Ð½\Ðµ \Ñ\Ð¸\Ñ\Ñ\Ðµ\Ð¼\Ñ.'
+                    }
                   </p>
                 </div>
                 <div className="grid grid-cols-1 gap-2 text-xs text-gray-300 sm:grid-cols-2 lg:col-span-2">
@@ -633,7 +633,7 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public bio"
                     />
-                    {'\О \с\е\б\е'}
+                    {'\Ð \Ñ\Ðµ\Ð±\Ðµ'}
                   </label>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -643,7 +643,7 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public position"
                     />
-                    {'\Д\о\л\ж\н\о\с\т\ь'}
+                    {'\Ð\Ð¾\Ð»\Ð¶\Ð½\Ð¾\Ñ\Ñ\Ñ'}
                   </label>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -655,7 +655,7 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public department"
                     />
-                    {'\О\т\д\е\л'}
+                    {'\Ð\Ñ\Ð´\Ðµ\Ð»'}
                   </label>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -665,7 +665,7 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public location"
                     />
-                    {'\Л\о\к\а\ц\и\я'}
+                    {'\Ð\Ð¾\Ðº\Ð°\Ñ\Ð¸\Ñ'}
                   </label>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -675,7 +675,7 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public timezone"
                     />
-                    {'\Ч\а\с\о\в\о\й \п\о\я\с'}
+                    {'\Ð§\Ð°\Ñ\Ð¾\Ð²\Ð¾\Ð¹ \Ð¿\Ð¾\Ñ\Ñ'}
                   </label>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -685,7 +685,7 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public skills"
                     />
-                    {'\Н\а\в\ы\к\и'}
+                    {'\Ð\Ð°\Ð²\Ñ\Ðº\Ð¸'}
                   </label>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -697,7 +697,7 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public last login"
                     />
-                    {'\П\о\с\л\е\д\н\и\й \в\х\о\д'}
+                    {'\Ð\Ð¾\Ñ\Ð»\Ðµ\Ð´\Ð½\Ð¸\Ð¹ \Ð²\Ñ\Ð¾\Ð´'}
                   </label>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -708,7 +708,7 @@ export default function ProfilePage() {
                       disabled={!user.email}
                       aria-label="Public email"
                     />
-                    {'\П\о\к\а\з\ы\в\а\т\ь email'}
+                    {'\Ð\Ð¾\Ðº\Ð°\Ð·\Ñ\Ð²\Ð°\Ñ\Ñ email'}
                   </label>
                   <label className="inline-flex items-center gap-2">
                     <input
@@ -718,7 +718,7 @@ export default function ProfilePage() {
                       className={controlBase}
                       aria-label="Public phone"
                     />
-                    {'\П\о\к\а\з\ы\в\а\т\ь \т\е\л\е\ф\о\н'}
+                    {'\Ð\Ð¾\Ðº\Ð°\Ð·\Ñ\Ð²\Ð°\Ñ\Ñ \Ñ\Ðµ\Ð»\Ðµ\Ñ\Ð¾\Ð½'}
                   </label>
                 </div>
               </div>
@@ -726,7 +726,7 @@ export default function ProfilePage() {
                 <div className="panel-soft panel-glass mt-4 rounded-xl p-3">
                   <div className="mb-2 flex items-center gap-2 text-xs text-gray-400">
                     <Link2 className="h-3.5 w-3.5 text-emerald-400" />
-                    {'\С\с\ы\л\к\а \д\л\я \п\р\о\с\м\о\т\р\а'}
+                    {'\Ð¡\Ñ\Ñ\Ð»\Ðº\Ð° \Ð´\Ð»\Ñ \Ð¿\Ñ\Ð¾\Ñ\Ð¼\Ð¾\Ñ\Ñ\Ð°'}
                   </div>
                   {publicProfileUrl ? (
                     <div className="flex flex-wrap items-center gap-2">
@@ -743,14 +743,14 @@ export default function ProfilePage() {
                         className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 transition hover:bg-white/10"
                       >
                         <Copy className="h-3 w-3" />
-                        {'\К\о\п\и\р\о\в\а\т\ь'}
+                        {'\Ð\Ð¾\Ð¿\Ð¸\Ñ\Ð¾\Ð²\Ð°\Ñ\Ñ'}
                       </button>
                       <button
                         onClick={handleRotateToken}
                         className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 transition hover:bg-white/10"
                       >
                         <RefreshCw className="h-3 w-3" />
-                        {'\О\б\н\о\в\и\т\ь'}
+                        {'\Ð\Ð±\Ð½\Ð¾\Ð²\Ð¸\Ñ\Ñ'}
                       </button>
                       <a
                         href={publicProfileUrl}
@@ -759,12 +759,12 @@ export default function ProfilePage() {
                         className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 transition hover:bg-white/10"
                       >
                         <ExternalLink className="h-3 w-3" />
-                        {'\О\т\к\р\ы\т\ь'}
+                        {'\Ð\Ñ\Ðº\Ñ\Ñ\Ñ\Ñ'}
                       </a>
                     </div>
                   ) : (
                     <div className="text-xs text-gray-500">
-                      {'\Д\о\с\т\у\п\н\о \п\о\с\л\е \с\о\х\р\а\н\е\н\и\я.'}
+                      {'\Ð\Ð¾\Ñ\Ñ\Ñ\Ð¿\Ð½\Ð¾ \Ð¿\Ð¾\Ñ\Ð»\Ðµ \Ñ\Ð¾\Ñ\Ñ\Ð°\Ð½\Ðµ\Ð½\Ð¸\Ñ.'}
                     </div>
                   )}
                 </div>
@@ -772,7 +772,9 @@ export default function ProfilePage() {
               {profile.visibility === 'PRIVATE' && (
                 <div className="mt-3 flex items-center gap-2 text-xs text-amber-400">
                   <EyeOff className="h-4 w-4" />
-                  {'\П\р\о\ф\и\л\ь \в\и\д\е\н \т\о\л\ь\к\о \в\а\м \и \а\д\м\и\н\а\м.'}
+                  {
+                    '\Ð\Ñ\Ð¾\Ñ\Ð¸\Ð»\Ñ \Ð²\Ð¸\Ð´\Ðµ\Ð½ \Ñ\Ð¾\Ð»\Ñ\Ðº\Ð¾ \Ð²\Ð°\Ð¼ \Ð¸ \Ð°\Ð´\Ð¼\Ð¸\Ð½\Ð°\Ð¼.'
+                  }
                 </div>
               )}
             </div>
@@ -780,12 +782,12 @@ export default function ProfilePage() {
             <div className="panel-soft panel-glass rounded-2xl p-4">
               <div className="mb-4 flex items-center gap-2 text-sm text-gray-300">
                 <Clock className="h-4 w-4 text-emerald-400" />
-                {'\А\к\т\и\в\н\о\с\т\ь'}
+                {'\Ð\Ðº\Ñ\Ð¸\Ð²\Ð½\Ð¾\Ñ\Ñ\Ñ'}
               </div>
               {activity ? (
                 <div className="grid gap-4 text-xs md:grid-cols-3">
                   <div className="space-y-2">
-                    <div className="text-gray-400">{'\П\и\с\ь\м\а'}</div>
+                    <div className="text-gray-400">{'\Ð\Ð¸\Ñ\Ñ\Ð¼\Ð°'}</div>
                     {activity.letters.length > 0 ? (
                       activity.letters.map((item) => (
                         <Link
@@ -798,11 +800,11 @@ export default function ProfilePage() {
                         </Link>
                       ))
                     ) : (
-                      <div className="text-gray-500">{'\Н\е\т \п\и\с\е\м'}</div>
+                      <div className="text-gray-500">{'\Ð\Ðµ\Ñ \Ð¿\Ð¸\Ñ\Ðµ\Ð¼'}</div>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <div className="text-gray-400">{'\К\о\м\м\е\н\т\а\р\и\и'}</div>
+                    <div className="text-gray-400">{'\Ð\Ð¾\Ð¼\Ð¼\Ðµ\Ð½\Ñ\Ð°\Ñ\Ð¸\Ð¸'}</div>
                     {activity.comments.length > 0 ? (
                       activity.comments.map((item) => (
                         <Link
@@ -815,11 +817,13 @@ export default function ProfilePage() {
                         </Link>
                       ))
                     ) : (
-                      <div className="text-gray-500">{'\Н\е\т \к\о\м\м\е\н\т\а\р\и\е\в'}</div>
+                      <div className="text-gray-500">
+                        {'\Ð\Ðµ\Ñ \Ðº\Ð¾\Ð¼\Ð¼\Ðµ\Ð½\Ñ\Ð°\Ñ\Ð¸\Ðµ\Ð²'}
+                      </div>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <div className="text-gray-400">{'\Н\а\з\н\а\ч\е\н\и\я'}</div>
+                    <div className="text-gray-400">{'\Ð\Ð°\Ð·\Ð½\Ð°\Ñ\Ðµ\Ð½\Ð¸\Ñ'}</div>
                     {activity.assignments.length > 0 ? (
                       activity.assignments.map((item) => (
                         <Link
@@ -832,12 +836,12 @@ export default function ProfilePage() {
                         </Link>
                       ))
                     ) : (
-                      <div className="text-gray-500">{'\Н\е\т \н\а\з\н\а\ч\е\н\и\й'}</div>
+                      <div className="text-gray-500">{'\Ð\Ðµ\Ñ \Ð½\Ð°\Ð·\Ð½\Ð°\Ñ\Ðµ\Ð½\Ð¸\Ð¹'}</div>
                     )}
                   </div>
                 </div>
               ) : (
-                <div className="text-xs text-gray-500">{'\З\а\г\р\у\з\к\а...'}</div>
+                <div className="text-xs text-gray-500">{'\Ð\Ð°\Ð³\Ñ\Ñ\Ð·\Ðº\Ð°...'}</div>
               )}
             </div>
           </div>
@@ -853,7 +857,7 @@ export default function ProfilePage() {
           className="btn-primary inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-white disabled:opacity-60"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          {'\D­\D_\Ľ.\Ľ?\Dř\DŤ\D,\Ľ,\ĽO'}
+          {'\DÂ­\D_\Ä½.\Ä½?\DÅ\DÅ¤\D,\Ä½,\Ä½O'}
         </button>
       </div>
     </div>
