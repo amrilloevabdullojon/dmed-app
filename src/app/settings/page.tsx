@@ -4,7 +4,17 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Header } from '@/components/Header'
-import { Loader2, Users, Shield, RefreshCw, History, Crown, Bell, Palette } from 'lucide-react'
+import {
+  Loader2,
+  Users,
+  Shield,
+  RefreshCw,
+  History,
+  Crown,
+  Bell,
+  Palette,
+  Settings,
+} from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import { hasPermission } from '@/lib/permissions'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
@@ -73,6 +83,16 @@ const PersonalizationTab = dynamic(
     import('@/components/settings/PersonalizationTab').then((mod) => ({
       default: mod.PersonalizationTab,
     })),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+      </div>
+    ),
+  }
+)
+const WorkflowTab = dynamic(
+  () => import('@/components/settings/WorkflowTab').then((mod) => ({ default: mod.WorkflowTab })),
   {
     loading: () => (
       <div className="flex items-center justify-center p-8">
@@ -229,6 +249,17 @@ export default function SettingsPage() {
             <Palette className="mr-2 inline-block h-4 w-4" />
             Персонализация
           </button>
+          <button
+            onClick={() => handleTabChange('workflow')}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+              activeTab === 'workflow'
+                ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
+                : 'text-slate-400 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <Settings className="mr-2 inline-block h-4 w-4" />
+            Рабочий процесс
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -254,6 +285,8 @@ export default function SettingsPage() {
         {activeTab === 'notifications' && <NotificationsTab />}
 
         {activeTab === 'personalization' && <PersonalizationTab />}
+
+        {activeTab === 'workflow' && <WorkflowTab />}
       </main>
     </div>
   )
