@@ -35,6 +35,7 @@ import {
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 import { useToast } from '@/components/Toast'
 import { ResponsiveChart } from '@/components/mobile/ResponsiveChart'
+import { ScrollIndicator } from '@/components/mobile/ScrollIndicator'
 
 interface Stats {
   summary: {
@@ -728,13 +729,18 @@ export default function ReportsPage() {
         {/* Toolbar */}
         <div className="panel panel-glass mb-6 rounded-2xl p-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="no-scrollbar flex items-center gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible">
-              <span className="text-xs uppercase tracking-wide text-gray-400">Период</span>
+            <ScrollIndicator
+              className="no-scrollbar flex items-center gap-2 sm:flex-wrap"
+              showArrows={true}
+            >
+              <span className="whitespace-nowrap text-xs uppercase tracking-wide text-gray-400">
+                Период
+              </span>
               {periodOptions.map((months) => (
                 <button
                   key={months}
                   onClick={() => setPeriodMonths(months)}
-                  className={`app-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition ${
+                  className={`app-chip inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition ${
                     periodMonths === months ? 'app-chip-active' : ''
                   }`}
                 >
@@ -744,19 +750,19 @@ export default function ReportsPage() {
               ))}
               <button
                 onClick={handleResetView}
-                className="btn-ghost inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition"
+                className="btn-ghost inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition"
               >
                 <RefreshCw className="h-4 w-4" />
                 Сбросить
               </button>
               <button
                 onClick={handleSaveView}
-                className="btn-secondary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition"
+                className="btn-secondary inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-1.5 text-sm transition"
               >
                 <Save className="h-4 w-4" />
                 Сохранить вид
               </button>
-            </div>
+            </ScrollIndicator>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={handleExportCSV}
