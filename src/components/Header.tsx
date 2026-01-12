@@ -137,6 +137,10 @@ export function Header() {
   const isActive = (path: string) => pathname === path
 
   const navLinkClass = 'app-nav-link whitespace-nowrap text-sm'
+  const closeMobileMenu = () => {
+    hapticLight()
+    setMobileMenuOpen(false)
+  }
 
   return (
     <header className="app-header relative sticky top-0 z-[120] backdrop-blur">
@@ -360,10 +364,7 @@ export function Header() {
       {mobileMenuOpen && (
         <div
           className="mobile-overlay fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm md:hidden"
-          onClick={() => {
-            hapticLight()
-            setMobileMenuOpen(false)
-          }}
+          onClick={closeMobileMenu}
           style={{ touchAction: 'none' }}
         />
       )}
@@ -377,9 +378,16 @@ export function Header() {
       >
         <div
           ref={handleSwipeRef}
-          className="sticky top-0 z-10 flex cursor-grab items-center justify-center border-b border-white/10 bg-slate-900/70 px-4 py-3 active:cursor-grabbing sm:hidden"
+          className="relative sticky top-0 z-10 flex cursor-grab items-center justify-center border-b border-white/10 bg-slate-900/70 px-4 py-3 active:cursor-grabbing sm:hidden"
         >
           <div className="h-1 w-10 rounded-full bg-white/20" />
+          <button
+            onClick={closeMobileMenu}
+            aria-label="\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u043c\u0435\u043d\u044e"
+            className="tap-highlight touch-target absolute right-3 top-1/2 -translate-y-1/2 rounded-md text-slate-200/80 transition hover:bg-white/5 hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
         <nav
           className="flex flex-col gap-2 p-4"
@@ -388,7 +396,7 @@ export function Header() {
           <div className="grid grid-cols-2 gap-3">
             <Link
               href="/letters/new"
-              onClick={() => hapticLight()}
+              onClick={closeMobileMenu}
               className="tap-highlight touch-target flex flex-col items-start gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-slate-200/80 transition hover:bg-white/10"
             >
               <FileText className="h-5 w-5 text-blue-400" />
@@ -396,7 +404,7 @@ export function Header() {
             </Link>
             <Link
               href="/request"
-              onClick={() => hapticLight()}
+              onClick={closeMobileMenu}
               className="tap-highlight touch-target flex flex-col items-start gap-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-slate-200/80 transition hover:bg-white/10"
             >
               <Inbox className="h-5 w-5 text-emerald-400" />
@@ -426,7 +434,7 @@ export function Header() {
               </div>
               <Link
                 href="/profile"
-                onClick={() => hapticLight()}
+                onClick={closeMobileMenu}
                 className="tap-highlight inline-flex shrink-0 items-center gap-1.5 rounded-md bg-white/10 px-2.5 py-1.5 text-xs text-teal-200 transition hover:bg-teal-500/20"
               >
                 <User className="h-3.5 w-3.5" />
@@ -437,7 +445,7 @@ export function Header() {
 
           <Link
             href="/"
-            onClick={() => hapticLight()}
+            onClick={closeMobileMenu}
             className={`tap-highlight touch-target flex items-center gap-3 rounded-lg px-4 py-3 transition ${
               isActive('/')
                 ? 'border border-teal-400/20 bg-teal-400/15 text-teal-200'
@@ -450,7 +458,7 @@ export function Header() {
 
           <Link
             href="/letters"
-            onClick={() => hapticLight()}
+            onClick={closeMobileMenu}
             className={`tap-highlight touch-target flex items-center gap-3 rounded-lg px-4 py-3 transition ${
               isActive('/letters')
                 ? 'border border-teal-400/20 bg-teal-400/15 text-teal-200'
@@ -463,7 +471,7 @@ export function Header() {
 
           <Link
             href="/requests"
-            onClick={() => hapticLight()}
+            onClick={closeMobileMenu}
             className={`tap-highlight touch-target flex items-center gap-3 rounded-lg px-4 py-3 transition ${
               isActive('/requests')
                 ? 'border border-teal-400/20 bg-teal-400/15 text-teal-200'
@@ -476,7 +484,7 @@ export function Header() {
 
           <Link
             href="/reports"
-            onClick={() => hapticLight()}
+            onClick={closeMobileMenu}
             className={`tap-highlight touch-target flex items-center gap-3 rounded-lg px-4 py-3 transition ${
               isActive('/reports')
                 ? 'border border-teal-400/20 bg-teal-400/15 text-teal-200'
@@ -494,6 +502,7 @@ export function Header() {
               <button
                 onClick={() => {
                   hapticMedium()
+                  setMobileMenuOpen(false)
                   handleSync('from_sheets')
                 }}
                 disabled={syncing}
@@ -506,6 +515,7 @@ export function Header() {
               <button
                 onClick={() => {
                   hapticMedium()
+                  setMobileMenuOpen(false)
                   handleSync('to_sheets')
                 }}
                 disabled={syncing}
@@ -517,7 +527,7 @@ export function Header() {
 
               <Link
                 href="/settings"
-                onClick={() => hapticLight()}
+                onClick={closeMobileMenu}
                 className={`tap-highlight touch-target flex items-center gap-3 rounded-lg px-4 py-3 transition ${
                   isActive('/settings')
                     ? 'border border-teal-400/20 bg-teal-400/15 text-teal-200'
@@ -535,6 +545,7 @@ export function Header() {
           <button
             onClick={() => {
               hapticMedium()
+              setMobileMenuOpen(false)
               signOut({ callbackUrl: '/login' })
             }}
             className="tap-highlight touch-target flex items-center gap-3 rounded-lg px-4 py-3 text-red-400 transition hover:bg-red-500/10"
