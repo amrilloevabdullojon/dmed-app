@@ -33,11 +33,12 @@
 
 - **React Hook Form v7** - производительные формы
 - **Zod** - schema validation
-  - 7 форм мигрированы (включая самую сложную - BulkCreateLetters 1100+ строк)
+  - 8 форм мигрированы (включая самую сложную - BulkCreateLetters 1100+ строк и multi-step request wizard)
   - Inline validation с визуальными индикаторами
   - Type-safe с полной типизацией
   - useFieldArray для динамических массивов
   - Кастомная валидация с .refine()
+  - Multi-step wizard с step-specific validation
 
 ### Data Tables
 
@@ -285,6 +286,93 @@
   - ✅ Success screen с portal tracking link
   - ✅ Files failed feedback
   - ✅ Все визуальные индикаторы и сообщения
+
+### Phase 8: Multi-step Request Form (текущая сессия)
+
+- ✅ **request/page.tsx** - публичная форма подачи заявки (4-step wizard)
+
+  ```tsx
+  // Схема валидации
+  export const publicRequestSchema = z.object({
+    requestType: z
+      .string()
+      .min(1, 'Выберите тип заявки')
+      .refine((val) => ['consultation', 'support', 'partnership', 'other'].includes(val), {
+        message: 'Неверный тип заявки',
+      }),
+    organization: z.string().min(1, 'Введите название организации').max(500),
+    contactName: z.string().min(1, 'Введите имя контактного лица').max(200),
+    contactEmail: z.string().min(1, 'Введите email').email('Неверный формат email').max(320),
+    contactPhone: z
+      .string()
+      .min(1, 'Введите номер телефона')
+      .max(50)
+      .refine(
+        (val) => {
+          const digits = val.replace(/\D/g, '')
+          return digits.length >= 12
+        },
+        { message: 'Номер слишком короткий (минимум 12 цифр)' }
+      ),
+    contactTelegram: z
+      .string()
+      .min(1, 'Введите Telegram')
+      .max(100)
+      .refine((val) => val.startsWith('@') || val.startsWith('+'), {
+        message: 'Начните с @ или +',
+      }),
+    description: z.string().min(20, 'Слишком короткое описание (минимум 20 символов)').max(10000),
+  })
+
+  // Multi-step validation с trigger()
+  const nextStep = async () => {
+    let fieldsToValidate: (keyof PublicRequestInput)[] = []
+
+    if (step === 1) {
+      fieldsToValidate = ['requestType', 'organization']
+    } else if (step === 2) {
+      fieldsToValidate = ['contactName', 'contactEmail', 'contactPhone', 'contactTelegram']
+    } else if (step === 3) {
+      fieldsToValidate = ['description']
+    }
+
+    const isValid = await trigger(fieldsToValidate)
+
+    if (isValid && step < TOTAL_STEPS) {
+      setStep(step + 1)
+    }
+  }
+  ```
+
+  **Ключевые особенности:**
+  - 4-step wizard: тип заявки → контакты → описание → файлы + отправка
+  - Step-specific validation с `trigger()` - валидация только полей текущего шага
+  - Кастомная Zod валидация для телефона (минимум 12 цифр) и Telegram (@ или +)
+  - Draft autosave в localStorage с автовосстановлением
+  - Phone formatting helper (автоформатирование при вводе)
+  - Telegram formatting helper (автоматическое добавление @)
+  - Интеграция с Cloudflare Turnstile капчей на финальном шаге
+  - Drag & drop загрузка файлов (до 5 файлов)
+  - Visual step indicator с навигацией назад
+  - Success screen с request ID и copy to clipboard
+  - Honeypot field для защиты от ботов
+  - Inline validation errors с визуальным выделением (красная граница + иконка)
+  - Real-time валидация (onChange mode)
+
+  **Сохранено 100% функциональности:**
+  - ✅ 4-step wizard с step indicators
+  - ✅ Draft autosave/restore из localStorage
+  - ✅ Cloudflare Turnstile captcha на шаге 4
+  - ✅ File uploads с drag & drop
+  - ✅ Phone и Telegram formatting
+  - ✅ Success screen с request ID
+  - ✅ Honeypot anti-spam protection
+  - ✅ Все визуальные индикаторы и анимации
+
+  **Исправлено:**
+  - ✅ Captcha validation issue (из screenshot пользователя)
+  - ✅ Improved UX с real-time validation
+  - ✅ Better error messages на русском языке
 
 ---
 
@@ -536,7 +624,9 @@ npm run lint
 - [x] ApplicantContactForm
 - [x] QuickLetterUpload
 - [x] letters/new/page.tsx (NewLetterPage)
-- [ ] BulkCreateLetters (требует useFieldArray для динамических строк)
+- [x] BulkCreateLetters (✨ с useFieldArray для динамических строк)
+- [x] portal/letters/new/page.tsx (✨ с custom validation)
+- [x] request/page.tsx (✨ multi-step wizard)
 
 ### REST → tRPC
 
@@ -589,9 +679,9 @@ npm run lint
 
 - ✅ 100% TypeScript coverage
 - ✅ 0 build errors
-- ✅ 38 роутов компилируются
+- ✅ 70 роутов компилируются
 - ✅ 20 UI компонентов
-- ✅ 5 форм мигрированы на React Hook Form + Zod
+- ✅ 8 форм мигрированы на React Hook Form + Zod
 - ✅ 2 продвинутые таблицы
 - ✅ 3 Zustand stores
 
@@ -618,8 +708,8 @@ npm run lint
 
 ---
 
-**Последнее обновление:** 2026-01-12 (Phase 5)
-**Версия:** 2.1
+**Последнее обновление:** 2026-01-12 (Phase 8)
+**Версия:** 2.4
 **Статус:** ✅ Production Ready
 
 🤖 Generated with Claude Code
