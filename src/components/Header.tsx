@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import {
@@ -36,6 +36,10 @@ export function Header() {
   const [syncing, setSyncing] = useState(false)
   const [syncMenuOpen, setSyncMenuOpen] = useState(false)
   const [quickCreateOpen, setQuickCreateOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const lastFocusedRef = useRef<HTMLElement | null>(null)
+  const hasOpenedRef = useRef(false)
   const [newYearVibe] = useLocalStorage<boolean>('new-year-vibe', false)
   const isAdminRole = session?.user.role === 'ADMIN' || session?.user.role === 'SUPERADMIN'
   const roleLabel =
@@ -62,14 +66,28 @@ export function Header() {
     }
   }, [mobileMenuOpen])
 
+  const closeMobileMenu = useCallback(() => {
+    hapticLight()
+    setMobileMenuOpen(false)
+  }, [hapticLight, setMobileMenuOpen])
+
+  const getFocusableElements = useCallback(() => {
+    const container = menuRef.current
+    if (!container) return []
+    return Array.from(
+      container.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+    )
+  }, [])
+
   // Свайп вниз для закрытия меню (только на handle)
   const handleSwipeRef = useSwipeRef<HTMLDivElement>(
     {
       onSwipeDown: () => {
-        if (mobileMenuOpen) {
-          hapticLight()
-          setMobileMenuOpen(false)
-        }
+        if (!mobileMenuOpen) return
+        if (menuRef.current?.scrollTop !== 0) return
+        closeMobileMenu()
       },
     },
     {
@@ -137,10 +155,57 @@ export function Header() {
   const isActive = (path: string) => pathname === path
 
   const navLinkClass = 'app-nav-link whitespace-nowrap text-sm'
-  const closeMobileMenu = () => {
-    hapticLight()
-    setMobileMenuOpen(false)
-  }
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+
+    hasOpenedRef.current = true
+    lastFocusedRef.current = document.activeElement as HTMLElement | null
+
+    const focusable = getFocusableElements()
+    focusable[0]?.focus()
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        closeMobileMenu()
+        menuButtonRef.current?.focus()
+        return
+      }
+
+      if (event.key !== 'Tab') return
+
+      const items = getFocusableElements()
+      if (items.length === 0) return
+
+      const first = items[0]
+      const last = items[items.length - 1]
+      const active = document.activeElement as HTMLElement | null
+
+      if (event.shiftKey) {
+        if (!active || active === first) {
+          event.preventDefault()
+          last.focus()
+        }
+      } else if (active === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [mobileMenuOpen, closeMobileMenu, getFocusableElements])
+
+  useEffect(() => {
+    if (mobileMenuOpen || !hasOpenedRef.current) return
+    const target = menuButtonRef.current ?? lastFocusedRef.current
+    if (target && document.contains(target)) {
+      target.focus()
+    }
+  }, [mobileMenuOpen])
 
   return (
     <header className="app-header relative sticky top-0 z-[120] backdrop-blur">
@@ -341,6 +406,7 @@ export function Header() {
             <ThemeToggle />
             {session?.user && <Notifications />}
             <button
+              ref={menuButtonRef}
               onClick={() => {
                 hapticLight()
                 setMobileMenuOpen(!mobileMenuOpen)
@@ -372,14 +438,24 @@ export function Header() {
       {/* Mobile menu */}
       <div
         id="mobile-menu"
+        ref={(node) => {
+          menuRef.current = node
+          handleSwipeRef.current = node
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mobile-menu-title"
         className={`mobile-menu fixed inset-x-0 bottom-0 z-[120] max-h-[85vh] transform overflow-y-auto rounded-t-2xl border-t border-white/10 transition-transform duration-300 sm:inset-y-0 sm:left-auto sm:right-0 sm:top-16 sm:max-h-none sm:w-[85vw] sm:max-w-[320px] sm:translate-y-0 sm:rounded-none sm:border-t-0 md:hidden ${
           mobileMenuOpen ? 'translate-y-0 sm:translate-x-0' : 'translate-y-full sm:translate-x-full'
         }`}
       >
-        <div
-          ref={handleSwipeRef}
-          className="relative sticky top-0 z-10 flex cursor-grab items-center justify-center border-b border-white/10 bg-slate-900/70 px-4 py-3 active:cursor-grabbing sm:hidden"
-        >
+        <div className="relative sticky top-0 z-10 flex cursor-grab items-center justify-center border-b border-white/10 bg-slate-900/70 px-4 py-3 active:cursor-grabbing sm:hidden">
+          <span
+            id="mobile-menu-title"
+            className="absolute left-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400/80"
+          >
+            {'\u041d\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044f'}
+          </span>
           <div className="h-1 w-10 rounded-full bg-white/20" />
           <button
             onClick={closeMobileMenu}
@@ -390,7 +466,8 @@ export function Header() {
           </button>
         </div>
         <nav
-          className="flex flex-col gap-2 p-4"
+          aria-label="\u041c\u0435\u043d\u044e"
+          className="stagger-animation flex flex-col gap-2 p-4"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
         >
           <div className="grid grid-cols-2 gap-3">
@@ -498,6 +575,11 @@ export function Header() {
           {isAdminRole && (
             <>
               <div className="my-2 border-t border-white/10" />
+              <p className="px-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400/80">
+                {
+                  '\u0410\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435'
+                }
+              </p>
 
               <button
                 onClick={() => {
