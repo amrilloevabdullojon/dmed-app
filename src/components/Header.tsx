@@ -62,8 +62,8 @@ export function Header() {
     }
   }, [mobileMenuOpen])
 
-  // Свайп вниз для закрытия меню
-  const swipeRef = useSwipeRef<HTMLDivElement>(
+  // Свайп вниз для закрытия меню (только на handle)
+  const handleSwipeRef = useSwipeRef<HTMLDivElement>(
     {
       onSwipeDown: () => {
         if (mobileMenuOpen) {
@@ -73,7 +73,7 @@ export function Header() {
       },
     },
     {
-      minSwipeDistance: 50,
+      minSwipeDistance: 30,
       maxSwipeTime: 300,
     }
   )
@@ -376,8 +376,8 @@ export function Header() {
         }`}
       >
         <div
-          ref={swipeRef}
-          className="sticky top-0 z-10 flex items-center justify-center border-b border-white/10 bg-slate-900/70 px-4 py-3 sm:hidden"
+          ref={handleSwipeRef}
+          className="sticky top-0 z-10 flex cursor-grab items-center justify-center border-b border-white/10 bg-slate-900/70 px-4 py-3 active:cursor-grabbing sm:hidden"
         >
           <div className="h-1 w-10 rounded-full bg-white/20" />
         </div>

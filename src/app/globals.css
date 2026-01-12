@@ -39,6 +39,7 @@ body {
     radial-gradient(900px 520px at 92% 0%, rgba(var(--accent-2) / 0.14), transparent 55%),
     linear-gradient(180deg, rgb(var(--app-bg)) 0%, rgb(var(--app-bg-2)) 100%);
   position: relative;
+  overflow-x: hidden;
 }
 
 body::before {
