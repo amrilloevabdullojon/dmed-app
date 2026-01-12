@@ -30,11 +30,11 @@ import {
   ExternalLink,
   ChevronRight,
   X,
-  FileDown,
   Printer,
 } from 'lucide-react'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 import { useToast } from '@/components/Toast'
+import { ResponsiveChart } from '@/components/mobile/ResponsiveChart'
 
 interface Stats {
   summary: {
@@ -79,33 +79,39 @@ function DonutChart({
 
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
-  let currentOffset = 0
+
+  // Calculate offsets without mutation
+  const segments = data.map((item, index) => {
+    const percentage = item.value / total
+    const strokeDasharray = `${percentage * circumference} ${circumference}`
+    const offset = data.slice(0, index).reduce((acc, d) => acc + d.value / total, 0)
+    const strokeDashoffset = -offset * circumference
+
+    return {
+      ...item,
+      strokeDasharray,
+      strokeDashoffset,
+    }
+  })
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90 transform">
-        {data.map((item) => {
-          const percentage = item.value / total
-          const strokeDasharray = `${percentage * circumference} ${circumference}`
-          const strokeDashoffset = -currentOffset * circumference
-          currentOffset += percentage
-
-          return (
-            <circle
-              key={item.key}
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              fill="none"
-              stroke={item.color}
-              strokeWidth={strokeWidth}
-              strokeDasharray={strokeDasharray}
-              strokeDashoffset={strokeDashoffset}
-              className={`transition-all duration-500 ${onSegmentClick ? 'cursor-pointer hover:opacity-80' : ''}`}
-              onClick={() => onSegmentClick?.(item.key)}
-            />
-          )
-        })}
+        {segments.map((segment) => (
+          <circle
+            key={segment.key}
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={segment.color}
+            strokeWidth={strokeWidth}
+            strokeDasharray={segment.strokeDasharray}
+            strokeDashoffset={segment.strokeDashoffset}
+            className={`transition-all duration-500 ${onSegmentClick ? 'cursor-pointer hover:opacity-80' : ''}`}
+            onClick={() => onSegmentClick?.(segment.key)}
+          />
+        ))}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-3xl font-bold text-white">{total}</span>
@@ -1008,7 +1014,16 @@ export default function ReportsPage() {
             <div className="flex flex-col items-center gap-8 lg:flex-row">
               {/* Donut Chart */}
               <div className="flex-shrink-0">
-                <DonutChart data={donutData} size={220} onSegmentClick={handleStatusClick} />
+                <ResponsiveChart minWidth={180} maxWidth={220} aspectRatio={1}>
+                  {(size) => (
+                    <DonutChart
+                      data={donutData}
+                      size={size.width}
+                      strokeWidth={size.width > 200 ? 24 : 20}
+                      onSegmentClick={handleStatusClick}
+                    />
+                  )}
+                </ResponsiveChart>
               </div>
 
               {/* Legend & Bars */}
