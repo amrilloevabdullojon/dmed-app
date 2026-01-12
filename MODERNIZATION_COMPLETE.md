@@ -33,9 +33,10 @@
 
 - **React Hook Form v7** - производительные формы
 - **Zod** - schema validation
-  - 3 формы мигрированы
+  - 6 форм мигрированы (включая самую сложную - BulkCreateLetters 1100+ строк)
   - Inline validation
   - Type-safe
+  - useFieldArray для динамических массивов
 
 ### Data Tables
 
@@ -157,6 +158,71 @@
   - 14 полей с валидацией
   - Интеграция с OrganizationAutocomplete
   - Расширенная схема с comment, contacts, jiraLink
+
+### Phase 6: Массовое создание писем (текущая сессия)
+
+- ✅ **BulkCreateLetters.tsx** - самая сложная форма в проекте (1100+ строк)
+
+  ```tsx
+  // Схемы валидации
+  const bulkLetterRowSchema = z.object({
+    id: z.string(),
+    number: z.string().min(1, 'Номер обязателен').max(50),
+    org: z.string().min(1, 'Организация обязательна').max(500),
+    date: z.string().min(1, 'Дата обязательна'),
+    deadlineDate: z.string().optional(),
+    type: z.string().max(100).optional(),
+    content: z.string().max(10000).optional(),
+    priority: z.number().min(0).max(100),
+  })
+
+  const bulkCreateLettersSchema = z.object({
+    letters: z.array(bulkLetterRowSchema).min(1, 'Добавьте хотя бы одно письмо'),
+    skipDuplicates: z.boolean(),
+    bulkDate: z.string().optional(),
+    bulkDeadlineDate: z.string().optional(),
+    bulkType: z.string().optional(),
+  })
+
+  // React Hook Form с useFieldArray
+  const {
+    control,
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(bulkCreateLettersSchema),
+    mode: 'onChange',
+  })
+
+  const { fields, append, remove, update } = useFieldArray({
+    control,
+    name: 'letters',
+  })
+  ```
+
+  **Ключевые особенности:**
+  - Динамические массивы форм с `useFieldArray`
+  - PDF парсинг с AI (Gemini) сохранен полностью
+  - Drag & drop загрузка PDF файлов
+  - Массовое применение значений по умолчанию (дата, дедлайн, тип)
+  - Real-time детекция дубликатов с визуальными индикаторами
+  - Операции со строками: добавить, удалить, дублировать, очистить
+  - Управление файлами (File objects в отдельном state)
+  - CSV экспорт
+  - Экран успешного создания с переходом к письмам
+  - Inline validation errors для каждого поля
+  - Visual indicators: parsing state, AI badge, duplicate warnings
+
+  **Сохранено 100% функциональности:**
+  - ✅ PDF парсинг через API + AI извлечение данных
+  - ✅ Все визуальные индикаторы и бейджи
+  - ✅ Bulk defaults (к пустым/ко всем строкам)
+  - ✅ File attachments с загрузкой к созданным письмам
+  - ✅ Duplicate detection с подсветкой
+  - ✅ Success screen после создания
 
 ---
 
