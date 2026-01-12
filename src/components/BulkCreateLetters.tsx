@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useForm, useFieldArray } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
 import {
   Plus,
@@ -27,6 +29,7 @@ import { useToast } from '@/components/Toast'
 import { DEFAULT_DEADLINE_WORKING_DAYS, LETTER_TYPES } from '@/lib/constants'
 import { formatDateForInput, calculateDeadline } from '@/lib/parseLetterFilename'
 import { recommendLetterType } from '@/lib/recommendLetterType'
+import { bulkCreateLettersSchema, type BulkCreateLettersInput } from '@/lib/schemas'
 
 interface LetterRow {
   id: string
@@ -114,21 +117,50 @@ interface BulkCreateLettersProps {
 export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLettersProps) {
   const router = useRouter()
   const toast = useToast()
-  const [rows, setRows] = useState<LetterRow[]>([createEmptyRow()])
   const [creating, setCreating] = useState(false)
-  const [skipDuplicates, setSkipDuplicates] = useState(false)
-  const [bulkDate, setBulkDate] = useState('')
-  const [bulkDeadlineDate, setBulkDeadlineDate] = useState('')
-  const [bulkType, setBulkType] = useState('')
-  const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [createdLetters, setCreatedLetters] = useState<CreatedLetter[]>([])
   const [dragOver, setDragOver] = useState(false)
   const [uploadingFiles, setUploadingFiles] = useState(false)
 
+  // File state (отдельно от формы, т.к. File объекты не валидируются Zod)
+  const [files, setFiles] = useState<Map<string, File>>(new Map())
+  const [parsingStates, setParsingStates] = useState<Map<string, boolean>>(new Map())
+  const [parsedByAI, setParsedByAI] = useState<Map<string, boolean>>(new Map())
+
+  const {
+    control,
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm<BulkCreateLettersInput>({
+    resolver: zodResolver(bulkCreateLettersSchema),
+    mode: 'onChange',
+    defaultValues: {
+      letters: [createEmptyRow()],
+      skipDuplicates: false,
+      bulkDate: '',
+      bulkDeadlineDate: '',
+      bulkType: '',
+    },
+  })
+
+  const { fields, append, remove, update } = useFieldArray({
+    control,
+    name: 'letters',
+  })
+
+  const formValues = watch()
+  const bulkDate = watch('bulkDate')
+  const bulkDeadlineDate = watch('bulkDeadlineDate')
+  const bulkType = watch('bulkType')
+
   // Парсинг PDF через API
   const handleFiles = useCallback(
-    async (files: FileList | File[]) => {
-      const pdfFiles = Array.from(files).filter(
+    async (uploadedFiles: FileList | File[]) => {
+      const pdfFiles = Array.from(uploadedFiles).filter(
         (f) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
       )
 
@@ -145,12 +177,25 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
       }))
 
       // Если первая строка пустая - заменяем, иначе добавляем
-      setRows((prev) => {
-        const firstRowEmpty = prev.length === 1 && !prev[0].number && !prev[0].org && !prev[0].file
-        return firstRowEmpty ? newRows : [...prev, ...newRows]
+      const firstRowEmpty =
+        fields.length === 1 &&
+        !formValues.letters[0].number &&
+        !formValues.letters[0].org &&
+        !files.has(fields[0].id)
+
+      if (firstRowEmpty) {
+        // Заменяем первую строку
+        remove(0)
+      }
+
+      // Добавляем новые строки
+      newRows.forEach((row) => {
+        append(row)
+        setFiles((prev) => new Map(prev).set(row.id, row.file!))
+        setParsingStates((prev) => new Map(prev).set(row.id, true))
       })
 
-      // Парсим каждый файл параллельно с использованием Promise.allSettled
+      // Парсим каждый файл параллельно
       const toastId = toast.loading(`Анализ ${pdfFiles.length} PDF с помощью AI...`)
 
       const settledResults = await Promise.allSettled(
@@ -161,12 +206,10 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
         })
       )
 
-      // Преобразуем результаты allSettled в единый формат
       const results: ParseResult[] = settledResults.map((result, index) => {
         if (result.status === 'fulfilled') {
           return result.value
         }
-        // Если промис отклонён, возвращаем ошибку
         return {
           id: newRows[index].id,
           data: null,
@@ -175,43 +218,52 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
       })
 
       // Обновляем строки с распознанными данными
-      setRows((prev) =>
-        prev.map((row) => {
-          const result = results.find((r) => r.id === row.id)
-          if (!result || !result.data) {
-            return { ...row, parsing: false }
-          }
+      results.forEach((result, resultIndex) => {
+        const fieldIndex = firstRowEmpty
+          ? resultIndex
+          : fields.length - newRows.length + resultIndex
+        const row = newRows[resultIndex]
 
-          const data = result.data
-          let deadlineDate = ''
-
-          if (data.deadline) {
-            deadlineDate = formatDateForInput(new Date(data.deadline))
-          } else if (data.date) {
-            deadlineDate = formatDateForInput(
-              calculateDeadline(new Date(data.date), DEFAULT_DEADLINE_WORKING_DAYS)
-            )
-          }
-
-          const recommendedType = recommendLetterType({
-            content: data.content,
-            organization: data.organization,
-            filename: row.file?.name,
-          })
-
-          return {
-            ...row,
-            number: data.number || '',
-            org: data.organization || '',
-            date: data.date ? formatDateForInput(new Date(data.date)) : row.date,
-            deadlineDate,
-            type: row.type || recommendedType,
-            content: data.content || '',
-            parsing: false,
-            parsedByAI: true,
-          }
+        setParsingStates((prev) => {
+          const next = new Map(prev)
+          next.set(row.id, false)
+          return next
         })
-      )
+
+        if (!result.data) return
+
+        const data = result.data
+        let deadlineDate = ''
+
+        if (data.deadline) {
+          deadlineDate = formatDateForInput(new Date(data.deadline))
+        } else if (data.date) {
+          deadlineDate = formatDateForInput(
+            calculateDeadline(new Date(data.date), DEFAULT_DEADLINE_WORKING_DAYS)
+          )
+        }
+
+        const recommendedType = recommendLetterType({
+          content: data.content,
+          organization: data.organization,
+          filename: row.file?.name,
+        })
+
+        // Обновляем поля формы
+        setValue(`letters.${fieldIndex}.number`, data.number || '')
+        setValue(`letters.${fieldIndex}.org`, data.organization || '')
+        setValue(
+          `letters.${fieldIndex}.date`,
+          data.date ? formatDateForInput(new Date(data.date)) : row.date
+        )
+        setValue(`letters.${fieldIndex}.deadlineDate`, deadlineDate)
+        setValue(`letters.${fieldIndex}.content`, data.content || '')
+        if (recommendedType) {
+          setValue(`letters.${fieldIndex}.type`, recommendedType)
+        }
+
+        setParsedByAI((prev) => new Map(prev).set(row.id, true))
+      })
 
       const successCount = results.filter((r) => r.data).length
       const errorCount = results.filter((r) => r.error).length
@@ -231,7 +283,7 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
         })
       }
     },
-    [toast]
+    [toast, fields, formValues, files, append, remove, setValue]
   )
 
   // Drag & Drop
@@ -260,169 +312,128 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
   }
 
   // Add new rows
-  const addRows = useCallback((count = 1) => {
-    setRows((prev) => [...prev, ...Array.from({ length: count }, () => createEmptyRow())])
-  }, [])
+  const addRows = useCallback(
+    (count = 1) => {
+      for (let i = 0; i < count; i++) {
+        append(createEmptyRow())
+      }
+    },
+    [append]
+  )
 
   const addRow = useCallback(() => {
     addRows(1)
   }, [addRows])
 
-  // Удалить строку
-  const removeRow = useCallback((id: string) => {
-    setRows((prev) => (prev.length > 1 ? prev.filter((row) => row.id !== id) : prev))
-  }, [])
-
   // Дублировать строку
-  const duplicateRow = useCallback((id: string) => {
-    setRows((prev) => {
-      const index = prev.findIndex((row) => row.id === id)
-      if (index === -1) return prev
+  const duplicateRow = useCallback(
+    (index: number) => {
+      const row = formValues.letters[index]
       const newRow = {
-        ...prev[index],
-        id: crypto.randomUUID(),
-        number: '',
-        file: null,
-        parsing: false,
-        parsedByAI: false,
+        ...createEmptyRow(),
+        org: row.org,
+        date: row.date,
+        deadlineDate: row.deadlineDate,
+        type: row.type,
+        content: row.content,
+        priority: row.priority,
       }
-      return [...prev.slice(0, index + 1), newRow, ...prev.slice(index + 1)]
-    })
-  }, [])
+      // Insert after current row
+      const newFields = [...formValues.letters]
+      newFields.splice(index + 1, 0, newRow)
+      setValue('letters', newFields)
+    },
+    [formValues.letters, setValue]
+  )
 
-  const clearRow = useCallback((id: string) => {
-    setRows((prev) => prev.map((row) => (row.id === id ? { ...createEmptyRow(), id } : row)))
-    setErrors((prev) => {
-      const next = { ...prev }
-      delete next[id]
+  const clearRow = useCallback(
+    (index: number) => {
+      const emptyRow = createEmptyRow()
+      // Keep the ID
+      emptyRow.id = fields[index].id
+      update(index, emptyRow)
+      // Clear file
+      setFiles((prev) => {
+        const next = new Map(prev)
+        next.delete(fields[index].id)
+        return next
+      })
+      setParsedByAI((prev) => {
+        const next = new Map(prev)
+        next.delete(fields[index].id)
+        return next
+      })
+    },
+    [fields, update]
+  )
+
+  const clearFile = useCallback((id: string) => {
+    setFiles((prev) => {
+      const next = new Map(prev)
+      next.delete(id)
+      return next
+    })
+    setParsedByAI((prev) => {
+      const next = new Map(prev)
+      next.delete(id)
       return next
     })
   }, [])
 
-  const clearFile = useCallback((id: string) => {
-    setRows((prev) =>
-      prev.map((row) =>
-        row.id === id ? { ...row, file: null, parsedByAI: false, parsing: false } : row
-      )
-    )
-  }, [])
-
   const removeEmptyRows = useCallback(() => {
-    setRows((prev) => {
-      const filtered = prev.filter(
-        (row) => row.number.trim() || row.org.trim() || row.content.trim() || row.file
-      )
-      const nextRows = filtered.length > 0 ? filtered : [createEmptyRow()]
-      const ids = new Set(nextRows.map((row) => row.id))
-      setErrors((prevErrors) => {
-        const nextErrors: Record<string, string[]> = {}
-        Object.entries(prevErrors).forEach(([id, errs]) => {
-          if (ids.has(id)) nextErrors[id] = errs
+    const filtered = formValues.letters.filter(
+      (row) => row.number.trim() || row.org.trim() || row.content?.trim() || '' || files.has(row.id)
+    )
+    if (filtered.length > 0) {
+      setValue('letters', filtered)
+      // Clean up files map
+      const remainingIds = new Set(filtered.map((r) => r.id))
+      setFiles((prev) => {
+        const next = new Map()
+        prev.forEach((file, id) => {
+          if (remainingIds.has(id)) next.set(id, file)
         })
-        return nextErrors
+        return next
       })
-      return nextRows
-    })
-  }, [])
+    } else {
+      setValue('letters', [createEmptyRow()])
+      setFiles(new Map())
+    }
+  }, [formValues.letters, files, setValue])
 
   const applyBulkDefaults = useCallback(
     (mode: 'all' | 'empty') => {
       if (!bulkDate && !bulkDeadlineDate && !bulkType) return
 
-      setRows((prev) =>
-        prev.map((row) => {
-          const updated = { ...row }
-          const shouldSetDate = bulkDate && (mode === 'all' || !row.date)
-          const shouldSetDeadline = bulkDeadlineDate && (mode === 'all' || !row.deadlineDate)
-          const shouldSetType = bulkType && (mode === 'all' || !row.type)
+      formValues.letters.forEach((row, index) => {
+        const shouldSetDate = bulkDate && (mode === 'all' || !row.date)
+        const shouldSetDeadline = bulkDeadlineDate && (mode === 'all' || !row.deadlineDate)
+        const shouldSetType = bulkType && (mode === 'all' || !row.type)
 
-          if (shouldSetDate) {
-            updated.date = bulkDate
-          }
+        if (shouldSetDate) {
+          setValue(`letters.${index}.date`, bulkDate)
+        }
 
-          if (shouldSetDeadline) {
-            updated.deadlineDate = bulkDeadlineDate
-          } else if (shouldSetDate && (mode === 'all' || !row.deadlineDate)) {
-            const deadline = calculateDeadline(new Date(bulkDate), DEFAULT_DEADLINE_WORKING_DAYS)
-            updated.deadlineDate = formatDateForInput(deadline)
-          }
+        if (shouldSetDeadline) {
+          setValue(`letters.${index}.deadlineDate`, bulkDeadlineDate)
+        } else if (shouldSetDate && (mode === 'all' || !row.deadlineDate)) {
+          const deadline = calculateDeadline(new Date(bulkDate), DEFAULT_DEADLINE_WORKING_DAYS)
+          setValue(`letters.${index}.deadlineDate`, formatDateForInput(deadline))
+        }
 
-          if (shouldSetType) {
-            updated.type = bulkType
-          }
-
-          return updated
-        })
-      )
-
-      setErrors({})
+        if (shouldSetType) {
+          setValue(`letters.${index}.type`, bulkType)
+        }
+      })
     },
-    [bulkDate, bulkDeadlineDate, bulkType]
+    [bulkDate, bulkDeadlineDate, bulkType, formValues.letters, setValue]
   )
 
   const resetBulkDefaults = useCallback(() => {
-    setBulkDate('')
-    setBulkDeadlineDate('')
-    setBulkType('')
-  }, [])
-
-  // Обновить поле
-  const updateRow = useCallback((id: string, field: keyof LetterRow, value: string | number) => {
-    setRows((prev) =>
-      prev.map((row) => {
-        if (row.id !== id) return row
-        const updated = { ...row, [field]: value }
-        // Автозаполнение дедлайна (+7 дней)
-        if (field === 'date' && value && !row.deadlineDate) {
-          const date = new Date(value as string)
-          const deadline = calculateDeadline(date, DEFAULT_DEADLINE_WORKING_DAYS)
-          updated.deadlineDate = deadline.toISOString().split('T')[0]
-        }
-        return updated
-      })
-    )
-    // Очистить ошибки при изменении
-    setErrors((prev) => {
-      const newErrors = { ...prev }
-      delete newErrors[id]
-      return newErrors
-    })
-  }, [])
-
-  // Валидация
-  const validate = (): boolean => {
-    const newErrors: Record<string, string[]> = {}
-    let isValid = true
-
-    rows.forEach((row) => {
-      const rowErrors: string[] = []
-      if (!row.number.trim()) rowErrors.push('Номер обязателен')
-      if (!row.org.trim()) rowErrors.push('Организация обязательна')
-      if (!row.date) rowErrors.push('Дата обязательна')
-
-      if (rowErrors.length > 0) {
-        newErrors[row.id] = rowErrors
-        isValid = false
-      }
-    })
-
-    // Проверка дубликатов номеров
-    const numbers = rows.map((r) => r.number.toLowerCase().trim()).filter(Boolean)
-    const seen = new Set<string>()
-    numbers.forEach((num) => {
-      if (seen.has(num)) {
-        const rowId = rows.find((r) => r.number.toLowerCase().trim() === num)?.id
-        if (rowId) {
-          newErrors[rowId] = [...(newErrors[rowId] || []), 'Дублирующийся номер']
-          isValid = false
-        }
-      }
-      seen.add(num)
-    })
-
-    setErrors(newErrors)
-    return isValid
-  }
+    setValue('bulkDate', '')
+    setValue('bulkDeadlineDate', '')
+    setValue('bulkType', '')
+  }, [setValue])
 
   // Загрузка файлов к письмам
   const uploadFilesToLetters = async (
@@ -431,17 +442,17 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
     let success = 0
     let failed = 0
 
-    const rowsWithFiles = rows.filter((r) => r.file && letterIdMap.has(r.number.toLowerCase()))
-
-    for (const row of rowsWithFiles) {
-      if (!row.file) continue
+    for (const [rowId, file] of files.entries()) {
+      // Find letter by number
+      const row = formValues.letters.find((r) => r.id === rowId)
+      if (!row) continue
 
       const letterId = letterIdMap.get(row.number.toLowerCase())
       if (!letterId) continue
 
       try {
         const formData = new FormData()
-        formData.append('file', row.file)
+        formData.append('file', file)
         formData.append('letterId', letterId)
 
         const res = await fetch('/api/upload', {
@@ -463,17 +474,12 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
   }
 
   // Создание писем
-  const handleCreate = async () => {
-    if (!validate()) {
-      toast.error('Исправьте ошибки в форме')
-      return
-    }
-
+  const onSubmit = async (data: BulkCreateLettersInput) => {
     setCreating(true)
-    const toastId = toast.loading(`Создание ${rows.length} писем...`)
+    const toastId = toast.loading(`Создание ${data.letters.length} писем...`)
 
     try {
-      const letters = rows.map((row) => ({
+      const letters = data.letters.map((row) => ({
         number: row.number.trim(),
         org: row.org.trim(),
         date: row.date,
@@ -486,32 +492,31 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
       const res = await fetch('/api/letters/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ letters, skipDuplicates }),
+        body: JSON.stringify({ letters, skipDuplicates: data.skipDuplicates }),
       })
 
-      const data = await res.json()
+      const result = await res.json()
 
       if (!res.ok) {
-        if (data.duplicates) {
-          toast.error(`Дубликаты: ${data.duplicates.join(', ')}`, { id: toastId })
-        } else if (data.details) {
-          toast.error(data.error, { id: toastId })
+        if (result.duplicates) {
+          toast.error(`Дубликаты: ${result.duplicates.join(', ')}`, { id: toastId })
+        } else if (result.details) {
+          toast.error(result.error, { id: toastId })
         } else {
-          throw new Error(data.error || 'Ошибка создания')
+          throw new Error(result.error || 'Ошибка создания')
         }
         return
       }
 
       // Загрузка файлов
-      const hasFiles = rows.some((r) => r.file)
-      if (hasFiles && data.letters?.length > 0) {
+      const hasFiles = files.size > 0
+      if (hasFiles && result.letters?.length > 0) {
         setUploadingFiles(true)
         toast.loading('Загрузка файлов...', { id: toastId })
 
-        // Создаём карту номер -> id
         const letterIdMap = new Map<string, string>()
-        const letters = data.letters as CreatedLetter[]
-        for (const letter of letters) {
+        const createdLetters = result.letters as CreatedLetter[]
+        for (const letter of createdLetters) {
           letterIdMap.set(letter.number.toLowerCase(), letter.id)
         }
 
@@ -520,26 +525,29 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
 
         if (uploadResult.failed > 0) {
           toast.warning(
-            `Создано ${data.created} писем. Файлов загружено: ${uploadResult.success}, ошибок: ${uploadResult.failed}`,
+            `Создано ${result.created} писем. Файлов загружено: ${uploadResult.success}, ошибок: ${uploadResult.failed}`,
             { id: toastId }
           )
         } else if (uploadResult.success > 0) {
-          toast.success(`Создано ${data.created} писем, загружено ${uploadResult.success} файлов`, {
-            id: toastId,
-          })
+          toast.success(
+            `Создано ${result.created} писем, загружено ${uploadResult.success} файлов`,
+            {
+              id: toastId,
+            }
+          )
         } else {
-          toast.success(`Создано ${data.created} писем`, { id: toastId })
+          toast.success(`Создано ${result.created} писем`, { id: toastId })
         }
       } else {
-        let message = `Создано ${data.created} писем`
-        if (data.skipped > 0) {
-          message += `, пропущено ${data.skipped}`
+        let message = `Создано ${result.created} писем`
+        if (result.skipped > 0) {
+          message += `, пропущено ${result.skipped}`
         }
         toast.success(message, { id: toastId })
       }
 
-      setCreatedLetters(data.letters || [])
-      onSuccess?.(data.letters || [])
+      setCreatedLetters(result.letters || [])
+      onSuccess?.(result.letters || [])
     } catch (error) {
       console.error('Bulk create error:', error)
       toast.error(error instanceof Error ? error.message : 'Ошибка создания', { id: toastId })
@@ -552,7 +560,7 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
   // Экспорт в Excel (CSV)
   const exportToExcel = () => {
     type ExportableItem = LetterRow | CreatedLetter
-    const data: ExportableItem[] = createdLetters.length > 0 ? createdLetters : rows
+    const data: ExportableItem[] = createdLetters.length > 0 ? createdLetters : formValues.letters
     const headers = ['Номер', 'Организация', 'Дата', 'Дедлайн', 'Тип', 'Содержание', 'Приоритет']
 
     const csvContent = [
@@ -583,15 +591,17 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
   }
 
   // Сброс формы
-  const reset = () => {
-    setRows([createEmptyRow()])
-    setErrors({})
+  const resetForm = () => {
+    reset()
+    setFiles(new Map())
+    setParsingStates(new Map())
+    setParsedByAI(new Map())
     setCreatedLetters([])
   }
 
   const duplicateNumbers = useMemo(() => {
     const counts = new Map<string, number>()
-    rows.forEach((row) => {
+    formValues.letters.forEach((row) => {
       const normalized = row.number.trim().toLowerCase()
       if (!normalized) return
       counts.set(normalized, (counts.get(normalized) || 0) + 1)
@@ -601,12 +611,12 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
         .filter(([, count]) => count > 1)
         .map(([key]) => key)
     )
-  }, [rows])
+  }, [formValues.letters])
 
   const hasCreated = createdLetters.length > 0
-  const parsingCount = rows.filter((r) => r.parsing).length
+  const parsingCount = Array.from(parsingStates.values()).filter(Boolean).length
   const isParsing = parsingCount > 0
-  const filesCount = rows.filter((r) => r.file).length
+  const filesCount = files.size
 
   return (
     <div className="mx-auto max-w-6xl rounded-xl border border-gray-700 bg-gray-800 p-6">
@@ -614,7 +624,7 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
         <div className="flex items-center gap-2">
           <ListPlus className="h-5 w-5 text-emerald-400" />
           <h3 className="text-lg font-semibold text-white">Массовое создание писем</h3>
-          <span className="text-sm text-gray-400">({rows.length} шт.)</span>
+          <span className="text-sm text-gray-400">({fields.length} шт.)</span>
           {filesCount > 0 && (
             <span className="flex items-center gap-1 rounded bg-purple-500/20 px-2 py-0.5 text-xs text-purple-400">
               <Paperclip className="h-3 w-3" />
@@ -624,18 +634,18 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
           {parsingCount > 0 && (
             <span className="flex items-center gap-1 rounded bg-indigo-500/20 px-2 py-0.5 text-xs text-indigo-300">
               <Loader2 className="h-3 w-3 animate-spin" />
-              {'\u0420\u0430\u0437\u0431\u043e\u0440'} {parsingCount}
+              Разбор {parsingCount}
             </span>
           )}
           {duplicateNumbers.size > 0 && (
             <span className="flex items-center gap-1 rounded bg-amber-500/20 px-2 py-0.5 text-xs text-amber-300">
               <AlertCircle className="h-3 w-3" />
-              {'\u0415\u0441\u0442\u044c \u0434\u0443\u0431\u043b\u0438'}
+              Есть дубли
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          {(rows.length > 0 || hasCreated) && (
+          {(fields.length > 0 || hasCreated) && (
             <button
               onClick={exportToExcel}
               className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white transition hover:bg-blue-700"
@@ -695,7 +705,7 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
               Перейти к письмам
             </button>
             <button
-              onClick={reset}
+              onClick={resetForm}
               className="rounded-lg bg-gray-700 px-4 py-2.5 text-white transition hover:bg-gray-600"
             >
               Создать ещё
@@ -704,7 +714,10 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
         </div>
       ) : (
         // Форма создания
-        <div className="space-y-4">
+        <form
+          onSubmit={handleSubmit(onSubmit as (data: BulkCreateLettersInput) => Promise<void>)}
+          className="space-y-4"
+        >
           {/* Drop zone для PDF */}
           <div
             className={`cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition ${
@@ -744,8 +757,7 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
             <label className="flex cursor-pointer items-center gap-2 text-gray-400">
               <input
                 type="checkbox"
-                checked={skipDuplicates}
-                onChange={(e) => setSkipDuplicates(e.target.checked)}
+                {...register('skipDuplicates')}
                 className="h-4 w-4 rounded border-gray-600 bg-gray-700 text-emerald-500 focus:ring-emerald-500"
               />
               Пропускать дубликаты
@@ -756,37 +768,28 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
           <div className="rounded-lg border border-gray-700/60 bg-gray-900/40 p-3">
             <div className="flex flex-wrap items-end gap-3">
               <div className="flex min-w-[160px] flex-col gap-1">
-                <span className="text-xs text-gray-500">
-                  {'\u041e\u0431\u0449\u0430\u044f \u0434\u0430\u0442\u0430'}
-                </span>
+                <span className="text-xs text-gray-500">Общая дата</span>
                 <input
                   type="date"
-                  value={bulkDate}
-                  onChange={(e) => setBulkDate(e.target.value)}
+                  {...register('bulkDate')}
                   className="w-full rounded border border-gray-600 bg-gray-700 px-2 py-1.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
                 />
               </div>
               <div className="flex min-w-[160px] flex-col gap-1">
-                <span className="text-xs text-gray-500">
-                  {'\u041e\u0431\u0449\u0438\u0439 \u0434\u0435\u0434\u043b\u0430\u0439\u043d'}
-                </span>
+                <span className="text-xs text-gray-500">Общий дедлайн</span>
                 <input
                   type="date"
-                  value={bulkDeadlineDate}
-                  onChange={(e) => setBulkDeadlineDate(e.target.value)}
+                  {...register('bulkDeadlineDate')}
                   className="w-full rounded border border-gray-600 bg-gray-700 px-2 py-1.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
                 />
               </div>
               <div className="flex min-w-[180px] flex-col gap-1">
-                <span className="text-xs text-gray-500">
-                  {'\u041e\u0431\u0449\u0438\u0439 \u0442\u0438\u043f'}
-                </span>
+                <span className="text-xs text-gray-500">Общий тип</span>
                 <select
-                  value={bulkType}
-                  onChange={(e) => setBulkType(e.target.value)}
+                  {...register('bulkType')}
                   className="w-full rounded border border-gray-600 bg-gray-700 px-2 py-1.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
                 >
-                  <option value="">{'\u0411\u0435\u0437 \u0442\u0438\u043f\u0430'}</option>
+                  <option value="">Без типа</option>
                   {LETTER_TYPES.filter((t) => t.value !== 'all').map((t) => (
                     <option key={t.value} value={t.value}>
                       {t.label}
@@ -800,35 +803,33 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
                   onClick={() => applyBulkDefaults('empty')}
                   className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-300 transition hover:bg-emerald-500/20"
                 >
-                  {'\u041a \u043f\u0443\u0441\u0442\u044b\u043c'}
+                  К пустым
                 </button>
                 <button
                   type="button"
                   onClick={() => applyBulkDefaults('all')}
                   className="rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs text-blue-300 transition hover:bg-blue-500/20"
                 >
-                  {'\u041a\u043e \u0432\u0441\u0435\u043c'}
+                  Ко всем
                 </button>
                 <button
                   type="button"
                   onClick={resetBulkDefaults}
                   className="rounded-lg border border-gray-600 bg-gray-700 px-3 py-1.5 text-xs text-gray-200 transition hover:bg-gray-600"
                 >
-                  {'\u0421\u0431\u0440\u043e\u0441'}
+                  Сброс
                 </button>
                 <button
                   type="button"
                   onClick={removeEmptyRows}
                   className="rounded-lg border border-gray-600 bg-gray-700 px-3 py-1.5 text-xs text-gray-200 transition hover:bg-gray-600"
                 >
-                  {'\u0423\u0431\u0440\u0430\u0442\u044c \u043f\u0443\u0441\u0442\u044b\u0435'}
+                  Убрать пустые
                 </button>
               </div>
             </div>
             <p className="mt-2 text-xs text-gray-500">
-              {
-                '\u0414\u0430\u0442\u0430 \u0438 \u0434\u0435\u0434\u043b\u0430\u0439\u043d \u043f\u0440\u0438\u043c\u0435\u043d\u044f\u044e\u0442\u0441\u044f \u0441 \u043e\u0431\u0449\u0438\u043c \u0440\u0430\u0441\u0447\u0451\u0442\u043e\u043c, \u0435\u0441\u043b\u0438 \u0434\u0435\u0434\u043b\u0430\u0439\u043d \u043f\u0443\u0441\u0442\u043e\u0439.'
-              }
+              Дата и дедлайн применяются с общим расчётом, если дедлайн пустой.
             </p>
           </div>
 
@@ -868,22 +869,27 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, index) => {
+                {fields.map((field, index) => {
+                  const row = formValues.letters[index]
                   const normalizedNumber = row.number.trim().toLowerCase()
                   const isDuplicate =
                     normalizedNumber.length > 0 && duplicateNumbers.has(normalizedNumber)
+                  const isParsing = parsingStates.get(field.id) || false
+                  const hasFile = files.has(field.id)
+                  const isAIParsed = parsedByAI.get(field.id) || false
+
                   return (
                     <tr
-                      key={row.id}
-                      className={`border-b border-gray-700/50 ${isDuplicate ? 'bg-amber-500/10' : ''} ${errors[row.id] ? 'bg-red-500/10' : ''} ${row.parsing ? 'animate-pulse bg-purple-500/5' : ''}`}
+                      key={field.id}
+                      className={`border-b border-gray-700/50 ${isDuplicate ? 'bg-amber-500/10' : ''} ${errors.letters?.[index] ? 'bg-red-500/10' : ''} ${isParsing ? 'animate-pulse bg-purple-500/5' : ''}`}
                     >
                       <td className="py-2 pr-2 text-gray-500">
                         <div className="flex items-center gap-1">
                           {index + 1}
-                          {row.parsing && (
+                          {isParsing && (
                             <Loader2 className="h-3 w-3 animate-spin text-purple-400" />
                           )}
-                          {row.parsedByAI && !row.parsing && (
+                          {isAIParsed && !isParsing && (
                             <span title="Распознано AI">
                               <Bot className="h-3 w-3 text-purple-400" />
                             </span>
@@ -894,56 +900,57 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
                         <div className="flex items-center gap-2">
                           <input
                             type="text"
-                            value={row.number}
-                            onChange={(e) => updateRow(row.id, 'number', e.target.value)}
-                            disabled={row.parsing}
+                            {...register(`letters.${index}.number`)}
+                            disabled={isParsing}
                             className={`flex-1 rounded border ${isDuplicate ? 'border-amber-500/60' : 'border-gray-600'} bg-gray-700 px-2 py-1.5 text-sm text-white focus:border-emerald-500 focus:outline-none disabled:opacity-50`}
                             placeholder="7941"
                           />
                           {isDuplicate && (
-                            <span
-                              title={
-                                '\u0414\u0443\u0431\u043b\u0438\u043a\u0430\u0442 \u043d\u043e\u043c\u0435\u0440\u0430'
-                              }
-                            >
+                            <span title="Дубликат номера">
                               <AlertCircle className="h-4 w-4 text-amber-400" />
                             </span>
                           )}
                         </div>
+                        {errors.letters?.[index]?.number && (
+                          <p className="mt-1 text-xs text-red-400">
+                            {errors.letters[index]?.number?.message}
+                          </p>
+                        )}
                       </td>
                       <td className="px-2 py-2">
                         <input
                           type="text"
-                          value={row.org}
-                          onChange={(e) => updateRow(row.id, 'org', e.target.value)}
-                          disabled={row.parsing}
+                          {...register(`letters.${index}.org`)}
+                          disabled={isParsing}
                           className="w-full rounded border border-gray-600 bg-gray-700 px-2 py-1.5 text-sm text-white focus:border-emerald-500 focus:outline-none disabled:opacity-50"
                           placeholder="Организация"
                         />
+                        {errors.letters?.[index]?.org && (
+                          <p className="mt-1 text-xs text-red-400">
+                            {errors.letters[index]?.org?.message}
+                          </p>
+                        )}
                       </td>
                       <td className="px-2 py-2">
                         <input
                           type="date"
-                          value={row.date}
-                          onChange={(e) => updateRow(row.id, 'date', e.target.value)}
-                          disabled={row.parsing}
+                          {...register(`letters.${index}.date`)}
+                          disabled={isParsing}
                           className="w-full rounded border border-gray-600 bg-gray-700 px-2 py-1.5 text-sm text-white focus:border-emerald-500 focus:outline-none disabled:opacity-50"
                         />
                       </td>
                       <td className="px-2 py-2">
                         <input
                           type="date"
-                          value={row.deadlineDate}
-                          onChange={(e) => updateRow(row.id, 'deadlineDate', e.target.value)}
-                          disabled={row.parsing}
+                          {...register(`letters.${index}.deadlineDate`)}
+                          disabled={isParsing}
                           className="w-full rounded border border-gray-600 bg-gray-700 px-2 py-1.5 text-sm text-white focus:border-emerald-500 focus:outline-none disabled:opacity-50"
                         />
                       </td>
                       <td className="px-2 py-2">
                         <select
-                          value={row.type}
-                          onChange={(e) => updateRow(row.id, 'type', e.target.value)}
-                          disabled={row.parsing}
+                          {...register(`letters.${index}.type`)}
+                          disabled={isParsing}
                           className="w-full rounded border border-gray-600 bg-gray-700 px-2 py-1.5 text-sm text-white focus:border-emerald-500 focus:outline-none disabled:opacity-50"
                         >
                           <option value="">—</option>
@@ -957,63 +964,56 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
                       <td className="px-2 py-2">
                         <input
                           type="text"
-                          value={row.content}
-                          onChange={(e) => updateRow(row.id, 'content', e.target.value)}
-                          disabled={row.parsing}
+                          {...register(`letters.${index}.content`)}
+                          disabled={isParsing}
                           className="w-full rounded border border-gray-600 bg-gray-700 px-2 py-1.5 text-sm text-white focus:border-emerald-500 focus:outline-none disabled:opacity-50"
                           placeholder="Краткое содержание"
                         />
                       </td>
                       <td className="py-2 pl-2">
                         <div className="flex items-center gap-1">
-                          {row.file && (
+                          {hasFile && (
                             <span
                               className="truncate rounded bg-gray-700 px-1.5 py-0.5 text-xs text-gray-300"
-                              title={row.file.name}
+                              title={files.get(field.id)?.name}
                             >
                               <Paperclip className="inline h-3 w-3" />
                             </span>
                           )}
-                          {row.file && (
+                          {hasFile && (
                             <button
                               type="button"
-                              onClick={() => clearFile(row.id)}
+                              onClick={() => clearFile(field.id)}
                               className="p-1.5 text-gray-400 transition hover:text-amber-400"
-                              title={
-                                '\u0423\u0431\u0440\u0430\u0442\u044c \u0444\u0430\u0439\u043b'
-                              }
+                              title="Убрать файл"
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>
                           )}
                           <button
                             type="button"
-                            onClick={() => duplicateRow(row.id)}
-                            disabled={row.parsing}
+                            onClick={() => duplicateRow(index)}
+                            disabled={isParsing}
                             className="p-1.5 text-gray-400 transition hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-30"
-                            title={
-                              '\u0414\u0443\u0431\u043b\u0438\u0440\u043e\u0432\u0430\u0442\u044c'
-                            }
+                            title="Дублировать"
                           >
                             <Copy className="h-4 w-4" />
                           </button>
                           <button
                             type="button"
-                            onClick={() => clearRow(row.id)}
-                            disabled={row.parsing}
+                            onClick={() => clearRow(index)}
+                            disabled={isParsing}
                             className="p-1.5 text-gray-400 transition hover:text-amber-400 disabled:cursor-not-allowed disabled:opacity-30"
-                            title={
-                              '\u041e\u0447\u0438\u0441\u0442\u0438\u0442\u044c \u0441\u0442\u0440\u043e\u043a\u0443'
-                            }
+                            title="Очистить строку"
                           >
                             <X className="h-4 w-4" />
                           </button>
                           <button
                             type="button"
-                            onClick={() => removeRow(row.id)}
-                            disabled={rows.length === 1 || row.parsing}
+                            onClick={() => remove(index)}
+                            disabled={fields.length === 1 || isParsing}
                             className="p-1.5 text-gray-400 transition hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-30"
-                            title={'\u0423\u0434\u0430\u043b\u0438\u0442\u044c'}
+                            title="Удалить"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -1026,21 +1026,32 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
             </table>
           </div>
 
-          {/* Ошибки */}
-          {Object.keys(errors).length > 0 && (
+          {/* Ошибки валидации */}
+          {errors.letters && (
             <div className="rounded-lg border border-red-500/30 bg-red-500/20 p-3">
               <div className="mb-2 flex items-center gap-2 text-red-400">
                 <AlertCircle className="h-4 w-4" />
                 <span className="text-sm font-medium">Ошибки валидации</span>
               </div>
               <ul className="space-y-1 text-sm text-red-300">
-                {Object.entries(errors).map(([id, errs]) => {
-                  const rowIndex = rows.findIndex((r) => r.id === id)
-                  return (
-                    <li key={id}>
-                      Строка {rowIndex + 1}: {errs.join(', ')}
-                    </li>
-                  )
+                {Object.entries(errors.letters).map(([index, error]) => {
+                  if (typeof error === 'object' && error !== null) {
+                    const rowErrors = Object.entries(error)
+                      .filter(([key]) => key !== 'root')
+                      .map(
+                        ([key, val]) =>
+                          `${key}: ${(val as { message?: string }).message || 'Ошибка'}`
+                      )
+                      .join(', ')
+                    if (rowErrors) {
+                      return (
+                        <li key={index}>
+                          Строка {parseInt(index) + 1}: {rowErrors}
+                        </li>
+                      )
+                    }
+                  }
+                  return null
                 })}
               </ul>
             </div>
@@ -1054,9 +1065,7 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
               className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-600 px-4 py-2 text-gray-400 transition hover:border-gray-500 hover:text-white"
             >
               <Plus className="h-4 w-4" />
-              {
-                '\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0441\u0442\u0440\u043e\u043a\u0443'
-              }
+              Добавить строку
             </button>
             <button
               type="button"
@@ -1064,15 +1073,15 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
               className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-600 px-4 py-2 text-gray-400 transition hover:border-gray-500 hover:text-white"
             >
               <ListPlus className="h-4 w-4" />
-              {'\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c 5 \u0441\u0442\u0440\u043e\u043a'}
+              Добавить 5 строк
             </button>
           </div>
 
           {/* Действия */}
           <div className="flex gap-3 pt-2">
             <button
-              onClick={handleCreate}
-              disabled={creating || isParsing || rows.length === 0}
+              type="submit"
+              disabled={creating || isParsing || fields.length === 0}
               className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-gray-600"
             >
               {creating || uploadingFiles ? (
@@ -1083,21 +1092,22 @@ export function BulkCreateLetters({ onClose, onSuccess, pageHref }: BulkCreateLe
               ) : (
                 <>
                   <Check className="h-4 w-4" />
-                  Создать {rows.length}{' '}
-                  {rows.length === 1 ? 'письмо' : rows.length < 5 ? 'письма' : 'писем'}
+                  Создать {fields.length}{' '}
+                  {fields.length === 1 ? 'письмо' : fields.length < 5 ? 'письма' : 'писем'}
                   {filesCount > 0 && ` + ${filesCount} файлов`}
                 </>
               )}
             </button>
             <button
-              onClick={reset}
+              type="button"
+              onClick={resetForm}
               disabled={creating}
               className="rounded-lg bg-gray-700 px-4 py-2.5 text-white transition hover:bg-gray-600"
             >
-              Сбросить
+              Сброс
             </button>
           </div>
-        </div>
+        </form>
       )}
     </div>
   )

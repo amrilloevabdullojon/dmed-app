@@ -67,6 +67,30 @@ export const quickLetterUploadSchema = z.object({
   applicantTelegramChatId: z.string().max(50).optional(),
 })
 
+// BulkCreateLetters - схема для одной строки в массовом создании
+export const bulkLetterRowSchema = z.object({
+  id: z.string(),
+  number: z.string().min(1, 'Номер обязателен').max(50),
+  org: z.string().min(1, 'Организация обязательна').max(500),
+  date: z.string().min(1, 'Дата обязательна'),
+  deadlineDate: z.string().optional(),
+  type: z.string().max(100).optional(),
+  content: z.string().max(10000).optional(),
+  priority: z.number().min(0).max(100),
+  // File не валидируется через Zod (объект File)
+  // parsing и parsedByAI - UI state, не валидируются
+})
+
+// Schema для всей формы массового создания
+export const bulkCreateLettersSchema = z.object({
+  letters: z.array(bulkLetterRowSchema).min(1, 'Добавьте хотя бы одно письмо'),
+  skipDuplicates: z.boolean(),
+  // Bulk defaults
+  bulkDate: z.string().optional(),
+  bulkDeadlineDate: z.string().optional(),
+  bulkType: z.string().optional(),
+})
+
 export const updateLetterSchema = z.object({
   field: z.string().min(1),
   value: z.union([z.string(), z.null()]),
@@ -229,6 +253,8 @@ export const syncSchema = z.object({
 
 export type CreateLetterInput = z.infer<typeof createLetterSchema>
 export type QuickLetterUploadInput = z.infer<typeof quickLetterUploadSchema>
+export type BulkLetterRowInput = z.infer<typeof bulkLetterRowSchema>
+export type BulkCreateLettersInput = z.infer<typeof bulkCreateLettersSchema>
 export type UpdateLetterInput = z.infer<typeof updateLetterSchema>
 export type LetterFiltersInput = z.infer<typeof letterFiltersSchema>
 export type BulkLetterInput = z.infer<typeof bulkLetterSchema>
