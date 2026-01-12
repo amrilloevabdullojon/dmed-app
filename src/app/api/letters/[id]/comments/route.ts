@@ -19,7 +19,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     const { id } = await params
     const session = await getServerSession(authOptions)
-    if (!session) {
+    const authorId =
+      session?.user?.id ||
+      (session?.user?.email
+        ? (
+            await prisma.user.findUnique({
+              where: { email: session.user.email },
+              select: { id: true },
+            })
+          )?.id
+        : null)
+    if (!authorId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -80,9 +90,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const comment = await prisma.comment.create({
       data: {
         text,
-        letterId: id,
-        authorId: session.user.id,
-        parentId: result.data.parentId || null,
+        letter: { connect: { id } },
+        author: { connect: { id: authorId } },
+        ...(result.data.parentId ? { parent: { connect: { id: result.data.parentId } } } : {}),
       },
       include: {
         author: {
