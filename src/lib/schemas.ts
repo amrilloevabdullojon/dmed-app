@@ -67,6 +67,34 @@ export const quickLetterUploadSchema = z.object({
   applicantTelegramChatId: z.string().max(50).optional(),
 })
 
+// PortalLetterSubmission - публичная форма подачи письма
+export const portalLetterSchema = z
+  .object({
+    number: z.string().min(1, 'Номер письма обязателен').max(50, 'Номер слишком длинный'),
+    org: z.string().min(1, 'Организация обязательна').max(500, 'Название слишком длинное'),
+    date: z.string().min(1, 'Дата обязательна'),
+    content: z.string().max(10000, 'Содержание слишком длинное').optional(),
+    contacts: z.string().max(500, 'Контакты слишком длинные').optional(),
+    applicantName: z.string().min(1, 'Имя обязательно').max(200, 'Имя слишком длинное'),
+    applicantEmail: z.string().email('Некорректный email').optional().or(z.literal('')),
+    applicantPhone: z.string().max(50, 'Телефон слишком длинный').optional(),
+    applicantTelegramChatId: z.string().max(50, 'Telegram ID слишком длинный').optional(),
+  })
+  .refine(
+    (data) => {
+      // Хотя бы один контакт должен быть указан
+      return (
+        (data.applicantEmail && data.applicantEmail.trim() !== '') ||
+        (data.applicantPhone && data.applicantPhone.trim() !== '') ||
+        (data.applicantTelegramChatId && data.applicantTelegramChatId.trim() !== '')
+      )
+    },
+    {
+      message: 'Укажите email, телефон или Telegram',
+      path: ['applicantEmail'], // Показываем ошибку на первом поле
+    }
+  )
+
 // BulkCreateLetters - схема для одной строки в массовом создании
 export const bulkLetterRowSchema = z.object({
   id: z.string(),
@@ -253,6 +281,7 @@ export const syncSchema = z.object({
 
 export type CreateLetterInput = z.infer<typeof createLetterSchema>
 export type QuickLetterUploadInput = z.infer<typeof quickLetterUploadSchema>
+export type PortalLetterInput = z.infer<typeof portalLetterSchema>
 export type BulkLetterRowInput = z.infer<typeof bulkLetterRowSchema>
 export type BulkCreateLettersInput = z.infer<typeof bulkCreateLettersSchema>
 export type UpdateLetterInput = z.infer<typeof updateLetterSchema>
