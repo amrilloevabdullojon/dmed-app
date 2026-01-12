@@ -21,6 +21,7 @@ import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import dynamic from 'next/dynamic'
 import { SettingsToggle } from '@/components/settings/SettingsToggle'
+import { ScrollIndicator } from '@/components/mobile/ScrollIndicator'
 
 // Lazy load tab components for better performance
 const PermissionsManager = dynamic(
@@ -180,86 +181,88 @@ export default function SettingsPage() {
         </div>
 
         {/* Tabs */}
-        <div className="mobile-scroll no-scrollbar mb-6 flex gap-2 overflow-x-auto border-b border-white/10 pb-4 md:flex-wrap">
-          {isSuperAdmin && (
+        <div className="mb-6 border-b border-white/10 pb-4">
+          <ScrollIndicator className="no-scrollbar flex gap-2 md:flex-wrap" showArrows={true}>
+            {isSuperAdmin && (
+              <button
+                onClick={() => handleTabChange('permissions')}
+                className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                  activeTab === 'permissions'
+                    ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
+                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <Shield className="mr-2 inline-block h-4 w-4" />
+                Разрешения
+              </button>
+            )}
             <button
-              onClick={() => handleTabChange('permissions')}
+              onClick={() => handleTabChange('users')}
               className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
-                activeTab === 'permissions'
+                activeTab === 'users'
                   ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
                   : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`}
             >
-              <Shield className="mr-2 inline-block h-4 w-4" />
-              Разрешения
+              <Users className="mr-2 inline-block h-4 w-4" />
+              Пользователи
             </button>
-          )}
-          <button
-            onClick={() => handleTabChange('users')}
-            className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
-              activeTab === 'users'
-                ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
-                : 'text-slate-400 hover:bg-white/5 hover:text-white'
-            }`}
-          >
-            <Users className="mr-2 inline-block h-4 w-4" />
-            Пользователи
-          </button>
-          <button
-            onClick={() => handleTabChange('sync')}
-            className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
-              activeTab === 'sync'
-                ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
-                : 'text-slate-400 hover:bg-white/5 hover:text-white'
-            }`}
-          >
-            <RefreshCw className="mr-2 inline-block h-4 w-4" />
-            Синхронизация
-          </button>
-          <button
-            onClick={() => handleTabChange('audit')}
-            className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
-              activeTab === 'audit'
-                ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
-                : 'text-slate-400 hover:bg-white/5 hover:text-white'
-            }`}
-          >
-            <History className="mr-2 inline-block h-4 w-4" />
-            Аудит
-          </button>
-          <button
-            onClick={() => handleTabChange('notifications')}
-            className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
-              activeTab === 'notifications'
-                ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
-                : 'text-slate-400 hover:bg-white/5 hover:text-white'
-            }`}
-          >
-            <Bell className="mr-2 inline-block h-4 w-4" />
-            Уведомления
-          </button>
-          <button
-            onClick={() => handleTabChange('personalization')}
-            className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
-              activeTab === 'personalization'
-                ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
-                : 'text-slate-400 hover:bg-white/5 hover:text-white'
-            }`}
-          >
-            <Palette className="mr-2 inline-block h-4 w-4" />
-            Персонализация
-          </button>
-          <button
-            onClick={() => handleTabChange('workflow')}
-            className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
-              activeTab === 'workflow'
-                ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
-                : 'text-slate-400 hover:bg-white/5 hover:text-white'
-            }`}
-          >
-            <Settings className="mr-2 inline-block h-4 w-4" />
-            Рабочий процесс
-          </button>
+            <button
+              onClick={() => handleTabChange('sync')}
+              className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                activeTab === 'sync'
+                  ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <RefreshCw className="mr-2 inline-block h-4 w-4" />
+              Синхронизация
+            </button>
+            <button
+              onClick={() => handleTabChange('audit')}
+              className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                activeTab === 'audit'
+                  ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <History className="mr-2 inline-block h-4 w-4" />
+              Аудит
+            </button>
+            <button
+              onClick={() => handleTabChange('notifications')}
+              className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                activeTab === 'notifications'
+                  ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <Bell className="mr-2 inline-block h-4 w-4" />
+              Уведомления
+            </button>
+            <button
+              onClick={() => handleTabChange('personalization')}
+              className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                activeTab === 'personalization'
+                  ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <Palette className="mr-2 inline-block h-4 w-4" />
+              Персонализация
+            </button>
+            <button
+              onClick={() => handleTabChange('workflow')}
+              className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                activeTab === 'workflow'
+                  ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <Settings className="mr-2 inline-block h-4 w-4" />
+              Рабочий процесс
+            </button>
+          </ScrollIndicator>
         </div>
 
         {/* Tab Content */}

@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react'
 import { Header } from '@/components/Header'
 import { VirtualLetterList, VirtualLetterTable } from '@/components/VirtualLetterList'
+import { ScrollIndicator } from '@/components/mobile/ScrollIndicator'
 import { CardsSkeleton, TableSkeleton } from '@/components/Skeleton'
 import { useConfirmDialog } from '@/components/ConfirmDialog'
 import { useKeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp'
@@ -885,30 +886,31 @@ function LettersPageContent() {
         />
 
         {/* Quick Filters */}
-
-        <div className="panel-soft panel-glass mobile-scroll no-scrollbar mb-4 flex gap-2 overflow-x-auto rounded-2xl p-2 sm:flex-wrap sm:overflow-visible">
-          {FILTERS.map((filter) => {
-            const Icon = filter.icon
-            return (
-              <button
-                key={filter.value}
-                onClick={() => {
-                  setQuickFilter(filter.value)
-                  setStatusFilter('all')
-                  if (filter.value === 'mine' || filter.value === 'unassigned') {
-                    setOwnerFilter('')
-                  }
-                  goToPage(1)
-                }}
-                className={`app-chip tap-highlight touch-target-sm inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition focus-visible:ring-2 focus-visible:ring-teal-400/50 md:px-3 md:py-1.5 ${quickFilter === filter.value ? 'app-chip-active' : ''}`}
-                aria-pressed={quickFilter === filter.value}
-                aria-label={filter.label}
-              >
-                <Icon className="h-4 w-4" />
-                {filter.label}
-              </button>
-            )
-          })}
+        <div className="panel-soft panel-glass mb-4 rounded-2xl p-2">
+          <ScrollIndicator className="no-scrollbar flex gap-2 sm:flex-wrap" showArrows={true}>
+            {FILTERS.map((filter) => {
+              const Icon = filter.icon
+              return (
+                <button
+                  key={filter.value}
+                  onClick={() => {
+                    setQuickFilter(filter.value)
+                    setStatusFilter('all')
+                    if (filter.value === 'mine' || filter.value === 'unassigned') {
+                      setOwnerFilter('')
+                    }
+                    goToPage(1)
+                  }}
+                  className={`app-chip tap-highlight touch-target-sm inline-flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm transition focus-visible:ring-2 focus-visible:ring-teal-400/50 md:px-3 md:py-1.5 ${quickFilter === filter.value ? 'app-chip-active' : ''}`}
+                  aria-pressed={quickFilter === filter.value}
+                  aria-label={filter.label}
+                >
+                  <Icon className="h-4 w-4" />
+                  {filter.label}
+                </button>
+              )
+            })}
+          </ScrollIndicator>
         </div>
 
         {/* Filters Row */}
