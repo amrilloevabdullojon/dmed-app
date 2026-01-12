@@ -1,29 +1,90 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Header } from '@/components/Header'
 import { Loader2, Users, Shield, RefreshCw, History, Crown } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import { hasPermission } from '@/lib/permissions'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
-import { PermissionsManager } from '@/components/PermissionsManager'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { UsersTab } from '@/components/settings/UsersTab'
-import { SyncTab } from '@/components/settings/SyncTab'
-import { LoginAuditTab } from '@/components/settings/LoginAuditTab'
+import dynamic from 'next/dynamic'
+import { SettingsToggle } from '@/components/settings/SettingsToggle'
 
-type TabType = 'permissions' | 'users' | 'sync' | 'audit'
+// Lazy load tab components for better performance
+const PermissionsManager = dynamic(
+  () =>
+    import('@/components/PermissionsManager').then((mod) => ({ default: mod.PermissionsManager })),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+      </div>
+    ),
+  }
+)
+const UsersTab = dynamic(
+  () => import('@/components/settings/UsersTab').then((mod) => ({ default: mod.UsersTab })),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+      </div>
+    ),
+  }
+)
+const SyncTab = dynamic(
+  () => import('@/components/settings/SyncTab').then((mod) => ({ default: mod.SyncTab })),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+      </div>
+    ),
+  }
+)
+const LoginAuditTab = dynamic(
+  () =>
+    import('@/components/settings/LoginAuditTab').then((mod) => ({ default: mod.LoginAuditTab })),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+      </div>
+    ),
+  }
+)
+
+type TabType =
+  | 'permissions'
+  | 'users'
+  | 'sync'
+  | 'audit'
+  | 'notifications'
+  | 'personalization'
+  | 'workflow'
 
 export default function SettingsPage() {
   const { data: session, status: authStatus } = useSession()
   useAuthRedirect(authStatus)
   const toast = useToast()
+  const searchParams = useSearchParams()
+  const router = useRouter()
 
-  const [activeTab, setActiveTab] = useState<TabType>('users')
   const [newYearVibe, setNewYearVibe] = useLocalStorage<boolean>('new-year-vibe', false)
 
+  // Get active tab from URL, defaulting to 'users'
+  const activeTab = (searchParams.get('tab') as TabType) || 'users'
+
   const isSuperAdmin = session?.user?.role === 'SUPERADMIN'
+
+  // Handle tab changes - update URL when tab is changed
+  const handleTabChange = (tab: TabType) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('tab', tab)
+    router.replace(`/settings?${params.toString()}`, { scroll: false })
+  }
 
   const handleSuccess = (message: string) => {
     toast.success(message)
@@ -57,59 +118,26 @@ export default function SettingsPage() {
         <h1 className="font-display text-2xl font-semibold text-white sm:text-3xl md:text-4xl">
           Настройки
         </h1>
-        <p className="text-muted mb-6 mt-2 text-sm">
+        <p className="mb-6 mt-2 text-sm text-muted">
           Роли, доступ, уведомления и журнал безопасности.
         </p>
 
         {/* New Year Vibe Toggle */}
         <div className="panel panel-glass mb-6 rounded-2xl p-4 sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 p-2 text-emerald-300">
-                <Crown className="h-4 w-4" />
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-white">Новогодний вайб</div>
-                <div className="text-xs text-gray-400">
-                  Добавить легкие зимние акценты и нежную подсветку по всему сайту.
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={newYearVibe}
-              aria-label="Переключить новогодний вайб"
-              onClick={() => setNewYearVibe((prev) => !prev)}
-              className={`flex items-center gap-3 rounded-full border px-3 py-2 text-xs font-medium transition ${
-                newYearVibe
-                  ? 'border-emerald-400/50 bg-emerald-500/15 text-emerald-200 shadow-[0_0_18px_rgba(16,185,129,0.25)]'
-                  : 'border-white/10 bg-white/5 text-gray-300 hover:bg-white/10'
-              }`}
-            >
-              <span
-                className={`flex h-5 w-9 items-center rounded-full border transition ${
-                  newYearVibe
-                    ? 'border-emerald-400/60 bg-emerald-500/40'
-                    : 'border-white/10 bg-white/5'
-                }`}
-              >
-                <span
-                  className={`h-4 w-4 rounded-full bg-white transition ${
-                    newYearVibe ? 'translate-x-4' : 'translate-x-0.5'
-                  }`}
-                />
-              </span>
-              <span>{newYearVibe ? 'Включено' : 'Выключено'}</span>
-            </button>
-          </div>
+          <SettingsToggle
+            label="Новогодний вайб"
+            description="Добавить легкие зимние акценты и нежную подсветку по всему сайту."
+            icon={<Crown className="h-4 w-4" />}
+            enabled={newYearVibe}
+            onToggle={setNewYearVibe}
+          />
         </div>
 
         {/* Tabs */}
         <div className="mb-6 flex flex-wrap gap-2 border-b border-white/10 pb-4">
           {isSuperAdmin && (
             <button
-              onClick={() => setActiveTab('permissions')}
+              onClick={() => handleTabChange('permissions')}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
                 activeTab === 'permissions'
                   ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
@@ -121,7 +149,7 @@ export default function SettingsPage() {
             </button>
           )}
           <button
-            onClick={() => setActiveTab('users')}
+            onClick={() => handleTabChange('users')}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
               activeTab === 'users'
                 ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
@@ -132,7 +160,7 @@ export default function SettingsPage() {
             Пользователи
           </button>
           <button
-            onClick={() => setActiveTab('sync')}
+            onClick={() => handleTabChange('sync')}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
               activeTab === 'sync'
                 ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
@@ -143,7 +171,7 @@ export default function SettingsPage() {
             Синхронизация
           </button>
           <button
-            onClick={() => setActiveTab('audit')}
+            onClick={() => handleTabChange('audit')}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
               activeTab === 'audit'
                 ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
