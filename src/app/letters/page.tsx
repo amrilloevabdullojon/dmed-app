@@ -886,7 +886,7 @@ function LettersPageContent() {
 
         {/* Quick Filters */}
 
-        <div className="panel-soft panel-glass no-scrollbar mb-4 flex gap-2 overflow-x-auto rounded-2xl p-2 sm:flex-wrap sm:overflow-visible">
+        <div className="panel-soft panel-glass mobile-scroll no-scrollbar mb-4 flex gap-2 overflow-x-auto rounded-2xl p-2 sm:flex-wrap sm:overflow-visible">
           {FILTERS.map((filter) => {
             const Icon = filter.icon
             return (
@@ -900,7 +900,7 @@ function LettersPageContent() {
                   }
                   goToPage(1)
                 }}
-                className={`app-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition focus-visible:ring-2 focus-visible:ring-teal-400/50 ${quickFilter === filter.value ? 'app-chip-active' : ''}`}
+                className={`app-chip tap-highlight touch-target-sm inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition focus-visible:ring-2 focus-visible:ring-teal-400/50 md:px-3 md:py-1.5 ${quickFilter === filter.value ? 'app-chip-active' : ''}`}
                 aria-pressed={quickFilter === filter.value}
                 aria-label={filter.label}
               >
@@ -1351,13 +1351,13 @@ function LettersPageContent() {
 
         {/* Pagination */}
         {pagination && pagination.totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-between">
+          <div className="mt-6 flex flex-col items-center justify-between gap-3 sm:flex-row">
             <div className="text-sm text-slate-300/70">{`Показано ${(page - 1) * limit + 1}-${Math.min(page * limit, pagination.total)} из ${pagination.total}`}</div>
             <div className="flex items-center gap-2">
               <button
                 onClick={prevPage}
                 disabled={!hasPrev}
-                className="rounded-lg border border-white/10 bg-white/5 p-2 text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="tap-highlight touch-target rounded-lg border border-white/10 bg-white/5 p-2 text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Предыдущая страница"
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -1370,7 +1370,7 @@ function LettersPageContent() {
               <button
                 onClick={nextPage}
                 disabled={!hasNext}
-                className="rounded-lg border border-white/10 bg-white/5 p-2 text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="tap-highlight touch-target rounded-lg border border-white/10 bg-white/5 p-2 text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Следующая страница"
               >
                 <ChevronRight className="h-5 w-5" />

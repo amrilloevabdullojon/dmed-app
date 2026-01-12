@@ -180,11 +180,11 @@ export default function SettingsPage() {
         </div>
 
         {/* Tabs */}
-        <div className="mb-6 flex flex-wrap gap-2 border-b border-white/10 pb-4">
+        <div className="mobile-scroll no-scrollbar mb-6 flex gap-2 overflow-x-auto border-b border-white/10 pb-4 md:flex-wrap">
           {isSuperAdmin && (
             <button
               onClick={() => handleTabChange('permissions')}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+              className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
                 activeTab === 'permissions'
                   ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
                   : 'text-slate-400 hover:bg-white/5 hover:text-white'
@@ -196,7 +196,7 @@ export default function SettingsPage() {
           )}
           <button
             onClick={() => handleTabChange('users')}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+            className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
               activeTab === 'users'
                 ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
                 : 'text-slate-400 hover:bg-white/5 hover:text-white'
@@ -207,7 +207,7 @@ export default function SettingsPage() {
           </button>
           <button
             onClick={() => handleTabChange('sync')}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+            className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
               activeTab === 'sync'
                 ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
                 : 'text-slate-400 hover:bg-white/5 hover:text-white'
@@ -218,7 +218,7 @@ export default function SettingsPage() {
           </button>
           <button
             onClick={() => handleTabChange('audit')}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+            className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
               activeTab === 'audit'
                 ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
                 : 'text-slate-400 hover:bg-white/5 hover:text-white'
@@ -229,7 +229,7 @@ export default function SettingsPage() {
           </button>
           <button
             onClick={() => handleTabChange('notifications')}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+            className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
               activeTab === 'notifications'
                 ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
                 : 'text-slate-400 hover:bg-white/5 hover:text-white'
@@ -240,7 +240,7 @@ export default function SettingsPage() {
           </button>
           <button
             onClick={() => handleTabChange('personalization')}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+            className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
               activeTab === 'personalization'
                 ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
                 : 'text-slate-400 hover:bg-white/5 hover:text-white'
@@ -251,7 +251,7 @@ export default function SettingsPage() {
           </button>
           <button
             onClick={() => handleTabChange('workflow')}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+            className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
               activeTab === 'workflow'
                 ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
                 : 'text-slate-400 hover:bg-white/5 hover:text-white'

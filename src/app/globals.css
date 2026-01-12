@@ -1472,3 +1472,86 @@ textarea:focus-visible {
     @apply bg-background text-foreground;
   }
 }
+
+/* ========================================
+   MOBILE TOUCH OPTIMIZATIONS
+   ======================================== */
+
+/* Touch-friendly button sizes - minimum 44x44px per Apple HIG */
+@layer utilities {
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  .touch-target-sm {
+    @apply min-h-[40px] min-w-[40px];
+  }
+
+  .touch-target-lg {
+    @apply min-h-[48px] min-w-[48px];
+  }
+
+  /* Better tap feedback */
+  .tap-highlight {
+    @apply transition-transform duration-75 active:scale-95;
+  }
+
+  /* Remove default mobile tap highlight */
+  .no-tap-highlight {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent text selection on buttons */
+  .touch-action-none {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
+}
+
+/* Mobile-optimized form inputs */
+@media (max-width: 767px) {
+  input:not([type='checkbox']):not([type='radio']),
+  textarea,
+  select {
+    @apply min-h-[48px] text-base;
+    font-size: 16px !important; /* Prevent iOS zoom on focus */
+  }
+
+  /* Better touch targets for interactive elements */
+  button,
+  a,
+  [role='button'],
+  [role='link'] {
+    @apply touch-target-sm;
+  }
+
+  /* Larger padding for mobile buttons */
+  .btn,
+  button[class*='btn'] {
+    @apply px-4 py-3;
+  }
+}
+
+/* Improve scrolling on mobile */
+@media (max-width: 767px) {
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .mobile-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Status badges and chips - mobile optimized */
+@media (max-width: 767px) {
+  .status-badge,
+  .app-chip,
+  [class*='badge'] {
+    @apply min-h-[36px] px-3 py-2 text-sm;
+  }
+}
