@@ -170,6 +170,53 @@ export const createRequestSchema = z.object({
   category: requestCategorySchema.optional(),
 })
 
+// PublicRequestForm - публичная форма заявки (многошаговая)
+export const publicRequestSchema = z.object({
+  // Step 1: Request type & Organization
+  requestType: z
+    .string()
+    .min(1, 'Выберите тип заявки')
+    .refine((val) => ['consultation', 'support', 'partnership', 'other'].includes(val), {
+      message: 'Неверный тип заявки',
+    }),
+  organization: z
+    .string()
+    .min(1, 'Введите название организации')
+    .max(500, 'Название слишком длинное'),
+
+  // Step 2: Contact information
+  contactName: z.string().min(1, 'Введите имя контактного лица').max(200, 'Имя слишком длинное'),
+  contactEmail: z
+    .string()
+    .min(1, 'Введите email')
+    .email('Неверный формат email')
+    .max(320, 'Email слишком длинный'),
+  contactPhone: z
+    .string()
+    .min(1, 'Введите номер телефона')
+    .max(50, 'Номер слишком длинный')
+    .refine(
+      (val) => {
+        const digits = val.replace(/\D/g, '')
+        return digits.length >= 12
+      },
+      { message: 'Номер слишком короткий (минимум 12 цифр)' }
+    ),
+  contactTelegram: z
+    .string()
+    .min(1, 'Введите Telegram')
+    .max(100, 'Telegram слишком длинный')
+    .refine((val) => val.startsWith('@') || val.startsWith('+'), {
+      message: 'Начните с @ или +',
+    }),
+
+  // Step 3: Description
+  description: z
+    .string()
+    .min(20, 'Слишком короткое описание (минимум 20 символов)')
+    .max(10000, 'Описание слишком длинное'),
+})
+
 export const requestFiltersSchema = z.object({
   status: requestStatusSchema.optional(),
   priority: requestPrioritySchema.optional(),
@@ -289,6 +336,7 @@ export type LetterFiltersInput = z.infer<typeof letterFiltersSchema>
 export type BulkLetterInput = z.infer<typeof bulkLetterSchema>
 
 export type CreateRequestInput = z.infer<typeof createRequestSchema>
+export type PublicRequestInput = z.infer<typeof publicRequestSchema>
 export type RequestFiltersInput = z.infer<typeof requestFiltersSchema>
 export type RequestQueryInput = z.infer<typeof requestQuerySchema>
 export type UpdateRequestInput = z.infer<typeof updateRequestSchema>
