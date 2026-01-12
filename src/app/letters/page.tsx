@@ -4,10 +4,42 @@ import { useSession } from 'next-auth/react'
 import { Header } from '@/components/Header'
 import { VirtualLetterList, VirtualLetterTable } from '@/components/VirtualLetterList'
 import { CardsSkeleton, TableSkeleton } from '@/components/Skeleton'
-import { LetterPreview } from '@/components/LetterPreview'
-import { BulkCreateLetters } from '@/components/BulkCreateLetters'
 import { useConfirmDialog } from '@/components/ConfirmDialog'
 import { useKeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp'
+import dynamic from 'next/dynamic'
+
+// Lazy load heavy components that are conditionally rendered
+const LetterPreview = dynamic(
+  () => import('@/components/LetterPreview').then((mod) => ({ default: mod.LetterPreview })),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+      </div>
+    ),
+  }
+)
+const BulkCreateLetters = dynamic(
+  () =>
+    import('@/components/BulkCreateLetters').then((mod) => ({ default: mod.BulkCreateLetters })),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+      </div>
+    ),
+  }
+)
+const LetterKanban = dynamic(
+  () => import('@/components/LetterKanban').then((mod) => ({ default: mod.LetterKanban })),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center p-8">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+      </div>
+    ),
+  }
+)
 import { useKeyboard } from '@/hooks/useKeyboard'
 import { useDebouncedCallback } from '@/hooks/useDebounce'
 import { usePagination } from '@/hooks/usePagination'
@@ -50,7 +82,6 @@ import {
 import Link from 'next/link'
 import { useToast } from '@/components/Toast'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
-import { LetterKanban } from '@/components/LetterKanban'
 
 interface Letter {
   id: string
@@ -798,7 +829,7 @@ function LettersPageContent() {
           <div>
             <h1 className="font-display text-3xl font-semibold text-white md:text-4xl">Письма</h1>
             {pagination && (
-              <p className="text-muted mt-1 text-sm">{`Всего: ${pagination.total} ${pluralizeLetters(pagination.total)}`}</p>
+              <p className="mt-1 text-sm text-muted">{`Всего: ${pagination.total} ${pluralizeLetters(pagination.total)}`}</p>
             )}
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">

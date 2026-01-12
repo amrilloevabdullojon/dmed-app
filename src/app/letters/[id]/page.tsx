@@ -4,12 +4,35 @@ import { useSession } from 'next-auth/react'
 import { Header } from '@/components/Header'
 import { StatusBadge } from '@/components/StatusBadge'
 import { EditableField } from '@/components/EditableField'
-import { FileUpload } from '@/components/FileUpload'
-import { TemplateSelector } from '@/components/TemplateSelector'
-import { ActivityFeed } from '@/components/ActivityFeed'
 import { SLAIndicator } from '@/components/SLAIndicator'
-import { RelatedLetters } from '@/components/RelatedLetters'
 import { useConfirmDialog } from '@/components/ConfirmDialog'
+import dynamic from 'next/dynamic'
+
+// Lazy load components that appear below the fold
+const FileUpload = dynamic(
+  () => import('@/components/FileUpload').then((mod) => ({ default: mod.FileUpload })),
+  {
+    loading: () => <div className="h-32 animate-pulse rounded-lg bg-white/5" />,
+  }
+)
+const TemplateSelector = dynamic(
+  () => import('@/components/TemplateSelector').then((mod) => ({ default: mod.TemplateSelector })),
+  {
+    loading: () => <div className="h-20 animate-pulse rounded-lg bg-white/5" />,
+  }
+)
+const ActivityFeed = dynamic(
+  () => import('@/components/ActivityFeed').then((mod) => ({ default: mod.ActivityFeed })),
+  {
+    loading: () => <div className="h-64 animate-pulse rounded-lg bg-white/5" />,
+  }
+)
+const RelatedLetters = dynamic(
+  () => import('@/components/RelatedLetters').then((mod) => ({ default: mod.RelatedLetters })),
+  {
+    loading: () => <div className="h-48 animate-pulse rounded-lg bg-white/5" />,
+  }
+)
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import type { LetterStatus } from '@prisma/client'
