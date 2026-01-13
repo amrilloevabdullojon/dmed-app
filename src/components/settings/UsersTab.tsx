@@ -975,7 +975,7 @@ export function UsersTab({ session, isSuperAdmin, onSuccess, onError }: UsersTab
                         </button>
                         {user.id !== session.user.id && (
                           <button
-                            onClick={() => onToggleAccess(user)}
+                            onClick={() => toggleUserAccess(user)}
                             aria-label={
                               user.canLogin
                                 ? '\u041e\u0442\u043a\u043b\u044e\u0447\u0438\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f'
