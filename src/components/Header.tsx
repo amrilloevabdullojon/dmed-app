@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import {
@@ -36,10 +36,6 @@ export function Header() {
   const [syncing, setSyncing] = useState(false)
   const [syncMenuOpen, setSyncMenuOpen] = useState(false)
   const [quickCreateOpen, setQuickCreateOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-  const menuButtonRef = useRef<HTMLButtonElement>(null)
-  const lastFocusedRef = useRef<HTMLElement | null>(null)
-  const hasOpenedRef = useRef(false)
   const [newYearVibe] = useLocalStorage<boolean>('new-year-vibe', false)
   const [personalization] = useLocalStorage<{ backgroundAnimations?: boolean }>(
     'personalization-settings',
@@ -76,22 +72,12 @@ export function Header() {
     setMobileMenuOpen(false)
   }, [setMobileMenuOpen])
 
-  const getFocusableElements = useCallback(() => {
-    const container = menuRef.current
-    if (!container) return []
-    return Array.from(
-      container.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      )
-    )
-  }, [])
-
   // Свайп вниз для закрытия меню (только на handle)
   const handleSwipeRef = useSwipeRef<HTMLDivElement>(
     {
       onSwipeDown: () => {
         if (!mobileMenuOpen) return
-        if (menuRef.current?.scrollTop !== 0) return
+        if (handleSwipeRef.current?.scrollTop !== 0) return
         closeMobileMenu()
       },
     },
@@ -164,69 +150,16 @@ export function Header() {
   useEffect(() => {
     if (!mobileMenuOpen) return
 
-    hasOpenedRef.current = true
-    lastFocusedRef.current = document.activeElement as HTMLElement | null
-
-    const focusable = getFocusableElements()
-    focusable[0]?.focus()
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
         closeMobileMenu()
-        menuButtonRef.current?.focus()
-        return
-      }
-
-      if (event.key !== 'Tab') return
-
-      const items = getFocusableElements()
-      if (items.length === 0) return
-
-      const first = items[0]
-      const last = items[items.length - 1]
-      const active = document.activeElement as HTMLElement | null
-
-      if (event.shiftKey) {
-        if (!active || active === first) {
-          event.preventDefault()
-          last.focus()
-        }
-      } else if (active === last) {
-        event.preventDefault()
-        first.focus()
       }
     }
 
     document.addEventListener('keydown', handleKeyDown)
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [mobileMenuOpen, closeMobileMenu, getFocusableElements])
-
-  useEffect(() => {
-    if (mobileMenuOpen || !hasOpenedRef.current) return
-    const target = menuButtonRef.current ?? lastFocusedRef.current
-    if (target && document.contains(target)) {
-      target.focus()
-    }
-  }, [mobileMenuOpen])
-
-  useEffect(() => {
-    if (!mobileMenuOpen) return
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as HTMLElement | null
-      if (!target) return
-      if (menuRef.current?.contains(target)) return
-      if (menuButtonRef.current?.contains(target)) return
-      if (target.closest('[aria-controls="mobile-menu"]')) return
-      closeMobileMenu()
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
     }
   }, [mobileMenuOpen, closeMobileMenu])
 
@@ -429,7 +362,6 @@ export function Header() {
             <ThemeToggle />
             {session?.user && <Notifications />}
             <button
-              ref={menuButtonRef}
               onClick={() => {
                 hapticLight()
                 setMobileMenuOpen((prev) => !prev)
@@ -454,17 +386,14 @@ export function Header() {
         <div
           className="mobile-overlay fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm md:hidden"
           onClick={closeMobileMenu}
-          style={{ touchAction: 'none' }}
+          onPointerDown={closeMobileMenu}
         />
       )}
 
       {/* Mobile menu */}
       <div
         id="mobile-menu"
-        ref={(node) => {
-          menuRef.current = node
-          handleSwipeRef.current = node
-        }}
+        ref={handleSwipeRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="mobile-menu-title"
@@ -646,6 +575,14 @@ export function Header() {
           )}
 
           <div className="my-2 border-t border-white/10" />
+
+          <button
+            onClick={closeMobileMenu}
+            className="tap-highlight touch-target flex items-center gap-3 rounded-lg px-4 py-3 text-slate-200/80 transition hover:bg-white/5"
+          >
+            <X className="h-5 w-5" />
+            {'\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u043c\u0435\u043d\u044e'}
+          </button>
 
           <button
             onClick={() => {
