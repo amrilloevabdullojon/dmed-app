@@ -22,6 +22,7 @@
   --shadow-1: 0 8px 20px rgba(2, 6, 23, 0.35);
   --shadow-2: 0 16px 36px rgba(2, 6, 23, 0.45);
   --shadow-3: 0 24px 48px rgba(2, 6, 23, 0.55);
+  --wallpaper-opacity: 0.6;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -57,52 +58,69 @@ body::before {
   z-index: 0;
 }
 
-/* Анимированные градиентные орбы */
+/* Animated wallpaper layer */
 body::after {
   content: '';
   position: fixed;
-  inset: 0;
+  inset: -12%;
   background:
-    radial-gradient(
-      circle 800px at var(--orb1-x, 20%) var(--orb1-y, 30%),
-      rgba(var(--accent) / 0.15),
-      transparent 70%
-    ),
-    radial-gradient(
-      circle 600px at var(--orb2-x, 80%) var(--orb2-y, 60%),
-      rgba(var(--accent-2) / 0.12),
-      transparent 65%
-    ),
-    radial-gradient(
-      circle 700px at var(--orb3-x, 50%) var(--orb3-y, 80%),
-      rgba(var(--accent) / 0.08),
-      transparent 60%
+    radial-gradient(1200px 640px at 12% -10%, rgba(var(--accent) / 0.22), transparent 62%),
+    radial-gradient(900px 520px at 92% 0%, rgba(56, 189, 248, 0.18), transparent 62%),
+    radial-gradient(900px 600px at 50% 110%, rgba(var(--accent-2) / 0.16), transparent 68%),
+    conic-gradient(
+      from 180deg at 50% 50%,
+      rgba(16, 185, 129, 0.08),
+      transparent 50%,
+      rgba(14, 165, 233, 0.08)
     );
-  opacity: 0;
+  opacity: var(--wallpaper-opacity, 0.6);
   pointer-events: none;
   z-index: 0;
-  animation:
-    orbsAppear 1s ease-out 0.3s forwards,
-    orbsFloat 20s ease-in-out infinite;
-  will-change: transform;
+  background-size: 140% 140%;
+  background-position:
+    5% -5%,
+    95% 5%,
+    50% 110%,
+    50% 50%;
+  animation: wallpaper-drift 28s ease-in-out infinite;
+  will-change: background-position, transform;
 }
 
-@keyframes orbsAppear {
-  to {
-    opacity: 1;
-  }
+html[data-wallpaper-style='nebula'] body::after {
+  background:
+    radial-gradient(1200px 680px at 18% -5%, rgba(30, 64, 175, 0.2), transparent 62%),
+    radial-gradient(980px 620px at 85% 10%, rgba(14, 116, 144, 0.22), transparent 66%),
+    radial-gradient(900px 640px at 50% 105%, rgba(251, 191, 36, 0.16), transparent 68%),
+    radial-gradient(1000px 720px at 55% 40%, rgba(16, 185, 129, 0.12), transparent 70%);
+  animation-duration: 34s;
 }
 
-@keyframes orbsFloat {
+html[data-wallpaper-style='glow'] body::after {
+  background:
+    radial-gradient(1100px 520px at 50% -10%, rgba(var(--accent) / 0.18), transparent 70%),
+    radial-gradient(900px 520px at 12% 75%, rgba(59, 130, 246, 0.18), transparent 70%),
+    radial-gradient(900px 560px at 88% 80%, rgba(var(--accent-2) / 0.18), transparent 72%),
+    radial-gradient(800px 420px at 50% 50%, rgba(34, 211, 238, 0.1), transparent 70%);
+  animation-duration: 22s;
+}
+
+@keyframes wallpaper-drift {
   0%,
   100% {
-    transform: translate(0, 0);
+    background-position:
+      5% -5%,
+      95% 5%,
+      50% 110%,
+      50% 50%;
+    transform: translate3d(0, 0, 0);
   }
-  33% {
-    transform: translate(100px, -50px);
-  }
-  66% {
-    transform: translate(-80px, 60px);
+  50% {
+    background-position:
+      12% 8%,
+      88% -2%,
+      55% 95%,
+      48% 45%;
+    transform: translate3d(1%, -1%, 0);
   }
 }
 
@@ -1070,6 +1088,11 @@ h3 {
   display: none;
 }
 
+.no-bg-animations body::after {
+  opacity: 0 !important;
+  animation: none !important;
+}
+
 /* Urgent priority pulse animation */
 @keyframes urgentPulse {
   0%,
@@ -1274,7 +1297,7 @@ textarea:focus-visible {
     radial-gradient(220px 220px at 12% 10%, rgba(239, 68, 68, 0.25), transparent 70%),
     radial-gradient(180px 180px at 80% 15%, rgba(16, 185, 129, 0.2), transparent 70%),
     radial-gradient(140px 140px at 25% 80%, rgba(250, 204, 21, 0.18), transparent 72%);
-  opacity: 0.35;
+  opacity: var(--wallpaper-opacity, 0.6);
   pointer-events: none;
   z-index: 0;
 }
@@ -1406,6 +1429,10 @@ textarea:focus-visible {
   .animate-urgent-pulse,
   .badge-pulse,
   .animate-shimmer {
+    animation: none !important;
+  }
+
+  body::after {
     animation: none !important;
   }
 }

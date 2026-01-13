@@ -11,13 +11,25 @@ import { useLocalStorage } from '@/hooks/useLocalStorage'
 
 installCsrfFetch()
 
+type PersonalizationSettings = {
+  backgroundAnimations?: boolean
+  wallpaperStyle?: 'aurora' | 'nebula' | 'glow'
+  wallpaperIntensity?: number
+}
+
 export function Providers({ children }: { children: ReactNode }) {
   const [newYearVibe] = useLocalStorage<boolean>('new-year-vibe', false)
-  const [personalization] = useLocalStorage<{ backgroundAnimations?: boolean }>(
-    'personalization-settings',
-    { backgroundAnimations: true }
-  )
+  const [personalization] = useLocalStorage<PersonalizationSettings>('personalization-settings', {
+    backgroundAnimations: true,
+    wallpaperStyle: 'aurora',
+    wallpaperIntensity: 60,
+  })
   const backgroundAnimations = personalization?.backgroundAnimations ?? true
+  const wallpaperStyle = personalization?.wallpaperStyle ?? 'aurora'
+  const wallpaperIntensity =
+    typeof personalization?.wallpaperIntensity === 'number'
+      ? personalization.wallpaperIntensity
+      : 60
 
   useEffect(() => {
     const root = document.documentElement
@@ -36,6 +48,17 @@ export function Providers({ children }: { children: ReactNode }) {
       root.classList.remove('no-bg-animations')
     }
   }, [backgroundAnimations])
+
+  useEffect(() => {
+    const root = document.documentElement
+    root.dataset.wallpaperStyle = wallpaperStyle
+  }, [wallpaperStyle])
+
+  useEffect(() => {
+    const root = document.documentElement
+    const clamped = Math.min(100, Math.max(0, wallpaperIntensity))
+    root.style.setProperty('--wallpaper-opacity', (clamped / 100).toFixed(2))
+  }, [wallpaperIntensity])
 
   return (
     <TRPCProvider>

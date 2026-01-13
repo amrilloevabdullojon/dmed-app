@@ -11,6 +11,8 @@ interface PersonalizationSettings {
   density: 'compact' | 'comfortable' | 'spacious'
   animations: boolean
   backgroundAnimations: boolean
+  wallpaperStyle: 'aurora' | 'nebula' | 'glow'
+  wallpaperIntensity: number
 }
 
 export const PersonalizationTab = memo(function PersonalizationTab() {
@@ -22,6 +24,8 @@ export const PersonalizationTab = memo(function PersonalizationTab() {
       density: 'comfortable',
       animations: true,
       backgroundAnimations: true,
+      wallpaperStyle: 'aurora',
+      wallpaperIntensity: 60,
     }
   )
 
@@ -31,6 +35,10 @@ export const PersonalizationTab = memo(function PersonalizationTab() {
   ) => {
     setSettings((prev) => ({ ...prev, [key]: value }))
   }
+
+  const backgroundAnimationsEnabled = settings.backgroundAnimations ?? true
+  const wallpaperStyle = settings.wallpaperStyle ?? 'aurora'
+  const wallpaperIntensity = settings.wallpaperIntensity ?? 60
 
   return (
     <div className="space-y-6">
@@ -227,9 +235,63 @@ export const PersonalizationTab = memo(function PersonalizationTab() {
               '\u0421\u043d\u0435\u0433, \u043c\u0435\u0440\u0446\u0430\u043d\u0438\u0435 \u0438 \u043f\u0440\u0430\u0437\u0434\u043d\u0438\u0447\u043d\u044b\u0435 \u044d\u0444\u0444\u0435\u043a\u0442\u044b \u0432 \u0444\u043e\u043d\u0435. \u041e\u0442\u043a\u043b\u044e\u0447\u0438\u0442\u0435, \u0435\u0441\u043b\u0438 \u043c\u0435\u0448\u0430\u0435\u0442 \u0438\u043b\u0438 \u0442\u043e\u0440\u043c\u043e\u0437\u0438\u0442.'
             }
             icon={<Sparkles className="h-4 w-4" />}
-            enabled={settings.backgroundAnimations ?? true}
+            enabled={backgroundAnimationsEnabled}
             onToggle={(enabled) => updateSetting('backgroundAnimations', enabled)}
           />
+        </div>
+        <div
+          className={`mt-4 space-y-4 ${
+            backgroundAnimationsEnabled ? '' : 'pointer-events-none opacity-60'
+          }`}
+        >
+          <div>
+            <label className="mb-2 block text-sm font-medium text-white">
+              {'\u0421\u0442\u0438\u043b\u044c \u043e\u0431\u043e\u0435\u0432'}
+            </label>
+            <select
+              value={wallpaperStyle}
+              onChange={(e) =>
+                updateSetting(
+                  'wallpaperStyle',
+                  e.target.value as PersonalizationSettings['wallpaperStyle']
+                )
+              }
+              disabled={!backgroundAnimationsEnabled}
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-white transition focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+            >
+              <option value="aurora">{'\u0410\u0432\u0440\u043e\u0440\u0430'}</option>
+              <option value="nebula">{'\u041d\u0435\u0431\u0443\u043b\u0430'}</option>
+              <option value="glow">{'\u0421\u0438\u044f\u043d\u0438\u0435'}</option>
+            </select>
+            <p className="mt-1 text-xs text-gray-400">
+              {
+                '\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0445\u0430\u0440\u0430\u043a\u0442\u0435\u0440 \u0444\u043e\u043d\u0430: \u043c\u044f\u0433\u043a\u0430\u044f \u0430\u0432\u0440\u043e\u0440\u0430, \u0433\u043b\u0443\u0431\u043e\u043a\u0430\u044f \u043d\u0435\u0431\u0443\u043b\u0430 \u0438\u043b\u0438 \u0447\u0438\u0441\u0442\u043e\u0435 \u0441\u0438\u044f\u043d\u0438\u0435.'
+              }
+            </p>
+          </div>
+          <div>
+            <label className="mb-2 flex items-center justify-between text-sm font-medium text-white">
+              <span>
+                {'\u0418\u043d\u0442\u0435\u043d\u0441\u0438\u0432\u043d\u043e\u0441\u0442\u044c'}
+              </span>
+              <span className="text-xs text-gray-400">{wallpaperIntensity}%</span>
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={wallpaperIntensity}
+              onChange={(e) => updateSetting('wallpaperIntensity', Number(e.target.value))}
+              disabled={!backgroundAnimationsEnabled}
+              className="w-full accent-emerald-400"
+            />
+            <p className="mt-1 text-xs text-gray-400">
+              {
+                '\u041f\u043e\u043b\u0437\u0443\u0439\u0442\u0435\u0441\u044c \u0441\u043b\u0430\u0439\u0434\u0435\u0440\u043e\u043c, \u0447\u0442\u043e\u0431\u044b \u0443\u0441\u0438\u043b\u0438\u0442\u044c \u0438\u043b\u0438 \u043e\u0441\u043b\u0430\u0431\u0438\u0442\u044c \u044d\u0444\u0444\u0435\u043a\u0442.'
+              }
+            </p>
+          </div>
         </div>
       </div>
     </div>
