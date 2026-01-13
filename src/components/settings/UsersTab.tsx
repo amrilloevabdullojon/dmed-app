@@ -992,7 +992,7 @@ export function UsersTab({ session, isSuperAdmin, onSuccess, onError }: UsersTab
                           </button>
                         )}
                         <button
-                          onClick={() => onEdit(user)}
+                          onClick={() => startEdit(user)}
                           aria-label="\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c"
                           className="rounded-lg p-2 text-slate-400 transition hover:text-white"
                         >
