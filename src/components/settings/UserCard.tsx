@@ -309,22 +309,26 @@ export function UserCard({
           {user._count.comments}
         </span>
         <span className="inline-flex items-center gap-2 rounded bg-white/5 px-2 py-1 text-xs text-gray-400">
-          <Mail
-            className={`h-3.5 w-3.5 ${user.notifyEmail ? 'text-emerald-300' : 'text-slate-600'}`}
-            title="Email"
-          />
-          <MessageSquare
-            className={`h-3.5 w-3.5 ${user.notifyTelegram ? 'text-emerald-300' : 'text-slate-600'}`}
-            title="Telegram"
-          />
-          <Smartphone
-            className={`h-3.5 w-3.5 ${user.notifySms ? 'text-emerald-300' : 'text-slate-600'}`}
-            title="SMS"
-          />
-          <Bell
-            className={`h-3.5 w-3.5 ${user.notifyInApp ? 'text-emerald-300' : 'text-slate-600'}`}
-            title="In-app"
-          />
+          <span aria-label="Email">
+            <Mail
+              className={`h-3.5 w-3.5 ${user.notifyEmail ? 'text-emerald-300' : 'text-slate-600'}`}
+            />
+          </span>
+          <span aria-label="Telegram">
+            <MessageSquare
+              className={`h-3.5 w-3.5 ${user.notifyTelegram ? 'text-emerald-300' : 'text-slate-600'}`}
+            />
+          </span>
+          <span aria-label="SMS">
+            <Smartphone
+              className={`h-3.5 w-3.5 ${user.notifySms ? 'text-emerald-300' : 'text-slate-600'}`}
+            />
+          </span>
+          <span aria-label="In-app">
+            <Bell
+              className={`h-3.5 w-3.5 ${user.notifyInApp ? 'text-emerald-300' : 'text-slate-600'}`}
+            />
+          </span>
         </span>
       </div>
 

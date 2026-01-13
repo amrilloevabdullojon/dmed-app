@@ -934,22 +934,26 @@ export function UsersTab({ session, isSuperAdmin, onSuccess, onError }: UsersTab
                     </td>
                     <td className="bg-white/5 px-3 py-3 align-middle group-hover:bg-white/10">
                       <div className="flex items-center justify-center gap-2">
-                        <Mail
-                          className={`h-4 w-4 ${user.notifyEmail ? 'text-emerald-300' : 'text-slate-600'}`}
-                          title="Email"
-                        />
-                        <MessageSquare
-                          className={`h-4 w-4 ${user.notifyTelegram ? 'text-emerald-300' : 'text-slate-600'}`}
-                          title="Telegram"
-                        />
-                        <Smartphone
-                          className={`h-4 w-4 ${user.notifySms ? 'text-emerald-300' : 'text-slate-600'}`}
-                          title="SMS"
-                        />
-                        <Bell
-                          className={`h-4 w-4 ${user.notifyInApp ? 'text-emerald-300' : 'text-slate-600'}`}
-                          title="In-app"
-                        />
+                        <span aria-label="Email">
+                          <Mail
+                            className={`h-4 w-4 ${user.notifyEmail ? 'text-emerald-300' : 'text-slate-600'}`}
+                          />
+                        </span>
+                        <span aria-label="Telegram">
+                          <MessageSquare
+                            className={`h-4 w-4 ${user.notifyTelegram ? 'text-emerald-300' : 'text-slate-600'}`}
+                          />
+                        </span>
+                        <span aria-label="SMS">
+                          <Smartphone
+                            className={`h-4 w-4 ${user.notifySms ? 'text-emerald-300' : 'text-slate-600'}`}
+                          />
+                        </span>
+                        <span aria-label="In-app">
+                          <Bell
+                            className={`h-4 w-4 ${user.notifyInApp ? 'text-emerald-300' : 'text-slate-600'}`}
+                          />
+                        </span>
                       </div>
                     </td>
                     <td className="rounded-r-2xl bg-white/5 px-3 py-3 text-right align-middle group-hover:bg-white/10">
