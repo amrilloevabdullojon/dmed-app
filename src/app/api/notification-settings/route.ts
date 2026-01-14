@@ -198,8 +198,11 @@ export async function PUT(request: NextRequest) {
     await prisma.$transaction([
       prisma.notificationPreference.upsert({
         where: { userId: session.user.id },
-        update: { settings: nextSettings as Prisma.InputJsonValue },
-        create: { userId: session.user.id, settings: nextSettings as Prisma.InputJsonValue },
+        update: { settings: nextSettings as unknown as Prisma.InputJsonValue },
+        create: {
+          userId: session.user.id,
+          settings: nextSettings as unknown as Prisma.InputJsonValue,
+        },
       }),
       prisma.user.update({
         where: { id: session.user.id },
