@@ -1999,10 +1999,10 @@ export default function ReportsPage() {
           <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h3 className="text-lg font-semibold text-white">
-                ?????????? ? ???? ????? ?? ????????
+                Учреждения и типы писем по периодам
               </h3>
               <p className="text-sm text-gray-400">
-                ??????????, ??????? ??????????? ? ?????????? ????? ? ?????? ???????.
+                Письма, сгруппированные по учреждениям и типам писем в разрезе периода.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -2040,7 +2040,7 @@ export default function ReportsPage() {
                 <input
                   value={reportSearch}
                   onChange={(event) => setReportSearch(event.target.value)}
-                  placeholder="????? ?? ?????????? ??? ????"
+                  placeholder="Поиск по учреждениям или типу"
                   className="h-10 w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-4 text-white placeholder:text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/50"
                 />
               </div>
@@ -2053,7 +2053,7 @@ export default function ReportsPage() {
                   }
                   className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/50"
                 >
-                  <option value="all">??? ???????</option>
+                  <option value="all">Все статусы</option>
                   {REPORT_STATUS_OPTIONS.map((status) => (
                     <option key={status} value={status}>
                       {STATUS_LABELS[status]}
@@ -2068,8 +2068,8 @@ export default function ReportsPage() {
                   onChange={(event) => setReportOwnerFilter(event.target.value)}
                   className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/50"
                 >
-                  <option value="">??? ?????????????</option>
-                  <option value="unassigned">??? ??????????????</option>
+                  <option value="">Все исполнители</option>
+                  <option value="unassigned">Без исполнителя</option>
                   {reportOwnerOptions
                     .filter((owner) => owner.id)
                     .map((owner) => (
@@ -2089,7 +2089,7 @@ export default function ReportsPage() {
                   onChange={(event) => setReportOrgFilter(event.target.value)}
                   className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/50"
                 >
-                  <option value="">??? ??????????</option>
+                  <option value="">Все учреждения</option>
                   {reportOrgOptions.map((org) => (
                     <option key={org} value={org}>
                       {org}
@@ -2104,7 +2104,7 @@ export default function ReportsPage() {
                   onChange={(event) => setReportTypeFilter(event.target.value)}
                   className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/50"
                 >
-                  <option value="">??? ????</option>
+                  <option value="">Все типы</option>
                   {reportTypeOptions.map((type) => (
                     <option key={type} value={type}>
                       {type}
@@ -2115,14 +2115,14 @@ export default function ReportsPage() {
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="text-xs uppercase tracking-wide text-gray-400">???????????</span>
+              <span className="text-xs uppercase tracking-wide text-gray-400">Группировка</span>
               <button
                 onClick={() => setReportGroupBy('orgType')}
                 className={`app-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition ${
                   reportGroupBy === 'orgType' ? 'app-chip-active' : ''
                 }`}
               >
-                ?????????? + ???
+                Учреждение + тип
               </button>
               <button
                 onClick={() => setReportGroupBy('org')}
@@ -2130,7 +2130,7 @@ export default function ReportsPage() {
                   reportGroupBy === 'org' ? 'app-chip-active' : ''
                 }`}
               >
-                ??????????
+                Учреждение
               </button>
               <button
                 onClick={() => setReportGroupBy('type')}
@@ -2138,16 +2138,16 @@ export default function ReportsPage() {
                   reportGroupBy === 'type' ? 'app-chip-active' : ''
                 }`}
               >
-                ????
+                Тип
               </button>
-              <span className="ml-2 text-xs uppercase tracking-wide text-gray-400">??????</span>
+              <span className="ml-2 text-xs uppercase tracking-wide text-gray-400">Период</span>
               <button
                 onClick={() => setReportGranularity('month')}
                 className={`app-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition ${
                   reportGranularity === 'month' ? 'app-chip-active' : ''
                 }`}
               >
-                ?????
+                Месяц
               </button>
               <button
                 onClick={() => setReportGranularity('quarter')}
@@ -2155,7 +2155,7 @@ export default function ReportsPage() {
                   reportGranularity === 'quarter' ? 'app-chip-active' : ''
                 }`}
               >
-                ???????
+                Квартал
               </button>
               <button
                 onClick={() => setReportGranularity('week')}
@@ -2163,9 +2163,9 @@ export default function ReportsPage() {
                   reportGranularity === 'week' ? 'app-chip-active' : ''
                 }`}
               >
-                ??????
+                Неделя
               </button>
-              <span className="ml-2 text-xs uppercase tracking-wide text-gray-400">???</span>
+              <span className="ml-2 text-xs uppercase tracking-wide text-gray-400">Вид</span>
               <button
                 onClick={() => setReportView('cards')}
                 className={`app-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition ${
@@ -2173,7 +2173,7 @@ export default function ReportsPage() {
                 }`}
               >
                 <LayoutGrid className="h-4 w-4" />
-                ????????
+                Карточки
               </button>
               <button
                 onClick={() => setReportView('table')}
@@ -2182,7 +2182,7 @@ export default function ReportsPage() {
                 }`}
               >
                 <Table className="h-4 w-4" />
-                ???????
+                Таблица
               </button>
               <button
                 onClick={() => setReportView('heatmap')}
@@ -2191,7 +2191,7 @@ export default function ReportsPage() {
                 }`}
               >
                 <BarChart3 className="h-4 w-4" />
-                ??????????
+                Теплокарта
               </button>
               {reportHasFilters && (
                 <button
@@ -2199,7 +2199,7 @@ export default function ReportsPage() {
                   className="btn-ghost inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition"
                 >
                   <X className="h-4 w-4" />
-                  ???????? ???????
+                  Сбросить фильтры
                 </button>
               )}
             </div>
@@ -2208,42 +2208,42 @@ export default function ReportsPage() {
               <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-gray-400">
                 {reportStatusFilter !== 'all' && (
                   <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">
-                    ??????: {reportStatusLabel}
+                    Статус: {reportStatusLabel}
                   </span>
                 )}
                 {reportOwnerFilter && (
                   <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">
-                    ?????????????: {reportOwnerLabel}
+                    Исполнитель: {reportOwnerLabel}
                   </span>
                 )}
                 {reportOrgFilter && (
                   <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">
-                    ??????????: {reportOrgFilter}
+                    Учреждение: {reportOrgFilter}
                   </span>
                 )}
                 {reportTypeFilter && (
                   <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">
-                    ???: {reportTypeFilter}
+                    Тип: {reportTypeFilter}
                   </span>
                 )}
                 {reportSearch && (
                   <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">
-                    ?????: {reportSearch}
+                    Поиск: {reportSearch}
                   </span>
                 )}
               </div>
             )}
 
             <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-gray-400">
-              <span className="uppercase tracking-wide">???????</span>
+              <span className="uppercase tracking-wide">Экспорт</span>
               {(
                 [
-                  { key: 'period', label: '??????' },
-                  { key: 'org', label: '??????????' },
-                  { key: 'type', label: '??? ??????' },
-                  { key: 'status', label: '??????' },
-                  { key: 'owner', label: '?????????????' },
-                  { key: 'count', label: '??????????' },
+                  { key: 'period', label: 'Период' },
+                  { key: 'org', label: 'Учреждение' },
+                  { key: 'type', label: 'Тип письма' },
+                  { key: 'status', label: 'Статус' },
+                  { key: 'owner', label: 'Исполнитель' },
+                  { key: 'count', label: 'Количество' },
                 ] as const
               ).map((column) => (
                 <label
@@ -2273,7 +2273,7 @@ export default function ReportsPage() {
                 <div className="panel panel-soft rounded-xl p-3">
                   <div className="flex items-center gap-2 text-xs text-gray-400">
                     <FileText className="h-4 w-4 text-emerald-400" />
-                    ????? ?????
+                    Всего писем
                   </div>
                   <div className="mt-2 text-2xl font-semibold text-white">
                     {reportSummary.total}
@@ -2282,7 +2282,7 @@ export default function ReportsPage() {
                 <div className="panel panel-soft rounded-xl p-3">
                   <div className="flex items-center gap-2 text-xs text-gray-400">
                     <Filter className="h-4 w-4 text-sky-400" />
-                    ?????
+                    Группы
                   </div>
                   <div className="mt-2 text-2xl font-semibold text-white">
                     {reportSummary.groupCount}
@@ -2291,7 +2291,7 @@ export default function ReportsPage() {
                 <div className="panel panel-soft rounded-xl p-3">
                   <div className="flex items-center gap-2 text-xs text-gray-400">
                     <Building2 className="h-4 w-4 text-amber-400" />
-                    ??????????
+                    Учреждения
                   </div>
                   <div className="mt-2 text-2xl font-semibold text-white">
                     {reportSummary.orgCount}
@@ -2300,7 +2300,7 @@ export default function ReportsPage() {
                 <div className="panel panel-soft rounded-xl p-3">
                   <div className="flex items-center gap-2 text-xs text-gray-400">
                     <Layers className="h-4 w-4 text-purple-400" />
-                    ?????
+                    Типы
                   </div>
                   <div className="mt-2 text-2xl font-semibold text-white">
                     {reportSummary.typeCount}
@@ -2309,7 +2309,7 @@ export default function ReportsPage() {
                 <div className="panel panel-soft rounded-xl p-3">
                   <div className="flex items-center gap-2 text-xs text-gray-400">
                     <Calendar className="h-4 w-4 text-emerald-400" />
-                    ????????
+                    Периоды
                   </div>
                   <div className="mt-2 text-2xl font-semibold text-white">
                     {reportSummary.periodCount}
@@ -2330,14 +2330,14 @@ export default function ReportsPage() {
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
                             <div className="text-xs uppercase tracking-wide text-gray-500">
-                              ??????
+                              Период
                             </div>
                             <div className="text-base font-semibold text-white">
                               {group.periodLabel}
                             </div>
                           </div>
                           <span className="rounded-full bg-emerald-500/15 px-2 py-1 text-xs text-emerald-300">
-                            {group.totalCount} ?????
+                            {group.totalCount} писем
                           </span>
                         </div>
 
@@ -2386,8 +2386,8 @@ export default function ReportsPage() {
                             className="mt-4 inline-flex items-center gap-2 text-sm text-emerald-400 transition hover:text-emerald-300"
                           >
                             {isExpanded
-                              ? '????????'
-                              : `???????? ??? ${group.rows.length - orgTypePreviewLimit}`}
+                              ? 'Скрыть'
+                              : `Показать еще ${group.rows.length - orgTypePreviewLimit}`}
                             {isExpanded ? (
                               <ChevronUp className="h-4 w-4" />
                             ) : (
@@ -2407,18 +2407,18 @@ export default function ReportsPage() {
                     <table className="min-w-full text-sm">
                       <thead className="sticky top-0 bg-gray-900/80 text-xs uppercase tracking-wide text-gray-400 backdrop-blur">
                         <tr>
-                          <th className="px-3 py-3 text-left">??????</th>
+                          <th className="px-3 py-3 text-left">Период</th>
                           <th className="px-3 py-3 text-left">
-                            {reportGroupBy === 'type' ? '???' : '??????????'}
+                            {reportGroupBy === 'type' ? 'Тип' : 'Учреждение'}
                           </th>
                           <th className="px-3 py-3 text-left">
                             {reportGroupBy === 'orgType'
-                              ? '??? ??????'
+                              ? 'Тип письма'
                               : reportGroupBy === 'org'
-                                ? '??? ???'
-                                : '??? ??????????'}
+                                ? 'Топ тип'
+                                : 'Топ учреждение'}
                           </th>
-                          <th className="px-3 py-3 text-right">??????????</th>
+                          <th className="px-3 py-3 text-right">Количество</th>
                           <th className="px-3 py-3"></th>
                         </tr>
                       </thead>
@@ -2436,7 +2436,7 @@ export default function ReportsPage() {
                                 >
                                   <td className="px-3 py-2 text-gray-400">{group.periodLabel}</td>
                                   <td className="px-3 py-2 text-white">{row.groupLabel}</td>
-                                  <td className="px-3 py-2 text-gray-400">{secondary || '�'}</td>
+                                  <td className="px-3 py-2 text-gray-400">{secondary || 'Нет'}</td>
                                   <td className="px-3 py-2 text-right font-semibold text-white">
                                     {row.count}
                                   </td>
@@ -2448,7 +2448,7 @@ export default function ReportsPage() {
                             })}
                             <tr className="bg-white/5 text-gray-200">
                               <td className="px-3 py-2 text-xs uppercase" colSpan={3}>
-                                ????? ?? ??????
+                                Итого за период
                               </td>
                               <td className="px-3 py-2 text-right font-semibold">
                                 {group.totalCount}
@@ -2466,7 +2466,7 @@ export default function ReportsPage() {
               {reportView === 'heatmap' && (
                 <div className="panel panel-soft rounded-xl p-4">
                   {reportHeatmap.groups.length === 0 ? (
-                    <p className="py-6 text-sm text-gray-500">??? ?????? ??? ??????????.</p>
+                    <p className="py-6 text-sm text-gray-500">Нет данных для отображения.</p>
                   ) : (
                     <>
                       <div className="overflow-x-auto">
@@ -2478,10 +2478,10 @@ export default function ReportsPage() {
                         >
                           <div className="text-xs uppercase tracking-wide text-gray-500">
                             {reportGroupBy === 'type'
-                              ? '???'
+                              ? 'Тип'
                               : reportGroupBy === 'org'
-                                ? '??????????'
-                                : '??????'}
+                                ? 'Учреждение'
+                                : 'Группа'}
                           </div>
                           {reportHeatmap.periods.map((period) => (
                             <div
@@ -2509,7 +2509,7 @@ export default function ReportsPage() {
                                 return (
                                   <div
                                     key={`${group.key}-${period.key}`}
-                                    title={`${group.label} � ${period.label}: ${count}`}
+                                    title={`${group.label} — ${period.label}: ${count}`}
                                     className="flex h-8 items-center justify-center rounded-md text-xs font-medium text-white"
                                     style={{ backgroundColor: background }}
                                   >
@@ -2523,10 +2523,10 @@ export default function ReportsPage() {
                       </div>
                       <div className="mt-3 flex flex-wrap items-center justify-between text-xs text-gray-500">
                         <span>
-                          ??? {Math.min(reportHeatmapLimit, reportHeatmap.groups.length)} ????? ??
-                          ??????.
+                          Топ {Math.min(reportHeatmapLimit, reportHeatmap.groups.length)} групп по
+                          объему.
                         </span>
-                        <span>????????????? ?? ?????????? ?????.</span>
+                        <span>Интенсивность по количеству писем.</span>
                       </div>
                     </>
                   )}
@@ -2534,7 +2534,7 @@ export default function ReportsPage() {
               )}
             </>
           ) : (
-            <p className="py-6 text-sm text-gray-500">??? ?????? ?? ????????? ??????.</p>
+            <p className="py-6 text-sm text-gray-500">Нет данных за выбранный период.</p>
           )}
         </div>
         {/* Types */}
