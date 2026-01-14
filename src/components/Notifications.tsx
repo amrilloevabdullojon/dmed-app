@@ -177,7 +177,7 @@ export function Notifications() {
   const resolvePriority = useCallback(
     (item: UnifiedNotification) => {
       if (item.priority) return item.priority
-      const matrixItem = matrixByEvent.get(item.kind as string)
+      const matrixItem = matrixByEvent.get(item.kind)
       if (matrixItem?.priority)
         return matrixItem.priority.toUpperCase() as UnifiedNotification['priority']
       if (item.kind === 'DEADLINE_OVERDUE') return 'CRITICAL'
@@ -189,7 +189,7 @@ export function Notifications() {
 
   const isInAppEnabledForEvent = useCallback(
     (kind: UnifiedKind) => {
-      const matrixItem = matrixByEvent.get(kind as string)
+      const matrixItem = matrixByEvent.get(kind)
       return matrixItem ? matrixItem.channels.inApp : true
     },
     [matrixByEvent]
