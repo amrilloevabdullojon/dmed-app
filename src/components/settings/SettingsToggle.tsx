@@ -36,7 +36,7 @@ export const SettingsToggle = memo(function SettingsToggle({
         type="button"
         role="switch"
         aria-checked={enabled}
-        aria-label={`Переключить ${label}`}
+        aria-label={`Переключить: ${label}`}
         disabled={disabled}
         onClick={() => onToggle(!enabled)}
         className={`flex items-center gap-3 rounded-full border px-3 py-2 text-xs font-medium transition ${
@@ -56,7 +56,7 @@ export const SettingsToggle = memo(function SettingsToggle({
             }`}
           />
         </span>
-        <span>{enabled ? 'Включено' : 'Выключено'}</span>
+        <span>{enabled ? 'Вкл' : 'Выкл'}</span>
       </button>
     </div>
   )
