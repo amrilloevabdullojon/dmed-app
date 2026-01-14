@@ -28,7 +28,7 @@ export async function POST() {
     const letters = await prisma.letter.findMany({
       where: {
         deletedAt: null,
-        deadlineDate: { not: null, lte: urgentEnd },
+        deadlineDate: { lte: urgentEnd },
         status: { notIn: ['READY', 'DONE'] },
       },
       select: {
