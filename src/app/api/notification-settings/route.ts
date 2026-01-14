@@ -10,7 +10,7 @@ import {
   normalizeNotificationSettings,
   NotificationSettings,
 } from '@/lib/notification-settings'
-import type { DigestFrequency, Role } from '@prisma/client'
+import type { DigestFrequency, Role, Prisma } from '@prisma/client'
 
 const eventEnum = z.enum([
   'NEW_LETTER',
@@ -198,8 +198,8 @@ export async function PUT(request: NextRequest) {
     await prisma.$transaction([
       prisma.notificationPreference.upsert({
         where: { userId: session.user.id },
-        update: { settings: nextSettings },
-        create: { userId: session.user.id, settings: nextSettings },
+        update: { settings: nextSettings as Prisma.InputJsonValue },
+        create: { userId: session.user.id, settings: nextSettings as Prisma.InputJsonValue },
       }),
       prisma.user.update({
         where: { id: session.user.id },
