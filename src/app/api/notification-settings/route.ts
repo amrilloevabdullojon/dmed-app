@@ -142,9 +142,12 @@ export async function GET() {
     })
 
     if (preference?.settings) {
-      return NextResponse.json({
-        settings: normalizeNotificationSettings(preference.settings as NotificationSettings),
-      })
+      const parsed = settingsSchema.safeParse(preference.settings as unknown)
+      if (parsed.success) {
+        return NextResponse.json({
+          settings: normalizeNotificationSettings(parsed.data),
+        })
+      }
     }
 
     const user = await prisma.user.findUnique({
