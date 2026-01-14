@@ -107,7 +107,10 @@ export async function POST(request: NextRequest) {
         )
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'D?DæD,DúDýDæ¥?¥,D«Dø¥? D_¥^D,DñD§Dø'
+    const message =
+      error instanceof Error
+        ? error.message
+        : '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u0430\u044f \u043e\u0448\u0438\u0431\u043a\u0430 \u0441\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u0438'
     logger.error('POST /api/sync/auto', error)
     return NextResponse.json({ error: message }, { status: 500 })
   }

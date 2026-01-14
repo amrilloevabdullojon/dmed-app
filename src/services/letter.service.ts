@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { addWorkingDays, sanitizeInput } from '@/lib/utils'
 import { buildApplicantPortalLink, sendMultiChannelNotification } from '@/lib/notifications'
+import { dispatchNotification } from '@/lib/notification-dispatcher'
 import { logger } from '@/lib/logger.server'
 import { PAGE_SIZE, PORTAL_TOKEN_EXPIRY_DAYS, DEFAULT_DEADLINE_WORKING_DAYS } from '@/lib/constants'
 import { randomUUID } from 'crypto'
@@ -275,14 +276,13 @@ export class LetterService {
 
     // Notify owner if different from creator
     if (ownerId && ownerId !== creatorId) {
-      await prisma.notification.create({
-        data: {
-          userId: ownerId,
-          letterId: letter.id,
-          type: 'ASSIGNMENT',
-          title: `Назначено новое письмо №${letter.number}`,
-          body: letter.org,
-        },
+      await dispatchNotification({
+        event: 'ASSIGNMENT',
+        title: `\u041d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u043e \u043f\u0438\u0441\u044c\u043c\u043e \u2116-${letter.number}`,
+        body: letter.org,
+        letterId: letter.id,
+        actorId: creatorId,
+        userIds: [ownerId],
       })
     }
 
@@ -318,7 +318,7 @@ export class LetterService {
 
     // Handle status change side effects
     if (field === 'status') {
-      await this.handleStatusChange(letterId, value as LetterStatus, userId)
+      await this.handleStatusChange(letterId, value as LetterStatus)
     }
 
     await prisma.letter.update({
@@ -478,8 +478,7 @@ export class LetterService {
 
   private static async handleStatusChange(
     letterId: string,
-    newStatus: LetterStatus,
-    _userId: string
+    newStatus: LetterStatus
   ): Promise<void> {
     // Set close date when marking as done
     if (newStatus === 'DONE' || newStatus === 'READY') {

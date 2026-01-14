@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { sanitizeInput } from '@/lib/utils'
 import { withValidation } from '@/lib/api-handler'
-import { formatNewCommentMessage, sendTelegramMessage } from '@/lib/telegram'
+import { dispatchNotification } from '@/lib/notification-dispatcher'
 
 const commentSchema = z.object({
   text: z.string().min(1).max(2000),
@@ -122,49 +122,28 @@ export const POST = withValidation(
     })
 
     const notificationUserIds = new Set<string>()
-    const recipientChatIds = new Set<string>()
 
     letter.watchers.forEach((watcher) => {
       if (watcher.notifyOnComment) {
         notificationUserIds.add(watcher.user.id)
-        if (watcher.user.telegramChatId) {
-          recipientChatIds.add(watcher.user.telegramChatId)
-        }
       }
     })
 
     if (createdBy?.user?.id) {
       notificationUserIds.add(createdBy.user.id)
-      if (createdBy.user.telegramChatId) {
-        recipientChatIds.add(createdBy.user.telegramChatId)
-      }
     }
 
     if (notificationUserIds.size > 0) {
-      await prisma.notification.createMany({
-        data: Array.from(notificationUserIds).map((userId) => ({
-          userId,
-          letterId: letter.id,
-          type: 'COMMENT',
-          title: `\u041d\u043e\u0432\u044b\u0439 \u043a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0439 \u043e\u0442 \u0437\u0430\u044f\u0432\u0438\u0442\u0435\u043b\u044f \u043f\u043e \u043f\u0438\u0441\u044c\u043c\u0443 \u2116-${letter.number}`,
-          body: text,
-        })),
+      await dispatchNotification({
+        event: 'COMMENT',
+        title: `\u041d\u043e\u0432\u044b\u0439 \u043a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0439 \u043e\u0442 \u0437\u0430\u044f\u0432\u0438\u0442\u0435\u043b\u044f \u043f\u043e \u043f\u0438\u0441\u044c\u043c\u0443 \u2116-${letter.number}`,
+        body: text,
+        letterId: letter.id,
+        actorId: null,
+        userIds: Array.from(notificationUserIds),
+        metadata: { commentId: comment.id, source: 'portal' },
+        dedupeKey: `COMMENT:${comment.id}`,
       })
-    }
-
-    if (recipientChatIds.size > 0) {
-      const authorLabel = letter.applicantName || APPLICANT_NAME
-      const message = formatNewCommentMessage({
-        letterNumber: letter.number,
-        letterOrg: letter.org,
-        author: authorLabel,
-        comment: text,
-        isMention: false,
-      })
-
-      await Promise.all(
-        Array.from(recipientChatIds).map((chatId) => sendTelegramMessage(chatId, message))
-      )
     }
 
     return NextResponse.json({ success: true, comment })

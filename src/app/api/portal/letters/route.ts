@@ -17,6 +17,7 @@ import { saveLocalUpload } from '@/lib/file-storage'
 import { FileStatus, FileStorageProvider } from '@prisma/client'
 import { syncFileToDrive } from '@/lib/file-sync'
 import { buildApplicantPortalLink, sendMultiChannelNotification } from '@/lib/notifications'
+import { dispatchNotification } from '@/lib/notification-dispatcher'
 import { logger } from '@/lib/logger.server'
 
 const APPLICANT_EMAIL = 'applicant@portal.local'
@@ -295,14 +296,13 @@ export async function POST(request: NextRequest) {
         skipDuplicates: true,
       })
 
-      await prisma.notification.create({
-        data: {
-          userId: ownerId,
-          letterId: letter.id,
-          type: 'ASSIGNMENT',
-          title: `\u041d\u043e\u0432\u043e\u0435 \u043f\u0438\u0441\u044c\u043c\u043e \u2116-${letter.number}`,
-          body: letter.org,
-        },
+      await dispatchNotification({
+        event: 'ASSIGNMENT',
+        title: `\u041d\u043e\u0432\u043e\u0435 \u043f\u0438\u0441\u044c\u043c\u043e \u2116-${letter.number}`,
+        body: letter.org,
+        letterId: letter.id,
+        actorId: applicantUser.id,
+        userIds: [ownerId],
       })
     }
 

@@ -1,10 +1,30 @@
 'use client'
 
 import { memo, useMemo } from 'react'
-import { Bell, Mail, Send, Smartphone, Volume2, Rss, Clock, Layers, Eye } from 'lucide-react'
+import {
+  Bell,
+  Mail,
+  Send,
+  Smartphone,
+  Volume2,
+  Rss,
+  Clock,
+  Layers,
+  Eye,
+  SlidersHorizontal,
+  Users,
+} from 'lucide-react'
 import { SettingsToggle } from './SettingsToggle'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { DEFAULT_NOTIFICATION_SETTINGS, NotificationSettings } from '@/lib/notification-settings'
+import { useNotificationSettings } from '@/hooks/useNotificationSettings'
+import {
+  DEFAULT_NOTIFICATION_SETTINGS,
+  NotificationChannel,
+  NotificationEventType,
+  NotificationPriority,
+  NotificationSettings,
+  NotificationSubscription,
+} from '@/lib/notification-settings'
+import { USER_ROLES } from '@/lib/constants'
 
 const digestOptions = [
   { value: 'instant', label: 'Сразу' },
@@ -18,30 +38,106 @@ const quietModeOptions = [
   { value: 'important', label: 'Только важные и дедлайны' },
 ] as const
 
-export const NotificationsTab = memo(function NotificationsTab() {
-  const [storedSettings, setStoredSettings] = useLocalStorage<NotificationSettings>(
-    'notification-settings',
-    DEFAULT_NOTIFICATION_SETTINGS
-  )
+const eventOptions: { event: NotificationEventType; label: string }[] = [
+  { event: 'NEW_LETTER', label: 'Новые письма' },
+  { event: 'COMMENT', label: 'Комментарии' },
+  { event: 'STATUS', label: 'Изменение статуса' },
+  { event: 'ASSIGNMENT', label: 'Назначения' },
+  { event: 'DEADLINE_URGENT', label: 'Срочные дедлайны' },
+  { event: 'DEADLINE_OVERDUE', label: 'Просрочки' },
+  { event: 'SYSTEM', label: 'Системные' },
+]
 
-  const settings = useMemo(
-    () => ({ ...DEFAULT_NOTIFICATION_SETTINGS, ...storedSettings }),
-    [storedSettings]
-  )
+const channelOptions: { key: NotificationChannel; label: string }[] = [
+  { key: 'inApp', label: 'Внутри' },
+  { key: 'email', label: 'Email' },
+  { key: 'telegram', label: 'Telegram' },
+  { key: 'sms', label: 'SMS' },
+  { key: 'push', label: 'Push' },
+]
+
+const priorityOptions: { value: NotificationPriority; label: string }[] = [
+  { value: 'low', label: 'Низкий' },
+  { value: 'normal', label: 'Обычный' },
+  { value: 'high', label: 'Высокий' },
+  { value: 'critical', label: 'Критичный' },
+]
+
+export const NotificationsTab = memo(function NotificationsTab() {
+  const { settings, isLoading, isSaving, updateSettings } = useNotificationSettings()
 
   const updateSetting = <K extends keyof NotificationSettings>(
     key: K,
     value: NotificationSettings[K]
   ) => {
-    setStoredSettings((prev) => ({
-      ...DEFAULT_NOTIFICATION_SETTINGS,
-      ...prev,
-      [key]: value,
-    }))
+    updateSettings({ [key]: value })
   }
 
   const resetSettings = () => {
-    setStoredSettings(DEFAULT_NOTIFICATION_SETTINGS)
+    updateSettings(DEFAULT_NOTIFICATION_SETTINGS)
+  }
+
+  const matrixRows = useMemo(() => {
+    const matrixMap = new Map(
+      DEFAULT_NOTIFICATION_SETTINGS.matrix.map((item) => [item.event, item])
+    )
+    settings.matrix.forEach((item) => matrixMap.set(item.event, item))
+    return eventOptions.map(
+      (option) =>
+        matrixMap.get(option.event) ||
+        DEFAULT_NOTIFICATION_SETTINGS.matrix.find((item) => item.event === option.event) ||
+        DEFAULT_NOTIFICATION_SETTINGS.matrix[0]
+    )
+  }, [settings.matrix])
+
+  const roleOptions = useMemo(
+    () =>
+      Object.entries(USER_ROLES).map(([value, config]) => ({
+        value,
+        label: config.label,
+      })),
+    []
+  )
+
+  const updateMatrixItem = (
+    event: NotificationEventType,
+    patch: Partial<NotificationSettings['matrix'][number]>
+  ) => {
+    const next = matrixRows.map((row) => (row.event === event ? { ...row, ...patch } : row))
+    updateSetting('matrix', next)
+  }
+
+  const toggleMatrixChannel = (event: NotificationEventType, channel: NotificationChannel) => {
+    const row = matrixRows.find((item) => item.event === event)
+    if (!row) return
+    updateMatrixItem(event, {
+      channels: {
+        ...row.channels,
+        [channel]: !row.channels[channel],
+      },
+    })
+  }
+
+  const updateMatrixPriority = (event: NotificationEventType, priority: NotificationPriority) => {
+    updateMatrixItem(event, { priority })
+  }
+
+  const updateSubscription = (index: number, patch: Partial<NotificationSubscription>) => {
+    const next = settings.subscriptions.map((item, idx) =>
+      idx === index ? { ...item, ...patch } : item
+    )
+    updateSetting('subscriptions', next)
+  }
+
+  const addSubscription = () => {
+    updateSetting('subscriptions', [...settings.subscriptions, { event: 'ALL', scope: 'all' }])
+  }
+
+  const removeSubscription = (index: number) => {
+    updateSetting(
+      'subscriptions',
+      settings.subscriptions.filter((_, idx) => idx !== index)
+    )
   }
 
   return (
@@ -296,6 +392,195 @@ export const NotificationsTab = memo(function NotificationsTab() {
         </div>
       </div>
 
+      <div className="panel panel-glass rounded-2xl p-6">
+        <div className="mb-6 flex items-center gap-3 border-b border-white/10 pb-4">
+          <div className="rounded-full bg-sky-500/10 p-2 text-sky-300">
+            <SlidersHorizontal className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-white">Матрица событий</h3>
+            <p className="text-xs text-gray-400">
+              Настройте каналы доставки и приоритет для каждого типа уведомлений.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="grid gap-3 text-xs uppercase tracking-wide text-gray-500 md:grid-cols-[1.6fr_1fr_3fr]">
+            <span>Событие</span>
+            <span>Приоритет</span>
+            <span>Каналы</span>
+          </div>
+          {matrixRows.map((row) => {
+            const label = eventOptions.find((item) => item.event === row.event)?.label || row.event
+            return (
+              <div
+                key={row.event}
+                className="grid items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 md:grid-cols-[1.6fr_1fr_3fr]"
+              >
+                <div className="text-sm font-medium text-white">{label}</div>
+                <select
+                  value={row.priority}
+                  onChange={(event) =>
+                    updateMatrixPriority(row.event, event.target.value as NotificationPriority)
+                  }
+                  className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+                >
+                  {priorityOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex flex-wrap gap-2">
+                  {channelOptions.map((channel) => {
+                    const active = row.channels[channel.key]
+                    return (
+                      <button
+                        key={channel.key}
+                        type="button"
+                        onClick={() => toggleMatrixChannel(row.event, channel.key)}
+                        className={`rounded-full border px-3 py-1 text-xs transition ${
+                          active
+                            ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-100'
+                            : 'border-white/10 bg-white/5 text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        {channel.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="panel panel-glass rounded-2xl p-6">
+        <div className="mb-6 flex items-center gap-3 border-b border-white/10 pb-4">
+          <div className="rounded-full bg-emerald-500/10 p-2 text-emerald-300">
+            <Users className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-white">Подписки и роли</h3>
+            <p className="text-xs text-gray-400">
+              Добавьте дополнительные источники событий для ваших уведомлений.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {settings.subscriptions.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-white/10 bg-white/5 px-4 py-3 text-xs text-gray-400">
+              Нет активных подписок.
+            </div>
+          ) : (
+            settings.subscriptions.map((subscription, index) => {
+              const scope = subscription.scope
+              return (
+                <div
+                  key={`${subscription.scope}-${subscription.event}-${index}`}
+                  className="rounded-xl border border-white/10 bg-white/5 p-3"
+                >
+                  <div className="grid gap-3 md:grid-cols-4">
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-400">
+                        Событие
+                      </label>
+                      <select
+                        value={subscription.event}
+                        onChange={(event) =>
+                          updateSubscription(index, {
+                            event: event.target.value as NotificationSubscription['event'],
+                          })
+                        }
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+                      >
+                        <option value="ALL">Все события</option>
+                        {eventOptions.map((item) => (
+                          <option key={item.event} value={item.event}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-400">
+                        Область
+                      </label>
+                      <select
+                        value={subscription.scope}
+                        onChange={(event) =>
+                          updateSubscription(index, {
+                            scope: event.target.value as NotificationSubscription['scope'],
+                            value: event.target.value === 'all' ? undefined : subscription.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+                      >
+                        <option value="all">Все</option>
+                        <option value="role">Роль</option>
+                        <option value="user">Пользователь</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-400">
+                        Значение
+                      </label>
+                      {scope === 'role' ? (
+                        <select
+                          value={subscription.value || ''}
+                          onChange={(event) =>
+                            updateSubscription(index, { value: event.target.value })
+                          }
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+                        >
+                          <option value="">Выберите роль</option>
+                          {roleOptions.map((role) => (
+                            <option key={role.value} value={role.value}>
+                              {role.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={subscription.value || ''}
+                          onChange={(event) =>
+                            updateSubscription(index, { value: event.target.value })
+                          }
+                          placeholder={scope === 'user' ? 'ID или email' : '—'}
+                          disabled={scope === 'all'}
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 disabled:opacity-60"
+                        />
+                      )}
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={() => removeSubscription(index)}
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-gray-300 transition hover:border-white/20 hover:bg-white/10 hover:text-white"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
+            })
+          )}
+
+          <button
+            type="button"
+            onClick={addSubscription}
+            className="tap-highlight w-full rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-100 transition hover:border-emerald-400/50 hover:bg-emerald-500/20"
+          >
+            Добавить подписку
+          </button>
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           onClick={resetSettings}
@@ -304,7 +589,11 @@ export const NotificationsTab = memo(function NotificationsTab() {
           Сбросить настройки
         </button>
         <div className="text-xs text-gray-500">
-          Настройки сохраняются в браузере и применяются сразу.
+          {isLoading
+            ? 'Загружаем настройки...'
+            : isSaving
+              ? 'Сохраняем настройки на сервере...'
+              : 'Настройки синхронизируются между устройствами и применяются сразу.'}
         </div>
       </div>
     </div>

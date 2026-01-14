@@ -25,7 +25,7 @@ interface StatsData {
     avgDays: number
   }
   byStatus: Record<LetterStatus, number>
-  byOwner: Array<{ id: string | null; name: string; count: number }>
+  byOwner: Array<{ id: string; name: string; count: number }>
   byType: Array<{ type: string; count: number }>
   byOrgTypePeriod: Array<{
     periodKey: string

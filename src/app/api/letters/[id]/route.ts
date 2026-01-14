@@ -3,9 +3,9 @@ import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { sanitizeInput, isDoneStatus, parseDateValue, STATUS_LABELS } from '@/lib/utils'
-import type { LetterStatus } from '@prisma/client'
-import { sendTelegramMessage, formatStatusChangeMessage } from '@/lib/telegram'
+import type { LetterStatus, Prisma } from '@prisma/client'
 import { sendMultiChannelNotification } from '@/lib/notifications'
+import { dispatchNotification } from '@/lib/notification-dispatcher'
 import { hasPermission } from '@/lib/permissions'
 import { requirePermission } from '@/lib/permission-guard'
 import { csrfGuard } from '@/lib/security'
@@ -112,6 +112,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }))
 
     const { favorites, files, ...letterData } = letter
+    void favorites
+    void files
 
     return NextResponse.json({
       ...letterData,
@@ -162,7 +164,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     // Подготовить данные для обновления
-    const updateData: any = {}
+    const updateData: Prisma.LetterUpdateInput = {}
     let oldValue: string | null = null
     let newValue: string | null = null
 
@@ -369,14 +371,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     })
 
     if (field === 'owner' && newValue && newValue !== session.user.id) {
-      await prisma.notification.create({
-        data: {
-          userId: newValue,
-          letterId: letter.id,
-          type: 'ASSIGNMENT',
-          title: `Вам назначено письмо №${letter.number}`,
-          body: letter.org,
-        },
+      await dispatchNotification({
+        event: 'ASSIGNMENT',
+        title: `\u041d\u0430\u0437\u043d\u0430\u0447\u0435\u043d\u043e \u043f\u0438\u0441\u044c\u043c\u043e \u2116-${letter.number}`,
+        body: letter.org,
+        letterId: letter.id,
+        actorId: session.user.id,
+        userIds: [newValue],
       })
     }
 
@@ -386,16 +387,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       const watcherNotifyIds = letter.watchers
         .filter((watcher) => watcher.notifyOnChange && watcher.userId !== session.user.id)
         .map((watcher) => watcher.userId)
-
       if (watcherNotifyIds.length > 0) {
-        await prisma.notification.createMany({
-          data: watcherNotifyIds.map((userId) => ({
-            userId,
-            letterId: letter.id,
-            type: 'STATUS',
-            title: `Статус письма №${letter.number} изменен`,
-            body: `${STATUS_LABELS[letter.status]} -> ${STATUS_LABELS[newValue as LetterStatus]}`,
-          })),
+        await dispatchNotification({
+          event: 'STATUS',
+          title: `\u0421\u0442\u0430\u0442\u0443\u0441 \u043f\u0438\u0441\u044c\u043c\u0430 \u2116-${letter.number} \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d`,
+          body: `${STATUS_LABELS[letter.status]} -> ${STATUS_LABELS[newValue as LetterStatus]}`,
+          letterId: letter.id,
+          actorId: session.user.id,
+          userIds: watcherNotifyIds,
+          metadata: {
+            oldStatus: letter.status,
+            newStatus: newValue,
+          },
+          dedupeKey: `STATUS:${letter.id}:${newValue}`,
         })
       }
 
@@ -434,23 +438,6 @@ ${letter.org}
           { subject, text, telegram }
         )
       }
-
-      for (const watcher of letter.watchers) {
-        if (
-          watcher.notifyOnChange &&
-          watcher.user.telegramChatId &&
-          watcher.userId !== session.user.id
-        ) {
-          const message = formatStatusChangeMessage({
-            number: letter.number,
-            org: letter.org,
-            oldStatus: oldValue || '',
-            newStatus: newValue || '',
-            changedBy: session.user.email || '',
-          })
-          await sendTelegramMessage(watcher.user.telegramChatId, message)
-        }
-      }
     }
 
     return NextResponse.json({ success: true, letter: updatedLetter })
@@ -461,7 +448,10 @@ ${letter.org}
 }
 
 // DELETE /api/letters/[id] - удалить письмо (только админ, soft delete)
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await params
     const session = await getServerSession(authOptions)

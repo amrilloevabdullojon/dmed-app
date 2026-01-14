@@ -3,8 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sanitizeInput } from '@/lib/utils'
-import { formatNewCommentMessage, sendTelegramMessage } from '@/lib/telegram'
 import { sendMultiChannelNotification } from '@/lib/notifications'
+import { dispatchNotification } from '@/lib/notification-dispatcher'
 import { requirePermission } from '@/lib/permission-guard'
 import { csrfGuard } from '@/lib/security'
 import { logger } from '@/lib/logger.server'
@@ -117,48 +117,27 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const notificationUserIds = new Set<string>()
 
-    const recipientChatIds = new Set<string>()
-
     letter.watchers.forEach((watcher) => {
       if (watcher.notifyOnComment && watcher.user.id !== session.user.id) {
         notificationUserIds.add(watcher.user.id)
-        if (watcher.user.telegramChatId) {
-          recipientChatIds.add(watcher.user.telegramChatId)
-        }
       }
     })
 
     if (createdBy?.user?.id && createdBy.user.id !== session.user.id) {
       notificationUserIds.add(createdBy.user.id)
-      if (createdBy.user.telegramChatId) {
-        recipientChatIds.add(createdBy.user.telegramChatId)
-      }
     }
 
     if (notificationUserIds.size > 0) {
-      await prisma.notification.createMany({
-        data: Array.from(notificationUserIds).map((userId) => ({
-          userId,
-          letterId: letter.id,
-          type: 'COMMENT',
-          title: `Новый комментарий к письму №${letter.number}`,
-          body: text,
-        })),
+      await dispatchNotification({
+        event: 'COMMENT',
+        title: `\u041d\u043e\u0432\u044b\u0439 \u043a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0439 \u043f\u043e \u043f\u0438\u0441\u044c\u043c\u0443 \u2116-${letter.number}`,
+        body: text,
+        letterId: letter.id,
+        actorId: session.user.id,
+        userIds: Array.from(notificationUserIds),
+        metadata: { commentId: comment.id },
+        dedupeKey: `COMMENT:${comment.id}`,
       })
-    }
-
-    if (recipientChatIds.size > 0) {
-      const message = formatNewCommentMessage({
-        letterNumber: letter.number,
-        letterOrg: letter.org,
-        author: session.user.name || session.user.email || 'Unknown',
-        comment: text,
-        isMention: false,
-      })
-
-      await Promise.all(
-        Array.from(recipientChatIds).map((chatId) => sendTelegramMessage(chatId, message))
-      )
     }
 
     const applicantHasContact = !!(

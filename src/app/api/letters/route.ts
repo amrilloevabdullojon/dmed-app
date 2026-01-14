@@ -4,12 +4,13 @@ import { prisma } from '@/lib/prisma'
 import { authOptions } from '@/lib/auth'
 import { addWorkingDays, parseDateValue, sanitizeInput } from '@/lib/utils'
 import { buildApplicantPortalLink, sendMultiChannelNotification } from '@/lib/notifications'
+import { dispatchNotification } from '@/lib/notification-dispatcher'
 import { logger } from '@/lib/logger.server'
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
 import { withValidation } from '@/lib/api-handler'
 import { letterFiltersSchema, paginationSchema } from '@/lib/schemas'
 import { LetterService } from '@/services/letter.service'
-import { PAGE_SIZE, PORTAL_TOKEN_EXPIRY_DAYS, DEFAULT_DEADLINE_WORKING_DAYS } from '@/lib/constants'
+import { PORTAL_TOKEN_EXPIRY_DAYS, DEFAULT_DEADLINE_WORKING_DAYS } from '@/lib/constants'
 import { requirePermission } from '@/lib/permission-guard'
 import { csrfGuard } from '@/lib/security'
 import { z } from 'zod'
@@ -237,14 +238,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (letter.ownerId && letter.ownerId !== session.user.id) {
-      await prisma.notification.create({
-        data: {
-          userId: letter.ownerId,
-          letterId: letter.id,
-          type: 'ASSIGNMENT',
-          title: `Вам назначено письмо №${letter.number}`,
-          body: letter.org,
-        },
+      await dispatchNotification({
+        event: 'ASSIGNMENT',
+        title: `Назначено письмо №-${letter.number}`,
+        body: letter.org,
+        letterId: letter.id,
+        actorId: session.user.id,
+        userIds: [letter.ownerId],
       })
     }
 

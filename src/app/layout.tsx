@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Manrope, Space_Grotesk } from 'next/font/google'
+import { Manrope, Rubik } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/Providers'
 import { Snowfall, NewYearBanner } from '@/components/Snowfall'
@@ -14,8 +14,8 @@ const manrope = Manrope({
   variable: '--font-manrope',
 })
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
+const spaceGrotesk = Rubik({
+  subsets: ['latin', 'cyrillic'],
   display: 'swap',
   preload: true,
   variable: '--font-space',

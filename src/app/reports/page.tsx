@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { Header } from '@/components/Header'
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { STATUS_LABELS } from '@/lib/utils'
 import type { LetterStatus } from '@prisma/client'
@@ -57,7 +57,7 @@ interface Stats {
     avgDays: number
   }
   byStatus: Record<LetterStatus, number>
-  byOwner: Array<{ id: string | null; name: string; count: number }>
+  byOwner: Array<{ id: string; name: string; count: number }>
   byType: Array<{ type: string; count: number }>
   byOrgTypePeriod: Array<{
     periodKey: string
@@ -347,61 +347,64 @@ export default function ReportsPage() {
     overdueMax: 5,
   }
 
-  const applyView = (view: {
-    periodMonths?: number
-    chartView?: 'status' | 'owner' | 'type'
-    ownerSort?: 'count' | 'name'
-    ownerSortDir?: 'asc' | 'desc'
-    reportView?: 'cards' | 'table' | 'heatmap'
-    reportGroupBy?: 'orgType' | 'org' | 'type'
-    reportGranularity?: 'month' | 'quarter' | 'week'
-    reportStatusFilter?: LetterStatus | 'all'
-    reportOwnerFilter?: string
-    reportOrgFilter?: string
-    reportTypeFilter?: string
-    reportSearch?: string
-    reportExportColumns?: Partial<typeof reportExportColumns>
-  }) => {
-    if (view.periodMonths && [3, 6, 12].includes(view.periodMonths)) {
-      setPeriodMonths(view.periodMonths)
-    }
-    if (view.chartView) {
-      setChartView(view.chartView)
-    }
-    if (view.ownerSort) {
-      setOwnerSort(view.ownerSort)
-    }
-    if (view.ownerSortDir) {
-      setOwnerSortDir(view.ownerSortDir)
-    }
-    if (view.reportView && ['cards', 'table', 'heatmap'].includes(view.reportView)) {
-      setReportView(view.reportView)
-    }
-    if (view.reportGroupBy && ['orgType', 'org', 'type'].includes(view.reportGroupBy)) {
-      setReportGroupBy(view.reportGroupBy)
-    }
-    if (view.reportGranularity && ['month', 'quarter', 'week'].includes(view.reportGranularity)) {
-      setReportGranularity(view.reportGranularity)
-    }
-    if (view.reportStatusFilter) {
-      setReportStatusFilter(view.reportStatusFilter)
-    }
-    if (typeof view.reportOwnerFilter === 'string') {
-      setReportOwnerFilter(view.reportOwnerFilter)
-    }
-    if (typeof view.reportOrgFilter === 'string') {
-      setReportOrgFilter(view.reportOrgFilter)
-    }
-    if (typeof view.reportTypeFilter === 'string') {
-      setReportTypeFilter(view.reportTypeFilter)
-    }
-    if (typeof view.reportSearch === 'string') {
-      setReportSearch(view.reportSearch)
-    }
-    if (view.reportExportColumns) {
-      setReportExportColumns((prev) => ({ ...prev, ...view.reportExportColumns }))
-    }
-  }
+  const applyView = useCallback(
+    (view: {
+      periodMonths?: number
+      chartView?: 'status' | 'owner' | 'type'
+      ownerSort?: 'count' | 'name'
+      ownerSortDir?: 'asc' | 'desc'
+      reportView?: 'cards' | 'table' | 'heatmap'
+      reportGroupBy?: 'orgType' | 'org' | 'type'
+      reportGranularity?: 'month' | 'quarter' | 'week'
+      reportStatusFilter?: LetterStatus | 'all'
+      reportOwnerFilter?: string
+      reportOrgFilter?: string
+      reportTypeFilter?: string
+      reportSearch?: string
+      reportExportColumns?: Partial<typeof reportExportColumns>
+    }) => {
+      if (view.periodMonths && [3, 6, 12].includes(view.periodMonths)) {
+        setPeriodMonths(view.periodMonths)
+      }
+      if (view.chartView) {
+        setChartView(view.chartView)
+      }
+      if (view.ownerSort) {
+        setOwnerSort(view.ownerSort)
+      }
+      if (view.ownerSortDir) {
+        setOwnerSortDir(view.ownerSortDir)
+      }
+      if (view.reportView && ['cards', 'table', 'heatmap'].includes(view.reportView)) {
+        setReportView(view.reportView)
+      }
+      if (view.reportGroupBy && ['orgType', 'org', 'type'].includes(view.reportGroupBy)) {
+        setReportGroupBy(view.reportGroupBy)
+      }
+      if (view.reportGranularity && ['month', 'quarter', 'week'].includes(view.reportGranularity)) {
+        setReportGranularity(view.reportGranularity)
+      }
+      if (view.reportStatusFilter) {
+        setReportStatusFilter(view.reportStatusFilter)
+      }
+      if (typeof view.reportOwnerFilter === 'string') {
+        setReportOwnerFilter(view.reportOwnerFilter)
+      }
+      if (typeof view.reportOrgFilter === 'string') {
+        setReportOrgFilter(view.reportOrgFilter)
+      }
+      if (typeof view.reportTypeFilter === 'string') {
+        setReportTypeFilter(view.reportTypeFilter)
+      }
+      if (typeof view.reportSearch === 'string') {
+        setReportSearch(view.reportSearch)
+      }
+      if (view.reportExportColumns) {
+        setReportExportColumns((prev) => ({ ...prev, ...view.reportExportColumns }))
+      }
+    },
+    []
+  )
 
   useEffect(() => {
     if (session) {
@@ -460,7 +463,7 @@ export default function ReportsPage() {
         window.localStorage.removeItem('reportsView')
       }
     }
-  }, [])
+  }, [applyView])
 
   useEffect(() => {
     setExpandedReportPeriods({})
@@ -855,12 +858,8 @@ export default function ReportsPage() {
     router.push(`/letters?status=${status}`)
   }
 
-  const handleOwnerClick = (owner: { id: string | null; name: string; count: number }) => {
-    const ownerId = owner.id
-    if (!ownerId) {
-      return
-    }
-    setSelectedOwner({ id: ownerId, name: owner.name, count: owner.count })
+  const handleOwnerClick = (owner: { id: string; name: string; count: number }) => {
+    setSelectedOwner({ id: owner.id, name: owner.name, count: owner.count })
   }
 
   const handleNavigateToOwnerLetters = (ownerId: string) => {
