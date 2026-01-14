@@ -26,6 +26,13 @@ interface StatsData {
   byStatus: Record<LetterStatus, number>
   byOwner: Array<{ id: string | null; name: string; count: number }>
   byType: Array<{ type: string; count: number }>
+  byOrgTypePeriod: Array<{
+    periodKey: string
+    periodLabel: string
+    org: string
+    type: string
+    count: number
+  }>
   monthly: Array<{ month: string; created: number; done: number }>
 }
 
@@ -39,12 +46,13 @@ export async function GET(request: NextRequest) {
 
     // Проверяем кэш
     const cachedStats = await cache.get<StatsData>(CACHE_KEYS.STATS)
-    if (cachedStats) {
+    if (cachedStats && Array.isArray(cachedStats.byOrgTypePeriod)) {
       return NextResponse.json(cachedStats)
     }
 
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const periodStart = new Date(now.getFullYear(), now.getMonth() - (MONTHS_TO_SHOW - 1), 1)
 
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000)
@@ -182,7 +190,7 @@ export async function GET(request: NextRequest) {
         deletedAt: null,
         OR: [{ createdAt: { gte: yearAgo } }, { closeDate: { gte: yearAgo } }],
       },
-      select: { createdAt: true, closeDate: true, status: true },
+      select: { createdAt: true, closeDate: true, status: true, org: true, type: true },
     })
 
     // Группируем по месяцам
@@ -216,6 +224,55 @@ export async function GET(request: NextRequest) {
     const monthlyData = Array.from(monthlyMap.entries())
       .reverse()
       .map(([month, data]) => ({ month, ...data }))
+
+    const periodBuckets: Array<{ key: string; label: string }> = []
+    for (let i = MONTHS_TO_SHOW - 1; i >= 0; i--) {
+      const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const key = `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}`
+      const label = monthStart.toLocaleDateString('ru-RU', { month: 'short', year: 'numeric' })
+      periodBuckets.push({ key, label })
+    }
+    const periodLabelByKey = new Map(periodBuckets.map((bucket) => [bucket.key, bucket.label]))
+    const normalizeLabel = (value: string | null | undefined, fallback: string) => {
+      const trimmed = value?.trim()
+      return trimmed ? trimmed : fallback
+    }
+    const orgTypePeriodMap = new Map<
+      string,
+      { periodKey: string; periodLabel: string; org: string; type: string; count: number }
+    >()
+
+    monthlyLetters.forEach((letter) => {
+      if (letter.createdAt < periodStart) return
+      const periodKey = `${letter.createdAt.getFullYear()}-${String(
+        letter.createdAt.getMonth() + 1
+      ).padStart(2, '0')}`
+      const periodLabel = periodLabelByKey.get(periodKey)
+      if (!periodLabel) return
+      const org = normalizeLabel(letter.org, 'Не указано')
+      const type = normalizeLabel(letter.type, 'Не указано')
+      const rowKey = `${periodKey}||${org}||${type}`
+      const existing = orgTypePeriodMap.get(rowKey)
+      if (existing) {
+        existing.count += 1
+      } else {
+        orgTypePeriodMap.set(rowKey, {
+          periodKey,
+          periodLabel,
+          org,
+          type,
+          count: 1,
+        })
+      }
+    })
+
+    const orgTypePeriodStats = Array.from(orgTypePeriodMap.values()).sort((a, b) => {
+      if (a.periodKey !== b.periodKey) return a.periodKey.localeCompare(b.periodKey)
+      if (a.count !== b.count) return b.count - a.count
+      const orgCompare = a.org.localeCompare(b.org, 'ru-RU')
+      if (orgCompare !== 0) return orgCompare
+      return a.type.localeCompare(b.type, 'ru-RU')
+    })
 
     // Среднее время выполнения
     let avgDays = 0
@@ -257,6 +314,7 @@ export async function GET(request: NextRequest) {
       byStatus,
       byOwner: ownerStats,
       byType: typeStats,
+      byOrgTypePeriod: orgTypePeriodStats,
       monthly: monthlyData,
     }
 

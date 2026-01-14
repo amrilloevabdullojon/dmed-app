@@ -8,6 +8,7 @@ import { STATUS_LABELS } from '@/lib/utils'
 import type { LetterStatus } from '@prisma/client'
 import {
   Loader2,
+  Building2,
   FileText,
   AlertTriangle,
   Clock,
@@ -28,6 +29,8 @@ import {
   Target,
   Zap,
   ExternalLink,
+  ChevronDown,
+  ChevronUp,
   ChevronRight,
   X,
   Printer,
@@ -51,6 +54,13 @@ interface Stats {
   byStatus: Record<LetterStatus, number>
   byOwner: Array<{ id: string; name: string; count: number }>
   byType: Array<{ type: string; count: number }>
+  byOrgTypePeriod: Array<{
+    periodKey: string
+    periodLabel: string
+    org: string
+    type: string
+    count: number
+  }>
   monthly: Array<{ month: string; created: number; done: number }>
 }
 
@@ -266,6 +276,7 @@ export default function ReportsPage() {
     count: number
   } | null>(null)
   const [filterOwner, setFilterOwner] = useState<string | null>(null)
+  const [expandedOrgTypePeriods, setExpandedOrgTypePeriods] = useState<Record<string, boolean>>({})
 
   // KPI Goals (configurable)
   const kpiGoals = {
@@ -357,6 +368,7 @@ export default function ReportsPage() {
     setOwnerPage(1)
     setShowAllTypes(false)
     setFilterOwner(null)
+    setExpandedOrgTypePeriods({})
   }
 
   const handleSaveView = () => {
@@ -511,6 +523,9 @@ export default function ReportsPage() {
       [],
       ['Type', 'Count'],
       ...stats.byType.map((t) => [t.type, String(t.count)]),
+      [],
+      ['Period', 'Organization', 'Type', 'Count'],
+      ...orgTypePeriodRows.map((row) => [row.periodLabel, row.org, row.type, String(row.count)]),
     ]
 
     const csv = rows.map((row) => row.join(',')).join('\n')
@@ -519,6 +534,26 @@ export default function ReportsPage() {
     const link = document.createElement('a')
     link.href = url
     link.download = `reports-${new Date().toISOString().slice(0, 10)}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleExportOrgTypeCSV = () => {
+    if (!stats) return
+    if (orgTypePeriodRows.length === 0) {
+      toast.error('Нет данных для выбранного периода')
+      return
+    }
+    const rows: string[][] = [
+      ['Period', 'Organization', 'Type', 'Count'],
+      ...orgTypePeriodRows.map((row) => [row.periodLabel, row.org, row.type, String(row.count)]),
+    ]
+    const csv = rows.map((row) => row.join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `org-type-report-${new Date().toISOString().slice(0, 10)}.csv`
     link.click()
     URL.revokeObjectURL(url)
   }
@@ -553,6 +588,13 @@ export default function ReportsPage() {
     setOwnerPage(1)
   }
 
+  const toggleOrgTypePeriod = (periodKey: string) => {
+    setExpandedOrgTypePeriods((prev) => ({
+      ...prev,
+      [periodKey]: !prev[periodKey],
+    }))
+  }
+
   const periodOptions = [3, 6, 12]
 
   const periodMonthly = useMemo(() => {
@@ -564,6 +606,104 @@ export default function ReportsPage() {
     if (!stats) return []
     return stats.monthly.slice(-(periodMonths * 2), -periodMonths)
   }, [stats, periodMonths])
+
+  const orgTypePeriodRows = useMemo(() => {
+    if (!stats || stats.byOrgTypePeriod.length === 0) return []
+    const periodKeys: string[] = []
+    const periodKeySet = new Set<string>()
+    stats.byOrgTypePeriod.forEach((row) => {
+      if (!periodKeySet.has(row.periodKey)) {
+        periodKeySet.add(row.periodKey)
+        periodKeys.push(row.periodKey)
+      }
+    })
+    periodKeys.sort()
+    const activeKeys = new Set(periodKeys.slice(-periodMonths))
+    return stats.byOrgTypePeriod
+      .filter((row) => activeKeys.has(row.periodKey))
+      .sort((a, b) => {
+        if (a.periodKey !== b.periodKey) return b.periodKey.localeCompare(a.periodKey)
+        if (a.count !== b.count) return b.count - a.count
+        const orgCompare = a.org.localeCompare(b.org, 'ru-RU')
+        if (orgCompare !== 0) return orgCompare
+        return a.type.localeCompare(b.type, 'ru-RU')
+      })
+  }, [stats, periodMonths])
+
+  const orgTypeSummary = useMemo(() => {
+    const totals = {
+      total: 0,
+      orgs: new Set<string>(),
+      types: new Set<string>(),
+      periods: new Set<string>(),
+    }
+    orgTypePeriodRows.forEach((row) => {
+      totals.total += row.count
+      totals.orgs.add(row.org)
+      totals.types.add(row.type)
+      totals.periods.add(row.periodKey)
+    })
+    return {
+      total: totals.total,
+      orgCount: totals.orgs.size,
+      typeCount: totals.types.size,
+      periodCount: totals.periods.size,
+    }
+  }, [orgTypePeriodRows])
+
+  const orgTypePeriodGroups = useMemo(() => {
+    if (orgTypePeriodRows.length === 0) return []
+    const groups = new Map<
+      string,
+      {
+        periodKey: string
+        periodLabel: string
+        totalCount: number
+        maxCount: number
+        orgs: Set<string>
+        types: Set<string>
+        rows: Array<{ org: string; type: string; count: number }>
+      }
+    >()
+
+    orgTypePeriodRows.forEach((row) => {
+      const existing = groups.get(row.periodKey)
+      if (existing) {
+        existing.totalCount += row.count
+        existing.maxCount = Math.max(existing.maxCount, row.count)
+        existing.orgs.add(row.org)
+        existing.types.add(row.type)
+        existing.rows.push({ org: row.org, type: row.type, count: row.count })
+      } else {
+        groups.set(row.periodKey, {
+          periodKey: row.periodKey,
+          periodLabel: row.periodLabel,
+          totalCount: row.count,
+          maxCount: row.count,
+          orgs: new Set([row.org]),
+          types: new Set([row.type]),
+          rows: [{ org: row.org, type: row.type, count: row.count }],
+        })
+      }
+    })
+
+    return Array.from(groups.values())
+      .map((group) => ({
+        periodKey: group.periodKey,
+        periodLabel: group.periodLabel,
+        totalCount: group.totalCount,
+        maxCount: group.maxCount,
+        rows: [...group.rows].sort((a, b) => {
+          if (a.count !== b.count) return b.count - a.count
+          const orgCompare = a.org.localeCompare(b.org, 'ru-RU')
+          if (orgCompare !== 0) return orgCompare
+          return a.type.localeCompare(b.type, 'ru-RU')
+        }),
+        orgCount: group.orgs.size,
+        typeCount: group.types.size,
+      }))
+      .sort((a, b) => b.periodKey.localeCompare(a.periodKey))
+  }, [orgTypePeriodRows])
 
   const sumBy = (items: Array<{ created: number; done: number }>, key: 'created' | 'done') =>
     items.reduce((acc, item) => acc + item[key], 0)
@@ -688,6 +828,7 @@ export default function ReportsPage() {
 
   const totalStatusCount = Object.values(stats.byStatus).reduce((a, b) => a + b, 0)
   const typesLimit = 12
+  const orgTypePreviewLimit = 6
   const typesToShow = showAllTypes ? stats.byType : stats.byType.slice(0, typesLimit)
   const maxOwnerCount = ownersByCount[0]?.count || 1
   const maxTypeCount = typesChart[0]?.count || 1
@@ -1349,6 +1490,153 @@ export default function ReportsPage() {
               <span className="text-sm text-gray-400">Закрыто</span>
             </div>
           </div>
+        </div>
+
+        {/* Institutions & Types by Period */}
+        <div className="panel panel-solid mb-8 rounded-2xl p-6">
+          <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-white">
+                Учреждения и типы писем по периодам
+              </h3>
+              <p className="text-sm text-gray-400">
+                Группировка по месяцу поступления за выбранный период.
+              </p>
+            </div>
+            <button
+              onClick={handleExportOrgTypeCSV}
+              disabled={orgTypePeriodRows.length === 0}
+              className="btn-secondary inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 transition disabled:opacity-50 sm:w-auto"
+            >
+              <Download className="h-4 w-4" />
+              CSV отчета
+            </button>
+          </div>
+
+          {orgTypePeriodRows.length > 0 ? (
+            <>
+              <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="panel panel-soft rounded-xl p-3">
+                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <FileText className="h-4 w-4 text-emerald-400" />
+                    Всего писем
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold text-white">
+                    {orgTypeSummary.total}
+                  </div>
+                </div>
+                <div className="panel panel-soft rounded-xl p-3">
+                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <Building2 className="h-4 w-4 text-sky-400" />
+                    Учреждений
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold text-white">
+                    {orgTypeSummary.orgCount}
+                  </div>
+                </div>
+                <div className="panel panel-soft rounded-xl p-3">
+                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <Layers className="h-4 w-4 text-purple-400" />
+                    Типов писем
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold text-white">
+                    {orgTypeSummary.typeCount}
+                  </div>
+                </div>
+                <div className="panel panel-soft rounded-xl p-3">
+                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <Calendar className="h-4 w-4 text-amber-400" />
+                    Периодов
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold text-white">
+                    {orgTypeSummary.periodCount}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {orgTypePeriodGroups.map((group) => {
+                  const isExpanded = !!expandedOrgTypePeriods[group.periodKey]
+                  const rowsToShow = isExpanded
+                    ? group.rows
+                    : group.rows.slice(0, orgTypePreviewLimit)
+                  const hasMore = group.rows.length > orgTypePreviewLimit
+                  return (
+                    <div key={group.periodKey} className="panel panel-soft rounded-xl p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div className="text-xs uppercase tracking-wide text-gray-500">
+                            Период
+                          </div>
+                          <div className="text-base font-semibold text-white">
+                            {group.periodLabel}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-emerald-500/15 px-2 py-1 text-xs text-emerald-300">
+                            {group.totalCount} писем
+                          </span>
+                          <span className="rounded-full bg-sky-500/15 px-2 py-1 text-xs text-sky-300">
+                            {group.orgCount} учрежд.
+                          </span>
+                          <span className="rounded-full bg-purple-500/15 px-2 py-1 text-xs text-purple-300">
+                            {group.typeCount} типов
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 space-y-3">
+                        {rowsToShow.map((row) => {
+                          const percent =
+                            group.maxCount > 0 ? (row.count / group.maxCount) * 100 : 0
+                          return (
+                            <div
+                              key={`${group.periodKey}-${row.org}-${row.type}`}
+                              className="flex items-center gap-3"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="truncate text-sm text-white">{row.org}</span>
+                                  <span className="truncate text-xs text-gray-500">{row.type}</span>
+                                </div>
+                                <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-700">
+                                  <div
+                                    className="h-full rounded-full bg-emerald-500"
+                                    style={{ width: `${percent}%` }}
+                                  />
+                                </div>
+                              </div>
+                              <div className="w-10 text-right text-sm font-semibold text-white">
+                                {row.count}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      {hasMore && (
+                        <button
+                          onClick={() => toggleOrgTypePeriod(group.periodKey)}
+                          className="mt-4 inline-flex items-center gap-2 text-sm text-emerald-400 transition hover:text-emerald-300"
+                        >
+                          {isExpanded
+                            ? 'Свернуть'
+                            : `Показать еще ${group.rows.length - orgTypePreviewLimit}`}
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          ) : (
+            <p className="py-6 text-sm text-gray-500">Нет данных за выбранный период.</p>
+          )}
         </div>
 
         {/* Types */}
