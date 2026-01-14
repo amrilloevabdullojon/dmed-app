@@ -11,8 +11,11 @@ import { useToast } from '@/components/Toast'
 
 type SettingsResponse = { settings?: NotificationSettings }
 
-const normalizeResponse = (data: SettingsResponse | NotificationSettings) =>
-  normalizeNotificationSettings('settings' in data ? data.settings : data)
+const hasSettingsPayload = (value: unknown): value is SettingsResponse =>
+  !!value && typeof value === 'object' && 'settings' in value
+
+const normalizeResponse = (data?: SettingsResponse | NotificationSettings) =>
+  normalizeNotificationSettings(hasSettingsPayload(data) ? data.settings : data)
 
 export const useNotificationSettings = () => {
   const toast = useToast()
