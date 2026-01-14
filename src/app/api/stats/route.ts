@@ -189,10 +189,14 @@ export async function GET(request: NextRequest) {
     // Статистика по ответственным (используем уже загруженных пользователей)
     const ownerStats = byOwner
       .map((o) => {
+        const ownerId = o.ownerId ?? 'unassigned'
         const user = allUsers.find((u) => u.id === o.ownerId)
+        const name = o.ownerId
+          ? user?.name || user?.email?.split('@')[0] || ownerId
+          : 'Не назначено'
         return {
-          id: o.ownerId,
-          name: user?.name || user?.email?.split('@')[0] || 'Неизвестный',
+          id: ownerId,
+          name,
           count: o._count.id,
         }
       })
