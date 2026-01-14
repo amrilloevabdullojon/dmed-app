@@ -232,7 +232,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       case 'owner':
         oldValue = letter.ownerId
         newValue = value
-        updateData.ownerId = value
+        updateData.owner = value ? { connect: { id: value } } : { disconnect: true }
 
         // Автоподписать нового владельца
         if (value) {
