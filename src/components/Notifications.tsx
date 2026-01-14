@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Clock,
   Info,
+  Search,
   MessageSquare,
   UserPlus,
   X,
@@ -17,8 +18,14 @@ import { useSession } from 'next-auth/react'
 import { formatDate, getWorkingDaysUntilDeadline, pluralizeDays } from '@/lib/utils'
 import { hasPermission } from '@/lib/permissions'
 import { useFetch, useMutation } from '@/hooks/useFetch'
+import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useToast } from '@/components/Toast'
 import { hapticLight, hapticMedium } from '@/lib/haptic'
+import {
+  DEFAULT_NOTIFICATION_SETTINGS,
+  NotificationSettings,
+  isWithinQuietHours,
+} from '@/lib/notification-settings'
 
 interface NotificationLetter {
   id: string
@@ -60,6 +67,12 @@ interface UnifiedNotification {
 }
 
 type FilterKey = 'all' | 'unread' | 'deadlines' | 'comments' | 'statuses' | 'assignments' | 'system'
+
+interface NotificationGroup extends UnifiedNotification {
+  count: number
+  ids: string[]
+  unreadCount: number
+}
 
 const SNOOZE_KEY = 'notification-deadline-snoozes'
 const NOTIFICATIONS_LIMIT = 100
@@ -148,11 +161,32 @@ export function Notifications() {
   const [isOpen, setIsOpen] = useState(false)
   const [notificationsLimit, setNotificationsLimit] = useState(NOTIFICATIONS_LIMIT)
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [loadDeadlineNotifications, setLoadDeadlineNotifications] = useState(false)
   const [snoozedDeadlines, setSnoozedDeadlines] = useState<Record<string, string>>({})
+  const [storedSettings, setStoredSettings] = useLocalStorage<NotificationSettings>(
+    'notification-settings',
+    DEFAULT_NOTIFICATION_SETTINGS
+  )
 
   const canManageLetters = hasPermission(session?.user.role, 'MANAGE_LETTERS')
   const currentUserId = session?.user.id
+
+  const notificationSettings = useMemo(
+    () => ({ ...DEFAULT_NOTIFICATION_SETTINGS, ...storedSettings }),
+    [storedSettings]
+  )
+
+  const updateNotificationSettings = useCallback(
+    (patch: Partial<NotificationSettings>) => {
+      setStoredSettings((prev) => ({
+        ...DEFAULT_NOTIFICATION_SETTINGS,
+        ...prev,
+        ...patch,
+      }))
+    },
+    [setStoredSettings]
+  )
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -189,6 +223,13 @@ export function Notifications() {
   }, [])
 
   const refetchInterval = isOpen ? 60 * 1000 : 5 * 60 * 1000
+  const quietHoursActive =
+    notificationSettings.quietHoursEnabled &&
+    isWithinQuietHours(
+      new Date(),
+      notificationSettings.quietHoursStart,
+      notificationSettings.quietHoursEnd
+    )
 
   const userNotificationsQuery = useFetch<UserNotification[]>(
     `/api/notifications?limit=${notificationsLimit}`,
@@ -296,6 +337,42 @@ export function Notifications() {
     })
   }, [deadlineNotifications, userNotifications])
 
+  const isImportantNotification = (item: UnifiedNotification) => {
+    if (isDeadlineKind(item.kind)) return true
+    if (item.kind === 'ASSIGNMENT' || item.kind === 'SYSTEM') return true
+    return item.isRead === false
+  }
+
+  const settingsFilteredNotifications = useMemo(() => {
+    if (!notificationSettings.inAppNotifications) return []
+
+    return unifiedNotifications.filter((item) => {
+      if (item.kind === 'COMMENT' && !notificationSettings.notifyOnComment) return false
+      if (item.kind === 'STATUS' && !notificationSettings.notifyOnStatusChange) return false
+      if (item.kind === 'ASSIGNMENT' && !notificationSettings.notifyOnAssignment) return false
+      if (item.kind === 'SYSTEM' && !notificationSettings.notifyOnSystem) return false
+      if (isDeadlineKind(item.kind) && !notificationSettings.notifyOnDeadline) return false
+      if (
+        quietHoursActive &&
+        notificationSettings.quietMode === 'important' &&
+        !isImportantNotification(item)
+      ) {
+        return false
+      }
+      return true
+    })
+  }, [
+    notificationSettings.inAppNotifications,
+    notificationSettings.notifyOnComment,
+    notificationSettings.notifyOnStatusChange,
+    notificationSettings.notifyOnAssignment,
+    notificationSettings.notifyOnSystem,
+    notificationSettings.notifyOnDeadline,
+    notificationSettings.quietMode,
+    quietHoursActive,
+    unifiedNotifications,
+  ])
+
   const counts = useMemo(() => {
     const base = {
       all: 0,
@@ -307,7 +384,7 @@ export function Notifications() {
       system: 0,
     }
 
-    unifiedNotifications.forEach((item) => {
+    settingsFilteredNotifications.forEach((item) => {
       base.all += 1
       if (item.kind === 'COMMENT') base.comments += 1
       if (item.kind === 'STATUS') base.statuses += 1
@@ -318,7 +395,7 @@ export function Notifications() {
     })
 
     return base
-  }, [unifiedNotifications])
+  }, [settingsFilteredNotifications])
 
   const totalCount = counts.unread + counts.deadlines
   const canLoadMore =
@@ -326,32 +403,108 @@ export function Notifications() {
     notificationsLimit < 200 &&
     userNotifications.length >= notificationsLimit
 
+  const searchValue = searchQuery.trim().toLowerCase()
+
+  const matchesSearch = useCallback(
+    (item: UnifiedNotification) => {
+      if (!searchValue) return true
+      const title = normalizeText(item.title).toLowerCase()
+      const body = normalizeText(item.body).toLowerCase()
+      const org = normalizeText(item.letter?.org).toLowerCase()
+      const number = item.letter?.number ? item.letter.number.toLowerCase() : ''
+      const owner = item.letter?.owner?.name ? item.letter.owner.name.toLowerCase() : ''
+      const haystack = [title, body, org, number, owner].filter(Boolean).join(' ')
+      return haystack.includes(searchValue)
+    },
+    [searchValue]
+  )
+
   const filteredNotifications = useMemo(() => {
+    let list = settingsFilteredNotifications
     switch (activeFilter) {
       case 'unread':
-        return unifiedNotifications.filter(
-          (item) => !isDeadlineKind(item.kind) && item.isRead === false
-        )
+        list = list.filter((item) => !isDeadlineKind(item.kind) && item.isRead === false)
+        break
       case 'deadlines':
-        return unifiedNotifications.filter((item) => isDeadlineKind(item.kind))
+        list = list.filter((item) => isDeadlineKind(item.kind))
+        break
       case 'comments':
-        return unifiedNotifications.filter((item) => item.kind === 'COMMENT')
+        list = list.filter((item) => item.kind === 'COMMENT')
+        break
       case 'statuses':
-        return unifiedNotifications.filter((item) => item.kind === 'STATUS')
+        list = list.filter((item) => item.kind === 'STATUS')
+        break
       case 'assignments':
-        return unifiedNotifications.filter((item) => item.kind === 'ASSIGNMENT')
+        list = list.filter((item) => item.kind === 'ASSIGNMENT')
+        break
       case 'system':
-        return unifiedNotifications.filter((item) => item.kind === 'SYSTEM')
+        list = list.filter((item) => item.kind === 'SYSTEM')
+        break
       default:
-        return unifiedNotifications
+        break
     }
-  }, [activeFilter, unifiedNotifications])
+    if (searchValue) {
+      list = list.filter((item) => matchesSearch(item))
+    }
+    return list
+  }, [activeFilter, matchesSearch, searchValue, settingsFilteredNotifications])
 
-  const notificationSections = useMemo(() => {
-    if (filteredNotifications.length === 0) return []
-    const sections: { id: string; title: string; items: UnifiedNotification[] }[] = []
+  const groupedNotifications = useMemo<NotificationGroup[]>(() => {
+    if (!notificationSettings.groupSimilar) {
+      return filteredNotifications.map((item) => ({
+        ...item,
+        count: 1,
+        ids: !isDeadlineKind(item.kind) ? [item.id] : [],
+        unreadCount: !isDeadlineKind(item.kind) && item.isRead === false ? 1 : 0,
+      }))
+    }
+
+    const groups: NotificationGroup[] = []
+    const indexByKey = new Map<string, number>()
+
+    const buildGroupKey = (item: UnifiedNotification) => {
+      const letterKey = item.letter?.id ?? 'no-letter'
+      if (isDeadlineKind(item.kind)) {
+        return `${item.kind}-${letterKey}`
+      }
+      const title = normalizeText(item.title).trim().toLowerCase()
+      const body = normalizeText(item.body).trim().toLowerCase()
+      return `${item.kind}-${letterKey}-${title}-${body}`
+    }
 
     filteredNotifications.forEach((item) => {
+      const key = buildGroupKey(item)
+      const existingIndex = indexByKey.get(key)
+
+      if (existingIndex === undefined) {
+        groups.push({
+          ...item,
+          count: 1,
+          ids: !isDeadlineKind(item.kind) ? [item.id] : [],
+          unreadCount: !isDeadlineKind(item.kind) && item.isRead === false ? 1 : 0,
+        })
+        indexByKey.set(key, groups.length - 1)
+        return
+      }
+
+      const group = groups[existingIndex]
+      group.count += 1
+      if (!isDeadlineKind(item.kind)) {
+        group.ids.push(item.id)
+        if (item.isRead === false) {
+          group.unreadCount += 1
+        }
+      }
+    })
+
+    return groups
+  }, [filteredNotifications, notificationSettings.groupSimilar])
+
+  const notificationSections = useMemo(() => {
+    if (groupedNotifications.length === 0) return []
+    const sections: { id: string; title: string; items: NotificationGroup[] }[] = []
+
+    groupedNotifications.forEach((item) => {
       const sectionDate = isDeadlineKind(item.kind)
         ? (item.letter?.deadlineDate ?? item.createdAt)
         : item.createdAt
@@ -366,17 +519,19 @@ export function Notifications() {
     })
 
     return sections
-  }, [filteredNotifications])
+  }, [groupedNotifications])
 
-  const markNotificationRead = async (id: string) => {
+  const markNotificationsRead = async (ids: string[]) => {
+    if (ids.length === 0) return
     const previous = userNotifications
+    const idSet = new Set(ids)
     setUserNotifications((prev) =>
-      (prev ?? []).map((n) => (n.id === id ? { ...n, isRead: true } : n))
+      (prev ?? []).map((n) => (idSet.has(n.id) ? { ...n, isRead: true } : n))
     )
 
-    const result = await updateNotifications.mutate({ ids: [id] })
+    const result = await updateNotifications.mutate({ ids })
     if (!result) {
-      console.error('Failed to mark notification read')
+      console.error('Failed to mark notifications read')
       setUserNotifications(previous)
     }
   }
@@ -531,7 +686,15 @@ export function Notifications() {
     pruneSnoozes()
   }, [isOpen, pruneSnoozes])
 
+  useEffect(() => {
+    if (isOpen && notificationSettings.notifyOnDeadline) {
+      setLoadDeadlineNotifications(true)
+    }
+  }, [isOpen, notificationSettings.notifyOnDeadline])
+
   const isLoading = userNotificationsQuery.isLoading && unifiedNotifications.length === 0
+  const isNotificationsDisabled = !notificationSettings.inAppNotifications
+  const isSearchActive = searchValue.length > 0
 
   return (
     <div className="relative">
@@ -541,7 +704,9 @@ export function Notifications() {
           setIsOpen((prev) => {
             const next = !prev
             if (next) {
-              setLoadDeadlineNotifications(true)
+              if (notificationSettings.notifyOnDeadline) {
+                setLoadDeadlineNotifications(true)
+              }
             }
             return next
           })
@@ -593,7 +758,7 @@ export function Notifications() {
                     }}
                     className="tap-highlight rounded-md border border-emerald-500/20 px-2 py-1 text-xs text-emerald-200 transition hover:border-emerald-400/40 hover:bg-emerald-500/15"
                   >
-                    Отметить все прочитанным
+                    Отметить все прочитанными
                   </button>
                 )}
                 {counts.deadlines > 0 && !checkHasActiveSnoozes() && (
@@ -631,34 +796,113 @@ export function Notifications() {
               </div>
             </div>
 
-            <div className="relative z-10 flex items-center gap-2 overflow-x-auto border-b border-slate-800/80 bg-slate-900/70 px-4 py-2 shadow-inner shadow-black/20 sm:flex-wrap sm:overflow-visible">
-              {filterConfig.map((filter) => (
+            <div className="relative z-10 border-b border-slate-800/80 bg-slate-900/70 px-4 py-3 shadow-inner shadow-black/20">
+              <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap sm:overflow-visible">
+                {filterConfig.map((filter) => (
+                  <button
+                    key={filter.key}
+                    onClick={() => {
+                      hapticLight()
+                      setActiveFilter(filter.key)
+                    }}
+                    className={`tap-highlight shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition ${
+                      activeFilter === filter.key
+                        ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-200 shadow-sm shadow-emerald-500/20'
+                        : 'border-slate-700/60 text-slate-400 hover:border-slate-600/70 hover:text-slate-200'
+                    }`}
+                  >
+                    {filter.label}
+                    {filter.count > 0 && (
+                      <span
+                        className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${
+                          activeFilter === filter.key
+                            ? 'bg-emerald-500/20 text-emerald-200'
+                            : 'bg-slate-800 text-slate-300'
+                        }`}
+                      >
+                        {filter.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <div className="relative flex min-w-[220px] flex-1 items-center">
+                  <Search className="pointer-events-none absolute left-3 h-4 w-4 text-slate-500" />
+                  <input
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Поиск по уведомлениям"
+                    className="h-9 w-full rounded-full border border-slate-800/70 bg-slate-900/80 pl-9 pr-9 text-xs text-white placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => {
+                        hapticLight()
+                        setSearchQuery('')
+                      }}
+                      className="tap-highlight absolute right-2 rounded-full p-1 text-slate-400 transition hover:bg-slate-800 hover:text-slate-200"
+                      aria-label="Сбросить поиск"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
                 <button
-                  key={filter.key}
                   onClick={() => {
                     hapticLight()
-                    setActiveFilter(filter.key)
+                    updateNotificationSettings({
+                      groupSimilar: !notificationSettings.groupSimilar,
+                    })
                   }}
-                  className={`tap-highlight shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition ${
-                    activeFilter === filter.key
-                      ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-200 shadow-sm shadow-emerald-500/20'
+                  className={`tap-highlight rounded-full border px-3 py-1 text-[11px] font-medium transition ${
+                    notificationSettings.groupSimilar
+                      ? 'border-slate-500/70 bg-slate-800/80 text-slate-100'
                       : 'border-slate-700/60 text-slate-400 hover:border-slate-600/70 hover:text-slate-200'
                   }`}
                 >
-                  {filter.label}
-                  {filter.count > 0 && (
-                    <span
-                      className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${
-                        activeFilter === filter.key
-                          ? 'bg-emerald-500/20 text-emerald-200'
-                          : 'bg-slate-800 text-slate-300'
-                      }`}
-                    >
-                      {filter.count}
-                    </span>
-                  )}
+                  Группировать
                 </button>
-              ))}
+                <button
+                  onClick={() => {
+                    hapticLight()
+                    updateNotificationSettings({
+                      showPreviews: !notificationSettings.showPreviews,
+                    })
+                  }}
+                  className={`tap-highlight rounded-full border px-3 py-1 text-[11px] font-medium transition ${
+                    notificationSettings.showPreviews
+                      ? 'border-slate-500/70 bg-slate-800/80 text-slate-100'
+                      : 'border-slate-700/60 text-slate-400 hover:border-slate-600/70 hover:text-slate-200'
+                  }`}
+                >
+                  Превью
+                </button>
+                <button
+                  onClick={() => {
+                    hapticLight()
+                    updateNotificationSettings({
+                      showOrganizations: !notificationSettings.showOrganizations,
+                    })
+                  }}
+                  className={`tap-highlight rounded-full border px-3 py-1 text-[11px] font-medium transition ${
+                    notificationSettings.showOrganizations
+                      ? 'border-slate-500/70 bg-slate-800/80 text-slate-100'
+                      : 'border-slate-700/60 text-slate-400 hover:border-slate-600/70 hover:text-slate-200'
+                  }`}
+                >
+                  Учреждения
+                </button>
+              </div>
+              {quietHoursActive && (
+                <div className="mt-2 text-[11px] text-amber-200">
+                  Тихие часы активны —{' '}
+                  {notificationSettings.quietMode === 'important'
+                    ? 'показываем только важные'
+                    : 'показываем все'}
+                  .
+                </div>
+              )}
             </div>
 
             <div className="relative z-10 flex-1 overflow-y-auto px-4 py-4">
@@ -667,12 +911,24 @@ export function Notifications() {
                   <Bell className="h-6 w-6 text-slate-600" />
                   <div className="text-sm">Загружаем уведомления...</div>
                 </div>
+              ) : isNotificationsDisabled ? (
+                <div className="flex flex-col items-center gap-2 p-10 text-slate-500">
+                  <Bell className="h-6 w-6 text-slate-600" />
+                  <div className="text-sm">Уведомления отключены</div>
+                  <div className="text-xs text-slate-600">
+                    Включите их в настройках, чтобы получать обновления.
+                  </div>
+                </div>
               ) : filteredNotifications.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 p-10 text-slate-500">
                   <Bell className="h-6 w-6 text-slate-600" />
-                  <div className="text-sm">Пока нет уведомлений</div>
+                  <div className="text-sm">
+                    {isSearchActive ? 'Ничего не найдено' : 'Пока нет уведомлений'}
+                  </div>
                   <div className="text-xs text-slate-600">
-                    Новые события появятся здесь автоматически.
+                    {isSearchActive
+                      ? 'Попробуйте изменить запрос или фильтры.'
+                      : 'Новые события появятся здесь автоматически.'}
                   </div>
                 </div>
               ) : (
@@ -685,7 +941,7 @@ export function Notifications() {
                       {section.items.map((notif) => {
                         const iconConfig = renderNotificationIcon(notif)
                         const Icon = iconConfig.icon
-                        const isUnread = !isDeadlineKind(notif.kind) && notif.isRead === false
+                        const isUnread = !isDeadlineKind(notif.kind) && notif.unreadCount > 0
                         const linkTarget = notif.letter?.id
                           ? `/letters/${notif.letter.id}`
                           : '/letters'
@@ -707,6 +963,21 @@ export function Notifications() {
                           : isUnread
                             ? 'border-emerald-500/35 bg-emerald-500/10 shadow-[0_12px_30px_-22px_rgba(16,185,129,0.35)]'
                             : 'border-slate-800/70 bg-slate-900/50'
+                        const priorityBadge = isDeadlineKind(notif.kind)
+                          ? {
+                              label: notif.kind === 'DEADLINE_OVERDUE' ? 'Критично' : 'Срочно',
+                              className:
+                                notif.kind === 'DEADLINE_OVERDUE'
+                                  ? 'border-red-500/40 bg-red-500/15 text-red-200'
+                                  : 'border-yellow-500/40 bg-yellow-500/15 text-yellow-200',
+                            }
+                          : isUnread && notif.kind === 'ASSIGNMENT'
+                            ? {
+                                label: 'Важное',
+                                className:
+                                  'border-emerald-500/40 bg-emerald-500/15 text-emerald-200',
+                              }
+                            : null
 
                         return (
                           <Link
@@ -715,7 +986,7 @@ export function Notifications() {
                             onClick={() => {
                               hapticLight()
                               if (!isDeadlineKind(notif.kind)) {
-                                markNotificationRead(notif.id)
+                                markNotificationsRead(notif.ids)
                               }
                               setIsOpen(false)
                             }}
@@ -732,22 +1003,34 @@ export function Notifications() {
                                 <span className="text-sm font-medium text-white">
                                   {renderNotificationTitle(notif)}
                                 </span>
+                                {notif.count > 1 && (
+                                  <span className="rounded-full border border-slate-700/70 bg-slate-800/80 px-2 py-0.5 text-[10px] text-slate-200">
+                                    x{notif.count}
+                                  </span>
+                                )}
                                 {isUnread && (
                                   <span className="h-2 w-2 rounded-full bg-emerald-400" />
                                 )}
                               </div>
-                              {body && (
+                              {notificationSettings.showPreviews && body && (
                                 <div className="mt-1 line-clamp-2 text-xs text-slate-300">
                                   {body}
                                 </div>
                               )}
-                              {org && (
+                              {notificationSettings.showOrganizations && org && (
                                 <div className="mt-1 truncate text-xs text-slate-400">{org}</div>
                               )}
                               <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                                 <span>{getKindLabel(notif.kind)}</span>
                                 <span className="text-slate-600">•</span>
                                 {renderNotificationMeta(notif)}
+                                {priorityBadge && (
+                                  <span
+                                    className={`rounded-full border px-2 py-0.5 text-[10px] ${priorityBadge.className}`}
+                                  >
+                                    {priorityBadge.label}
+                                  </span>
+                                )}
                                 {notif.letter?.number && (
                                   <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[10px] text-emerald-200">
                                     №{notif.letter.number}
@@ -755,13 +1038,13 @@ export function Notifications() {
                                 )}
                               </div>
                               <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
-                                {!isDeadlineKind(notif.kind) && notif.isRead === false && (
+                                {!isDeadlineKind(notif.kind) && notif.unreadCount > 0 && (
                                   <button
                                     onClick={(event) => {
                                       event.preventDefault()
                                       event.stopPropagation()
                                       hapticLight()
-                                      markNotificationRead(notif.id)
+                                      markNotificationsRead(notif.ids)
                                     }}
                                     className="tap-highlight rounded-full bg-slate-800/80 px-2.5 py-1 text-slate-200 transition hover:bg-slate-700"
                                   >
