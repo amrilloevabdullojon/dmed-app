@@ -1153,8 +1153,7 @@ export function Notifications() {
                 }}
                 className="tap-highlight block px-4 py-3 text-center text-sm text-slate-400 transition hover:text-slate-200"
               >
-                \u0418\u0441\u0442\u043e\u0440\u0438\u044f
-                \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439
+                История уведомлений
               </Link>
               <Link
                 href="/settings"
