@@ -170,7 +170,9 @@ export const dispatchNotification = async ({
 
   for (const user of users) {
     const settings = user.notificationPreference?.settings
-      ? normalizeNotificationSettings(user.notificationPreference.settings as NotificationSettings)
+      ? normalizeNotificationSettings(
+          user.notificationPreference.settings as unknown as NotificationSettings
+        )
       : buildSettingsFromUser(user)
 
     if (!isEventEnabled(settings, event)) {
