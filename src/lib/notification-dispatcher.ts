@@ -8,7 +8,12 @@ import {
 } from '@/lib/notification-settings'
 import { sendEmail, sendSms } from '@/lib/notifications'
 import { sendTelegramMessage } from '@/lib/telegram'
-import type { DigestFrequency, NotificationChannel, NotificationPriority } from '@prisma/client'
+import type {
+  DigestFrequency,
+  NotificationChannel,
+  NotificationPriority,
+  Prisma,
+} from '@prisma/client'
 
 type DispatchNotificationInput = {
   event: NotificationEventType
