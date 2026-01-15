@@ -147,13 +147,22 @@ const buildFallbackTitle = (item: UnifiedNotification) => {
   }
 }
 
-const decodeUnicodeEscapes = (value: string) =>
-  value.replace(/\\u([0-9a-fA-F]{4})/g, (_, code) => String.fromCharCode(Number.parseInt(code, 16)))
+const decodeUnicodeEscapes = (value: string) => {
+  let result = value
+  for (let i = 0; i < 2; i += 1) {
+    const next = result
+      .replace(/\\\\u([0-9a-fA-F]{4})/g, '\\u$1')
+      .replace(/\\u([0-9a-fA-F]{4})/g, (_, code) => String.fromCharCode(Number.parseInt(code, 16)))
+    if (next === result) break
+    result = next
+  }
+  return result
+}
 
 const normalizeText = (value?: string | null) => {
   if (!value) return ''
   const decoded = decodeUnicodeEscapes(value)
-  return decoded.replace(/\\n/g, '\n')
+  return decoded.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n')
 }
 
 export function Notifications() {
