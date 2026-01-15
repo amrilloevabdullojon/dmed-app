@@ -14,8 +14,10 @@ type SettingsResponse = { settings?: NotificationSettings }
 const hasSettingsPayload = (value: unknown): value is SettingsResponse =>
   !!value && typeof value === 'object' && 'settings' in value
 
-const normalizeResponse = (data?: SettingsResponse | NotificationSettings) =>
-  normalizeNotificationSettings(hasSettingsPayload(data) ? data.settings : data)
+const normalizeResponse = (data: unknown) =>
+  normalizeNotificationSettings(
+    hasSettingsPayload(data) ? data.settings : (data as NotificationSettings | undefined)
+  )
 
 export const useNotificationSettings = () => {
   const toast = useToast()
