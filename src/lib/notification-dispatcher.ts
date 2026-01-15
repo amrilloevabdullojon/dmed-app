@@ -223,7 +223,7 @@ export const dispatchNotification = async ({
         body: body || undefined,
         priority,
         dedupeKey: baseDedupeKey,
-        metadata: metadata || undefined,
+        metadata: metadata ? (metadata as unknown as Prisma.InputJsonValue) : undefined,
       },
     })
 
