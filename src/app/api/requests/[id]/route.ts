@@ -9,6 +9,7 @@ import { formatRequestStatusChangeMessage, sendTelegramMessage } from '@/lib/tel
 import { csrfGuard } from '@/lib/security'
 import type { Prisma } from '@prisma/client'
 import { calculateSlaDeadline, calculateSlaStatus } from '@/lib/request-sla'
+import { sendRequestStatusUpdateEmail } from '@/lib/request-email'
 
 const CONTEXT = 'API:Requests:[id]'
 
@@ -261,6 +262,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           logger.error(CONTEXT, err, { action: 'telegram_notification', requestId: id })
         })
       }
+
+      // Отправляем email уведомление заявителю
+      sendRequestStatusUpdateEmail({
+        id: updated.id,
+        organization: updated.organization,
+        contactName: updated.contactName,
+        contactEmail: updated.contactEmail,
+        status: updated.status,
+      }).catch((err) => {
+        logger.error(CONTEXT, err, { action: 'email_notification', requestId: id })
+      })
     }
 
     return NextResponse.json({ success: true, request: updated })

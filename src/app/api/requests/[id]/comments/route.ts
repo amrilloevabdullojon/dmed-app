@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger.server'
 import { requirePermission } from '@/lib/permission-guard'
 import { csrfGuard } from '@/lib/security'
 import { z } from 'zod'
+import { sendRequestCommentEmail } from '@/lib/request-email'
 
 const createCommentSchema = z.object({
   text: z.string().min(1, 'Комментарий не может быть пустым').max(5000),
@@ -88,7 +89,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Проверяем существование заявки
     const requestRecord = await prisma.request.findUnique({
       where: { id },
-      select: { id: true, deletedAt: true },
+      select: {
+        id: true,
+        deletedAt: true,
+        organization: true,
+        contactName: true,
+        contactEmail: true,
+      },
     })
 
     if (!requestRecord) {
@@ -121,6 +128,30 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       requestId: id,
       commentId: comment.id,
       authorId: session.user.id,
+    })
+
+    // Устанавливаем firstResponseAt если это первый комментарий
+    const firstComment = await prisma.requestComment.count({
+      where: { requestId: id },
+    })
+
+    if (firstComment === 1) {
+      await prisma.request.update({
+        where: { id },
+        data: { firstResponseAt: new Date() },
+      })
+    }
+
+    // Отправляем email уведомление заявителю
+    sendRequestCommentEmail({
+      id: requestRecord.id,
+      organization: requestRecord.organization,
+      contactName: requestRecord.contactName,
+      contactEmail: requestRecord.contactEmail,
+      commentText: validation.data.text,
+      commentAuthor: comment.author.name || comment.author.email || 'Оператор',
+    }).catch((err) => {
+      logger.error('POST /api/requests/[id]/comments', 'Failed to send email', err)
     })
 
     return NextResponse.json({ comment }, { status: 201 })
