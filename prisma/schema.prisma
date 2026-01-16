@@ -300,6 +300,12 @@ enum RequestCategory {
   OTHER           // Другое
 }
 
+enum SlaStatus {
+  ON_TIME       // В срок
+  AT_RISK       // Под угрозой нарушения
+  BREACHED      // Нарушен
+}
+
 model Request {
   id              String          @id @default(cuid())
   organization    String
@@ -315,6 +321,12 @@ model Request {
   assignedTo      User?           @relation("RequestAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   source          String?
   ipHash          String?
+
+  // SLA fields
+  slaDeadline      DateTime?
+  firstResponseAt  DateTime?
+  resolvedAt       DateTime?
+  slaStatus        SlaStatus       @default(ON_TIME)
 
   // Soft delete
   deletedAt       DateTime?
@@ -332,6 +344,8 @@ model Request {
   @@index([priority])
   @@index([category])
   @@index([deletedAt])
+  @@index([slaStatus])
+  @@index([slaDeadline])
 }
 
 model RequestFile {

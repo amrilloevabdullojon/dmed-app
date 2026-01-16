@@ -8,6 +8,7 @@ import { requirePermission } from '@/lib/permission-guard'
 import { formatRequestStatusChangeMessage, sendTelegramMessage } from '@/lib/telegram'
 import { csrfGuard } from '@/lib/security'
 import type { Prisma } from '@prisma/client'
+import { calculateSlaDeadline, calculateSlaStatus } from '@/lib/request-sla'
 
 const CONTEXT = 'API:Requests:[id]'
 
@@ -100,6 +101,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         category: true,
         assignedToId: true,
         assignedTo: { select: { name: true, email: true } },
+        createdAt: true,
+        slaDeadline: true,
+        resolvedAt: true,
+        slaStatus: true,
       },
     })
 
@@ -118,6 +123,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         oldValue: currentRequest.status,
         newValue: parsed.data.status,
       })
+
+      // Если заявка завершена, устанавливаем resolvedAt
+      if (parsed.data.status === 'DONE' && !currentRequest.resolvedAt) {
+        updateData.resolvedAt = new Date()
+      }
+
+      // Если заявка снова открыта, сбрасываем resolvedAt
+      if (parsed.data.status !== 'DONE' && currentRequest.resolvedAt) {
+        updateData.resolvedAt = null
+      }
     }
 
     // Обработка изменения приоритета
@@ -128,6 +143,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         oldValue: currentRequest.priority,
         newValue: parsed.data.priority,
       })
+
+      // Пересчитываем SLA дедлайн при изменении приоритета
+      const newDeadline = calculateSlaDeadline(currentRequest.createdAt, parsed.data.priority)
+      updateData.slaDeadline = newDeadline
     }
 
     // Обработка изменения категории
@@ -173,6 +192,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No updates provided.' }, { status: 400 })
+    }
+
+    // Обновляем SLA статус если нужно
+    const newSlaStatus = calculateSlaStatus(
+      updateData.slaDeadline ? (updateData.slaDeadline as Date) : currentRequest.slaDeadline,
+      updateData.resolvedAt ? (updateData.resolvedAt as Date) : currentRequest.resolvedAt,
+      (updateData.status as string) || currentRequest.status
+    )
+    if (newSlaStatus !== currentRequest.slaStatus) {
+      updateData.slaStatus = newSlaStatus
     }
 
     // Обновляем заявку и записываем историю в одной транзакции

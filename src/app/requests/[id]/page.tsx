@@ -11,6 +11,7 @@ import { useToast } from '@/components/Toast'
 import { formatDate } from '@/lib/utils'
 import { TemplateSelector } from '@/components/requests/TemplateSelector'
 import { TagSelector } from '@/components/requests/TagSelector'
+import { SlaIndicator } from '@/components/requests/SlaIndicator'
 import {
   ArrowLeft,
   Loader2,
@@ -29,6 +30,7 @@ import {
 type RequestStatus = 'NEW' | 'IN_REVIEW' | 'DONE' | 'SPAM' | 'CANCELLED'
 type RequestPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'
 type RequestCategory = 'CONSULTATION' | 'TECHNICAL' | 'DOCUMENTATION' | 'COMPLAINT' | 'SUGGESTION' | 'OTHER'
+type SlaStatus = 'ON_TIME' | 'AT_RISK' | 'BREACHED'
 
 interface RequestFile {
   id: string
@@ -63,6 +65,8 @@ interface RequestDetail {
   category: RequestCategory
   createdAt: string
   source?: string | null
+  slaDeadline?: string | null
+  slaStatus?: SlaStatus
   assignedTo: {
     id: string
     name: string | null
@@ -335,6 +339,14 @@ export default function RequestDetailPage() {
                 <Tag className="w-3 h-3" />
                 {CATEGORY_LABELS[request.category]}
               </span>
+              {request.slaDeadline && request.slaStatus && (
+                <SlaIndicator
+                  slaDeadline={request.slaDeadline}
+                  slaStatus={request.slaStatus}
+                  status={request.status}
+                  size="sm"
+                />
+              )}
             </div>
           </div>
           <span
