@@ -76,6 +76,7 @@ model User {
   history         History[]
   answerTemplates AnswerTemplate[]
   letterTemplates LetterTemplate[] @relation("LetterTemplateCreator")
+  letterReminders LetterReminder[]
   notifications   Notification[]
   profile         UserProfile?
   auditsTarget    UserAudit[]     @relation("UserAuditTarget")
@@ -244,6 +245,7 @@ model Letter {
   linkedFrom    LinkedLetter[] @relation("LinkedFrom")
   linkedTo      LinkedLetter[] @relation("LinkedTo")
   notifications Notification[]
+  reminders     LetterReminder[]
 
   // Для синхронизации с Google Sheets
   sheetRowNum   Int?         // Номер строки в Google Sheets
@@ -642,6 +644,37 @@ model LetterTemplate {
   @@index([usageCount])
 }
 
+// ===== НАПОМИНАНИЯ ДЛЯ ПИСЕМ =====
+
+model LetterReminder {
+  id           String             @id @default(cuid())
+  letterId     String
+  letter       Letter             @relation(fields: [letterId], references: [id], onDelete: Cascade)
+  type         LetterReminderType
+  triggerDate  DateTime           // Когда сработает напоминание
+  message      String             @db.Text // Текст напоминания
+  isActive     Boolean            @default(true) // Активно ли напоминание
+  isSent       Boolean            @default(false) // Отправлено ли
+  sentAt       DateTime?          // Когда отправлено
+  createdById  String?            // Кто создал (null для автоматических)
+  createdBy    User?              @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([letterId, isActive])
+  @@index([triggerDate, isActive, isSent])
+  @@index([createdById])
+}
+
+enum LetterReminderType {
+  DEADLINE_APPROACHING  // Приближается дедлайн
+  DEADLINE_OVERDUE      // Просрочен дедлайн
+  NO_RESPONSE          // Долго нет ответа
+  STALLED              // Письмо застопорилось
+  FOLLOW_UP            // Время для follow-up
+  CUSTOM               // Пользовательское напоминание
+}
+
 // ===== Notifications =====
 
 model Notification {
@@ -665,6 +698,7 @@ enum NotificationType {
   STATUS
   ASSIGNMENT
   SYSTEM
+  REMINDER  // Новый тип для напоминаний
 }
 
 // ===== НАСТРОЙКИ РАЗРЕШЕНИЙ =====

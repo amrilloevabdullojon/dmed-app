@@ -42,6 +42,13 @@ const RelatedLetters = dynamic(
     loading: () => <div className="h-48 animate-pulse rounded-lg bg-white/5" />,
   }
 )
+const LetterReminders = dynamic(
+  () =>
+    import('@/components/LetterReminders').then((mod) => ({ default: mod.LetterReminders })),
+  {
+    loading: () => <div className="h-48 animate-pulse rounded-lg bg-white/5" />,
+  }
+)
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import type { LetterStatus } from '@prisma/client'
@@ -1107,6 +1114,9 @@ export default function LetterDetailPage() {
 
             {/* Files */}
             <FileUpload letterId={letter.id} files={letter.files} onFilesChange={loadLetter} />
+
+            {/* Reminders */}
+            <LetterReminders letterId={letter.id} />
 
             {/* Related Letters */}
             <RelatedLetters currentLetterId={letter.id} organization={letter.org} />
