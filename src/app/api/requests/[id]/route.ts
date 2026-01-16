@@ -40,6 +40,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
             author: { select: { id: true, name: true, email: true, image: true } },
           },
         },
+        tags: true,
         _count: { select: { history: true } },
       },
     })
