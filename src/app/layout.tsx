@@ -5,7 +5,6 @@ import { Providers } from '@/components/Providers'
 import { Snowfall, NewYearBanner } from '@/components/Snowfall'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 import { AuthGuard } from '@/components/AuthGuard'
-import { SkipToContent } from '@/components/SkipToContent'
 
 const manrope = Manrope({
   subsets: ['latin', 'cyrillic'],
@@ -38,7 +37,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${manrope.variable} ${spaceGrotesk.variable} app-body min-h-screen text-white`}
       >
-        <SkipToContent />
         <Providers>
           <AuthGuard>
             <NewYearBanner />
