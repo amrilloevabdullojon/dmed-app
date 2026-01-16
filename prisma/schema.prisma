@@ -87,6 +87,7 @@ model User {
   requestComments    RequestComment[] @relation("RequestCommentAuthor")
   requestHistory     RequestHistory[] @relation("RequestHistoryActor")
   pushSubscriptions  PushSubscription[]
+  requestTemplates   RequestResponseTemplate[]
 
   @@index([role])              // Индекс для фильтрации по роли
   @@index([canLogin])          // Индекс для фильтрации по доступу
@@ -321,6 +322,7 @@ model Request {
   files           RequestFile[]
   comments        RequestComment[]
   history         RequestHistory[]
+  tags            RequestTag[]
 
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -377,6 +379,34 @@ model RequestHistory {
 
   @@index([requestId, createdAt])
   @@index([userId])
+}
+
+// Шаблоны ответов для заявок
+model RequestResponseTemplate {
+  id          String          @id @default(cuid())
+  name        String
+  content     String          @db.Text
+  category    RequestCategory?
+  isPublic    Boolean         @default(false)
+  createdById String
+  createdBy   User            @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([category])
+  @@index([createdById])
+  @@index([isPublic])
+}
+
+// Теги для заявок
+model RequestTag {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  color     String    @default("#6B7280")
+  requests  Request[]
+  createdAt DateTime  @default(now())
+
+  @@index([name])
 }
 
 // ===== ФАЙЛЫ =====

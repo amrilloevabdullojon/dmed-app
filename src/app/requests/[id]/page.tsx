@@ -9,6 +9,8 @@ import { Header } from '@/components/Header'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 import { useToast } from '@/components/Toast'
 import { formatDate } from '@/lib/utils'
+import { TemplateSelector } from '@/components/requests/TemplateSelector'
+import { TagSelector } from '@/components/requests/TagSelector'
 import {
   ArrowLeft,
   Loader2,
@@ -69,6 +71,7 @@ interface RequestDetail {
   } | null
   files: RequestFile[]
   comments: RequestComment[]
+  tags: Array<{ id: string; name: string; color: string }>
   _count: { history: number }
 }
 
@@ -162,29 +165,29 @@ export default function RequestDetailPage() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const fetchedRef = useRef(false)
 
+  const loadRequest = useCallback(async () => {
+    if (!requestId) return
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/requests/${requestId}`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to load request')
+      }
+
+      setRequest(data.request)
+    } catch (error) {
+      console.error('Failed to load request:', error)
+      toastError('Не удалось загрузить заявку.')
+    } finally {
+      setLoading(false)
+    }
+  }, [requestId, toastError])
+
   useEffect(() => {
     if (!session || !requestId || fetchedRef.current) return
     fetchedRef.current = true
-
-    const loadRequest = async () => {
-      setLoading(true)
-      try {
-        const response = await fetch(`/api/requests/${requestId}`)
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to load request')
-        }
-
-        setRequest(data.request)
-      } catch (error) {
-        console.error('Failed to load request:', error)
-        toastError('Не удалось загрузить заявку.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadRequest()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, requestId])
@@ -445,26 +448,34 @@ export default function RequestDetailPage() {
                 </div>
               )}
 
-              <form onSubmit={submitComment} className="flex gap-2">
-                <input
-                  type="text"
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Написать комментарий..."
-                  disabled={submittingComment}
-                  className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
-                />
-                <button
-                  type="submit"
-                  disabled={submittingComment || !commentText.trim()}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submittingComment ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                </button>
+              <form onSubmit={submitComment} className="space-y-3">
+                <div className="flex gap-2">
+                  <TemplateSelector
+                    category={request.category}
+                    onSelect={(content) => setCommentText(content)}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="Написать комментарий..."
+                    disabled={submittingComment}
+                    className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={submittingComment || !commentText.trim()}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submittingComment ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </form>
             </div>
 
@@ -538,6 +549,16 @@ export default function RequestDetailPage() {
               <h2 className="text-lg font-semibold text-white">
                 {'Управление'}
               </h2>
+              <div>
+                <label className="block text-sm text-slate-300 mb-2">
+                  {'Теги'}
+                </label>
+                <TagSelector
+                  requestId={request.id}
+                  currentTags={request.tags}
+                  onUpdate={loadRequest}
+                />
+              </div>
               <div>
                 <label className="block text-sm text-slate-300 mb-2">
                   {'Статус'}
