@@ -57,6 +57,20 @@ export async function POST(request: NextRequest) {
         orderBy: { createdAt: 'asc' },
         select: { id: true, oldValue: true, newValue: true, createdAt: true },
       },
+      comments: {
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true,
+          text: true,
+          createdAt: true,
+          author: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+      },
     },
   })
 
@@ -95,10 +109,15 @@ export async function POST(request: NextRequest) {
       organization: requestRecord.organization,
       description: requestRecord.description,
       status: requestRecord.status,
+      priority: requestRecord.priority,
+      category: requestRecord.category,
+      slaDeadline: requestRecord.slaDeadline,
+      slaStatus: requestRecord.slaStatus,
       createdAt: requestRecord.createdAt,
       updatedAt: requestRecord.updatedAt,
       files: requestRecord.files,
       history: requestRecord.history,
+      comments: requestRecord.comments,
     },
   })
 }
