@@ -21,6 +21,15 @@ const TemplateSelector = dynamic(
     loading: () => <div className="h-20 animate-pulse rounded-lg bg-white/5" />,
   }
 )
+const LetterTemplateSelector = dynamic(
+  () =>
+    import('@/components/LetterTemplateSelector').then((mod) => ({
+      default: mod.LetterTemplateSelector,
+    })),
+  {
+    loading: () => <div className="h-20 animate-pulse rounded-lg bg-white/5" />,
+  }
+)
 const ActivityFeed = dynamic(
   () => import('@/components/ActivityFeed').then((mod) => ({ default: mod.ActivityFeed })),
   {
@@ -788,12 +797,14 @@ export default function LetterDetailPage() {
                 rows={3}
               />
 
-              {/* Ответ с шаблонами */}
+              {/* Ответ с шаблонами писем */}
               <div className="mb-4">
                 <div className="mb-2 flex items-center justify-between">
                   <label className="text-sm font-medium text-gray-300">Ответ</label>
-                  <TemplateSelector
+                  <LetterTemplateSelector
                     currentUserId={session.user.id}
+                    letter={letter}
+                    field="answer"
                     onSelect={(content) => {
                       const newAnswer = letter.answer ? `${letter.answer}\n\n${content}` : content
                       updateField('answer', newAnswer)

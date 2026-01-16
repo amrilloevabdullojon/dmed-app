@@ -75,6 +75,7 @@ model User {
   favorites       Favorite[]
   history         History[]
   answerTemplates AnswerTemplate[]
+  letterTemplates LetterTemplate[] @relation("LetterTemplateCreator")
   notifications   Notification[]
   profile         UserProfile?
   auditsTarget    UserAudit[]     @relation("UserAuditTarget")
@@ -616,6 +617,29 @@ model AnswerTemplate {
 
   @@index([createdById])
   @@index([category])
+}
+
+// ===== ШАБЛОНЫ ПИСЕМ =====
+
+model LetterTemplate {
+  id          String   @id @default(cuid())
+  name        String   // Название шаблона
+  subject     String?  // Тема письма (опционально)
+  body        String   @db.Text // Тело письма
+  signature   String?  @db.Text // Подпись (опционально)
+  category    String?  // Категория шаблона
+  variables   String[] @default([]) // Доступные переменные
+  isPublic    Boolean  @default(false) // Публичный или личный
+  usageCount  Int      @default(0) // Счётчик использований
+  createdById String
+  createdBy   User     @relation("LetterTemplateCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([createdById])
+  @@index([isPublic])
+  @@index([usageCount])
 }
 
 // ===== Notifications =====
