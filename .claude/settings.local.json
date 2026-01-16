@@ -28,7 +28,8 @@
       "Bash(python:*)",
       "Bash(git reset:*)",
       "Bash(npx next build:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(git push:*)"
     ]
   }
 }

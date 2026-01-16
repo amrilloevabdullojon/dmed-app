@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { csrfGuard } from '@/lib/security'
 import { logger } from '@/lib/logger.server'
+import { NotificationType } from '@prisma/client'
 import { z } from 'zod'
 
 const updateSchema = z.object({
@@ -68,7 +69,12 @@ export async function PATCH(request: NextRequest) {
     const { ids, all, filter, action = 'read' } = result.data
 
     const buildWhere = () => {
-      const where: { userId: string; type?: string; isRead?: boolean; id?: { in: string[] } } = {
+      const where: {
+        userId: string
+        type?: NotificationType
+        isRead?: boolean
+        id?: { in: string[] }
+      } = {
         userId: session.user.id,
       }
 
@@ -78,13 +84,13 @@ export async function PATCH(request: NextRequest) {
         if (filter === 'unread') {
           where.isRead = false
         } else if (filter === 'comments') {
-          where.type = 'COMMENT'
+          where.type = NotificationType.COMMENT
         } else if (filter === 'statuses') {
-          where.type = 'STATUS'
+          where.type = NotificationType.STATUS
         } else if (filter === 'assignments') {
-          where.type = 'ASSIGNMENT'
+          where.type = NotificationType.ASSIGNMENT
         } else if (filter === 'system') {
-          where.type = 'SYSTEM'
+          where.type = NotificationType.SYSTEM
         }
       }
 
