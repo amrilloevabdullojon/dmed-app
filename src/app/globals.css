@@ -25,6 +25,43 @@
   --wallpaper-opacity: 0.6;
 }
 
+/* Light theme colors */
+.light {
+  --app-bg: 248 250 252;
+  --app-bg-2: 241 245 249;
+  --panel: 255 255 255;
+  --panel-2: 248 250 252;
+  --panel-border: 226 232 240;
+  --text-primary: 15 23 42;
+  --text-muted: 100 116 139;
+  --accent: 20 184 166;
+  --accent-2: 245 158 11;
+  --danger: 239 68 68;
+  --warning: 234 179 8;
+  --shadow-1: 0 8px 20px rgba(15, 23, 42, 0.08);
+  --shadow-2: 0 16px 36px rgba(15, 23, 42, 0.12);
+  --shadow-3: 0 24px 48px rgba(15, 23, 42, 0.16);
+  --wallpaper-opacity: 0.4;
+}
+
+.light body::before {
+  background-image: radial-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+  opacity: 0.3;
+}
+
+.light body::after {
+  background:
+    radial-gradient(1200px 640px at 12% -10%, rgba(var(--accent) / 0.12), transparent 62%),
+    radial-gradient(900px 520px at 92% 0%, rgba(56, 189, 248, 0.1), transparent 62%),
+    radial-gradient(900px 600px at 50% 110%, rgba(var(--accent-2) / 0.08), transparent 68%),
+    conic-gradient(
+      from 180deg at 50% 50%,
+      rgba(16, 185, 129, 0.04),
+      transparent 50%,
+      rgba(14, 165, 233, 0.04)
+    );
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --foreground-rgb: 255, 255, 255;

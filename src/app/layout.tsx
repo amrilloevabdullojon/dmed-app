@@ -7,6 +7,7 @@ import { Particles } from '@/components/Particles'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 import { AuthGuard } from '@/components/AuthGuard'
 import { PageTransition } from '@/components/PageTransition'
+import { ThemeProvider } from '@/components/ThemeProvider'
 
 const manrope = Manrope({
   subsets: ['latin', 'cyrillic'],
@@ -40,13 +41,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         className={`${manrope.variable} ${spaceGrotesk.variable} app-body min-h-screen text-white`}
       >
         <Providers>
-          <AuthGuard>
-            <NewYearBanner />
-            <PageTransition>{children}</PageTransition>
-            <Particles />
-            <Snowfall />
-            <OfflineIndicator />
-          </AuthGuard>
+          <ThemeProvider>
+            <AuthGuard>
+              <NewYearBanner />
+              <PageTransition>{children}</PageTransition>
+              <Particles />
+              <Snowfall />
+              <OfflineIndicator />
+            </AuthGuard>
+          </ThemeProvider>
         </Providers>
       </body>
     </html>
