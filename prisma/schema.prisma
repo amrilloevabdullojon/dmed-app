@@ -89,6 +89,7 @@ model User {
   requestHistory     RequestHistory[] @relation("RequestHistoryActor")
   pushSubscriptions  PushSubscription[]
   requestTemplates   RequestResponseTemplate[]
+  preferences        UserPreferences?
 
   @@index([role])              // Индекс для фильтрации по роли
   @@index([canLogin])          // Индекс для фильтрации по доступу
@@ -124,6 +125,60 @@ model UserProfile {
   updatedAt       DateTime           @updatedAt
 
   @@index([userId])
+}
+
+model UserPreferences {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Тема и локализация
+  theme    ThemeMode @default(DARK)
+  language String    @default("ru")
+  density  UIDensity @default(COMFORTABLE)
+
+  // Анимации
+  animations           Boolean @default(true)
+  backgroundAnimations Boolean @default(true)
+  pageTransitions      Boolean @default(true)
+  microInteractions    Boolean @default(true)
+  listAnimations       Boolean @default(true)
+  modalAnimations      Boolean @default(true)
+  scrollAnimations     Boolean @default(true)
+
+  // Фоновые эффекты
+  wallpaperStyle     WallpaperStyle @default(AURORA)
+  wallpaperIntensity Int            @default(60)
+  snowfall           Boolean        @default(false)
+  particles          Boolean        @default(false)
+
+  // Уведомления
+  soundNotifications  Boolean @default(true)
+  desktopNotifications Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+enum ThemeMode {
+  LIGHT
+  DARK
+  AUTO
+}
+
+enum UIDensity {
+  COMPACT
+  COMFORTABLE
+  SPACIOUS
+}
+
+enum WallpaperStyle {
+  AURORA
+  NEBULA
+  GLOW
+  COSMIC
 }
 
 enum Role {
