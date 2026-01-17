@@ -13,10 +13,27 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { substituteLetterVariables } from '@/lib/letter-template-variables'
-import type { Letter, User } from '@prisma/client'
 
-type LetterWithOwner = Letter & {
-  owner?: User | null
+// Используем минимальный тип для совместимости с разными источниками данных
+type LetterForTemplate = {
+  number?: string | null
+  org?: string | null
+  date?: Date | string | null
+  deadlineDate?: Date | string | null
+  status?: string
+  type?: string | null
+  content?: string | null
+  zordoc?: string | null
+  jiraLink?: string | null
+  applicantName?: string | null
+  applicantEmail?: string | null
+  applicantPhone?: string | null
+  contacts?: string | null
+  owner?: {
+    name?: string | null
+    email?: string | null
+  } | null
+  [key: string]: any // Разрешаем дополнительные поля
 }
 
 interface LetterTemplate {
@@ -39,7 +56,7 @@ interface LetterTemplate {
 interface LetterTemplateSelectorProps {
   onSelect: (content: string) => void
   currentUserId: string
-  letter: LetterWithOwner
+  letter: LetterForTemplate
   field?: 'answer' | 'content'
 }
 
