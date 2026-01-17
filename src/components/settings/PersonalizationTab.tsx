@@ -11,7 +11,7 @@ interface PersonalizationSettings {
   density: 'compact' | 'comfortable' | 'spacious'
   animations: boolean
   backgroundAnimations: boolean
-  wallpaperStyle: 'aurora' | 'nebula' | 'glow'
+  wallpaperStyle: 'aurora' | 'nebula' | 'glow' | 'cosmic'
   wallpaperIntensity: number
 }
 
@@ -259,14 +259,13 @@ export const PersonalizationTab = memo(function PersonalizationTab() {
               disabled={!backgroundAnimationsEnabled}
               className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-white transition focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
             >
-              <option value="aurora">{'\u0410\u0432\u0440\u043e\u0440\u0430'}</option>
-              <option value="nebula">{'\u041d\u0435\u0431\u0443\u043b\u0430'}</option>
-              <option value="glow">{'\u0421\u0438\u044f\u043d\u0438\u0435'}</option>
+              <option value="aurora">Аврора</option>
+              <option value="nebula">Небула</option>
+              <option value="glow">Сияние</option>
+              <option value="cosmic">Космос</option>
             </select>
             <p className="mt-1 text-xs text-gray-400">
-              {
-                '\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0445\u0430\u0440\u0430\u043a\u0442\u0435\u0440 \u0444\u043e\u043d\u0430: \u043c\u044f\u0433\u043a\u0430\u044f \u0430\u0432\u0440\u043e\u0440\u0430, \u0433\u043b\u0443\u0431\u043e\u043a\u0430\u044f \u043d\u0435\u0431\u0443\u043b\u0430 \u0438\u043b\u0438 \u0447\u0438\u0441\u0442\u043e\u0435 \u0441\u0438\u044f\u043d\u0438\u0435.'
-              }
+              Выберите характер фона: мягкая аврора, глубокая небула, чистое сияние или космическая атмосфера.
             </p>
           </div>
           <div>
