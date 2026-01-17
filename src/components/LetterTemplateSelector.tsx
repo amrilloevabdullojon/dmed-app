@@ -88,7 +88,7 @@ export function LetterTemplateSelector({
       setTemplates(loadedTemplates)
 
       // Extract unique categories
-      const cats = Array.from(
+      const cats: string[] = Array.from(
         new Set(
           loadedTemplates
             .map((t: LetterTemplate) => t.category)
