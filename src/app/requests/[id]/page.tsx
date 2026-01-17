@@ -6,12 +6,10 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useParams } from 'next/navigation'
 import { Header } from '@/components/Header'
+import { QuickActionsMenu } from '@/components/QuickActionsMenu'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 import { useToast } from '@/components/Toast'
 import { formatDate } from '@/lib/utils'
-import { TemplateSelector } from '@/components/requests/TemplateSelector'
-import { TagSelector } from '@/components/requests/TagSelector'
-import { SlaIndicator } from '@/components/requests/SlaIndicator'
 import {
   ArrowLeft,
   Loader2,
@@ -25,12 +23,14 @@ import {
   AlertTriangle,
   Flag,
   Tag,
+  Copy,
+  Link2,
+  Clock,
 } from 'lucide-react'
 
 type RequestStatus = 'NEW' | 'IN_REVIEW' | 'DONE' | 'SPAM' | 'CANCELLED'
 type RequestPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'
 type RequestCategory = 'CONSULTATION' | 'TECHNICAL' | 'DOCUMENTATION' | 'COMPLAINT' | 'SUGGESTION' | 'OTHER'
-type SlaStatus = 'ON_TIME' | 'AT_RISK' | 'BREACHED'
 
 interface RequestFile {
   id: string
@@ -65,8 +65,6 @@ interface RequestDetail {
   category: RequestCategory
   createdAt: string
   source?: string | null
-  slaDeadline?: string | null
-  slaStatus?: SlaStatus
   assignedTo: {
     id: string
     name: string | null
@@ -75,7 +73,6 @@ interface RequestDetail {
   } | null
   files: RequestFile[]
   comments: RequestComment[]
-  tags: Array<{ id: string; name: string; color: string }>
   _count: { history: number }
 }
 
@@ -169,29 +166,29 @@ export default function RequestDetailPage() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const fetchedRef = useRef(false)
 
-  const loadRequest = useCallback(async () => {
-    if (!requestId) return
-    setLoading(true)
-    try {
-      const response = await fetch(`/api/requests/${requestId}`)
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to load request')
-      }
-
-      setRequest(data.request)
-    } catch (error) {
-      console.error('Failed to load request:', error)
-      toastError('Не удалось загрузить заявку.')
-    } finally {
-      setLoading(false)
-    }
-  }, [requestId, toastError])
-
   useEffect(() => {
     if (!session || !requestId || fetchedRef.current) return
     fetchedRef.current = true
+
+    const loadRequest = async () => {
+      setLoading(true)
+      try {
+        const response = await fetch(`/api/requests/${requestId}`)
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load request')
+        }
+
+        setRequest(data.request)
+      } catch (error) {
+        console.error('Failed to load request:', error)
+        toastError('Не удалось загрузить заявку.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
     loadRequest()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, requestId])
@@ -309,6 +306,34 @@ export default function RequestDetailPage() {
   const assignedLabel = request.assignedTo?.name || request.assignedTo?.email || '—'
   const assignedToMe = request.assignedTo?.id === session.user.id
 
+  // Quick actions for mobile FAB
+  const quickActions = [
+    {
+      icon: Copy,
+      label: 'Копировать ID',
+      onClick: () => {
+        navigator.clipboard.writeText(request.id)
+        toastSuccess('ID скопирован')
+      },
+    },
+    {
+      icon: Link2,
+      label: 'Копировать ссылку',
+      onClick: () => {
+        navigator.clipboard.writeText(window.location.href)
+        toastSuccess('Ссылка скопирована')
+      },
+    },
+    {
+      icon: MessageSquare,
+      label: 'К комментариям',
+      onClick: () => {
+        const commentsSection = document.querySelector('form[onsubmit]')
+        commentsSection?.scrollIntoView({ behavior: 'smooth' })
+      },
+    },
+  ]
+
   return (
     <div className="min-h-screen app-shell bg-gray-900">
       <Header />
@@ -322,12 +347,12 @@ export default function RequestDetailPage() {
           {'К списку заявок'}
         </Link>
 
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold text-white">
+            <h1 className="text-xl font-semibold text-white sm:text-2xl md:text-3xl">
               {request.organization}
             </h1>
-            <p className="text-sm text-slate-300 mt-2">
+            <p className="mt-2 text-sm text-slate-300">
               {`Создано ${formatDateTime(request.createdAt)}`}
             </p>
             <div className="flex flex-wrap items-center gap-2 mt-3">
@@ -339,14 +364,6 @@ export default function RequestDetailPage() {
                 <Tag className="w-3 h-3" />
                 {CATEGORY_LABELS[request.category]}
               </span>
-              {request.slaDeadline && request.slaStatus && (
-                <SlaIndicator
-                  slaDeadline={request.slaDeadline}
-                  slaStatus={request.slaStatus}
-                  status={request.status}
-                  size="sm"
-                />
-              )}
             </div>
           </div>
           <span
@@ -356,19 +373,32 @@ export default function RequestDetailPage() {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="panel panel-glass rounded-2xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">
+        {/* Mobile Sticky Status Bar */}
+        <div className="sticky top-14 z-10 mb-4 rounded-lg border border-gray-700/60 bg-gray-800/95 p-3 backdrop-blur-md md:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${STATUS_STYLES[request.status]}`}>
+              {STATUS_LABELS[request.status]}
+            </span>
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <Clock className="h-3.5 w-3.5" />
+              {formatDateTime(request.createdAt)}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3">
+          <div className="space-y-4 lg:col-span-2">
+            <div className="panel panel-glass rounded-2xl p-4 hover-lift md:p-6">
+              <h2 className="mb-4 text-lg font-semibold text-white md:text-xl">
                 {'Описание'}
               </h2>
-              <p className="text-sm text-slate-300 whitespace-pre-wrap">
+              <p className="whitespace-pre-wrap text-sm text-slate-300">
                 {request.description}
               </p>
             </div>
 
-            <div className="panel panel-glass rounded-2xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">
+            <div className="panel panel-glass rounded-2xl p-4 hover-lift md:p-6">
+              <h2 className="mb-4 text-lg font-semibold text-white md:text-xl">
                 {'Вложения'}
               </h2>
               {request.files.length === 0 ? (
@@ -404,10 +434,10 @@ export default function RequestDetailPage() {
             </div>
 
             {/* Комментарии */}
-            <div className="panel panel-glass rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5" />
+            <div className="panel panel-glass rounded-2xl p-4 hover-lift md:p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="flex items-center gap-2 text-lg font-semibold text-white md:text-xl">
+                  <MessageSquare className="h-5 w-5" />
                   {'Комментарии'}
                   {request.comments.length > 0 && (
                     <span className="text-sm text-slate-400">({request.comments.length})</span>
@@ -460,51 +490,43 @@ export default function RequestDetailPage() {
                 </div>
               )}
 
-              <form onSubmit={submitComment} className="space-y-3">
-                <div className="flex gap-2">
-                  <TemplateSelector
-                    category={request.category}
-                    onSelect={(content) => setCommentText(content)}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    placeholder="Написать комментарий..."
-                    disabled={submittingComment}
-                    className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
-                  />
-                  <button
-                    type="submit"
-                    disabled={submittingComment || !commentText.trim()}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {submittingComment ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
+              <form onSubmit={submitComment} className="flex gap-2">
+                <input
+                  type="text"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Написать комментарий..."
+                  disabled={submittingComment}
+                  className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+                />
+                <button
+                  type="submit"
+                  disabled={submittingComment || !commentText.trim()}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submittingComment ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </button>
               </form>
             </div>
 
             {/* История изменений */}
             {request._count.history > 0 && (
-              <div className="panel panel-glass rounded-2xl p-6">
+              <div className="panel panel-glass rounded-2xl p-4 hover-lift md:p-6">
                 <button
                   type="button"
                   onClick={toggleHistory}
-                  className="flex items-center justify-between w-full text-left"
+                  className="flex w-full items-center justify-between text-left"
                 >
-                  <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                    <History className="w-5 h-5" />
+                  <h2 className="flex items-center gap-2 text-lg font-semibold text-white md:text-xl">
+                    <History className="h-5 w-5" />
                     {'История изменений'}
                     <span className="text-sm text-slate-400">({request._count.history})</span>
                   </h2>
-                  <span className="text-slate-400 text-sm">
+                  <span className="text-sm text-slate-400">
                     {historyOpen ? 'Свернуть' : 'Развернуть'}
                   </span>
                 </button>
@@ -556,23 +578,13 @@ export default function RequestDetailPage() {
             )}
           </div>
 
-          <div className="space-y-6">
-            <div className="panel panel-glass rounded-2xl p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-white">
+          <div className="space-y-4 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+            <div className="panel panel-glass space-y-4 rounded-2xl p-4 hover-lift md:p-6">
+              <h2 className="text-lg font-semibold text-white md:text-xl">
                 {'Управление'}
               </h2>
               <div>
-                <label className="block text-sm text-slate-300 mb-2">
-                  {'Теги'}
-                </label>
-                <TagSelector
-                  requestId={request.id}
-                  currentTags={request.tags}
-                  onUpdate={loadRequest}
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-slate-300 mb-2">
+                <label className="mb-2 block text-sm text-gray-300/90">
                   {'Статус'}
                 </label>
                 <select
@@ -591,7 +603,7 @@ export default function RequestDetailPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-slate-300 mb-2">
+                <label className="mb-2 block text-sm text-gray-300/90">
                   {'Приоритет'}
                 </label>
                 <select
@@ -610,7 +622,7 @@ export default function RequestDetailPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-slate-300 mb-2">
+                <label className="mb-2 block text-sm text-gray-300/90">
                   {'Категория'}
                 </label>
                 <select
@@ -629,7 +641,7 @@ export default function RequestDetailPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-slate-300 mb-2">
+                <label className="mb-2 block text-sm text-gray-300/90">
                   {'Ответственный'}
                 </label>
                 <p className="text-sm text-white mb-3">{assignedLabel}</p>
@@ -660,8 +672,8 @@ export default function RequestDetailPage() {
               </div>
             </div>
 
-            <div className="panel panel-glass rounded-2xl p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-white">
+            <div className="panel panel-glass space-y-4 rounded-2xl p-4 hover-lift md:p-6">
+              <h2 className="text-lg font-semibold text-white md:text-xl">
                 {'Контакты'}
               </h2>
               <div className="space-y-2 text-sm text-slate-300">
@@ -672,9 +684,9 @@ export default function RequestDetailPage() {
               </div>
             </div>
 
-            <div className="panel panel-glass rounded-2xl p-6 space-y-2 text-sm text-slate-400">
+            <div className="panel panel-glass space-y-2 rounded-2xl p-4 text-sm text-gray-400/80 hover-lift md:p-6">
               <div className="flex items-center gap-2">
-                <Paperclip className="w-4 h-4" />
+                <Paperclip className="h-4 w-4" />
                 {`Файлов: ${request.files.length}`}
               </div>
               <div>{`Создано: ${formatDate(request.createdAt)}`}</div>
@@ -685,6 +697,9 @@ export default function RequestDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* Quick Actions FAB for Mobile */}
+      <QuickActionsMenu actions={quickActions} />
     </div>
   )
 }
