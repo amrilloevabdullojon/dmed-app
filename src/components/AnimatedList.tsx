@@ -38,15 +38,18 @@ export function AnimatedList({
       {childrenArray.map((child, index) => {
         if (!isValidElement(child)) return child
 
-        return cloneElement(child as React.ReactElement<{ style?: React.CSSProperties }>, {
-          key: index,
-          className: `${child.props.className || ''} ${animationClasses[animation]}`,
-          style: {
-            ...child.props.style,
-            animationDelay: `${index * delay}ms`,
-            animationFillMode: 'backwards',
-          },
-        })
+        return cloneElement(
+          child as React.ReactElement<{ className?: string; style?: React.CSSProperties }>,
+          {
+            key: index,
+            className: `${child.props.className || ''} ${animationClasses[animation]}`,
+            style: {
+              ...child.props.style,
+              animationDelay: `${index * delay}ms`,
+              animationFillMode: 'backwards',
+            },
+          }
+        )
       })}
     </div>
   )
