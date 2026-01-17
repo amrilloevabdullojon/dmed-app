@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { X, Download, Smartphone } from 'lucide-react'
 import { hapticMedium } from '@/lib/haptic'
-import { useUserPreferences } from '@/hooks/useUserPreferences'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -11,8 +10,8 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function PWAInstallPrompt() {
-  const { preferences } = useUserPreferences()
-  const animationsEnabled = preferences?.animations ?? true
+  // Animations are always enabled for PWA prompts
+  const animationsEnabled = true
 
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showPrompt, setShowPrompt] = useState(false)
