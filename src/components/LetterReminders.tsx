@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { Bell, Plus, X, Clock, Check, Trash2, AlertTriangle } from 'lucide-react'
-import { LetterReminderType } from '@prisma/client'
+import type { LetterReminderType } from '@prisma/client'
 import {
   REMINDER_TYPE_LABELS,
   REMINDER_TYPE_COLORS,
-} from '@/lib/letter-reminders'
+} from '@/lib/letter-reminders.constants'
 
 type LetterReminder = {
   id: string

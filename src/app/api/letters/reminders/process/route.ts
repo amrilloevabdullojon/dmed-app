@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger.server'
-import {
-  getPendingReminders,
-  markReminderAsSent,
-  REMINDER_TYPE_LABELS,
-} from '@/lib/letter-reminders'
+import { getPendingReminders, markReminderAsSent } from '@/lib/letter-reminders'
+import { REMINDER_TYPE_LABELS } from '@/lib/letter-reminders.constants'
 import { sendEmail } from '@/lib/email'
 
 /**
