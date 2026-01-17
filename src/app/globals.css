@@ -1141,6 +1141,43 @@ h4 {
   }
 }
 
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0) scaleY(1);
+    max-height: 200px;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-100%) scaleY(0.8);
+    max-height: 0;
+    margin: 0;
+    padding: 0;
+  }
+}
+
 @keyframes scaleIn {
   from {
     opacity: 0;
@@ -1197,7 +1234,19 @@ h4 {
   animation: slideRight 0.4s ease-out;
 }
 
-@keyframes slideOutLeft {
+.animate-slideInRight {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.animate-slideOutRight {
+  animation: slideOutRight 0.3s ease-out forwards;
+}
+
+.animate-slideOutLeft {
+  animation: slideOutLeft 0.4s ease-out forwards;
+}
+
+@keyframes slideOutLeftOld {
   from {
     opacity: 1;
     transform: translateX(0);
