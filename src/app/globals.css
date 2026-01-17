@@ -104,6 +104,28 @@ html[data-wallpaper-style='glow'] body::after {
   animation-duration: 22s;
 }
 
+html[data-wallpaper-style='aurora'] body::after {
+  background:
+    linear-gradient(125deg, rgba(16, 185, 129, 0.15) 0%, transparent 40%),
+    linear-gradient(240deg, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
+    linear-gradient(320deg, rgba(236, 72, 153, 0.1) 0%, transparent 45%),
+    radial-gradient(1400px 800px at 50% 30%, rgba(59, 130, 246, 0.08), transparent 75%),
+    radial-gradient(1200px 600px at 80% 70%, rgba(251, 191, 36, 0.08), transparent 70%);
+  animation-duration: 32s;
+  background-size: 180% 180%;
+}
+
+html[data-wallpaper-style='cosmic'] body::after {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.2) 0%, transparent 25%),
+    radial-gradient(circle at 80% 20%, rgba(236, 72, 153, 0.15) 0%, transparent 30%),
+    radial-gradient(circle at 40% 80%, rgba(59, 130, 246, 0.18) 0%, transparent 28%),
+    radial-gradient(circle at 90% 70%, rgba(16, 185, 129, 0.12) 0%, transparent 35%),
+    radial-gradient(ellipse at 50% 50%, rgba(251, 191, 36, 0.08) 0%, transparent 50%);
+  animation-duration: 40s;
+  background-size: 200% 200%;
+}
+
 @keyframes wallpaper-drift {
   0%,
   100% {
@@ -112,7 +134,17 @@ html[data-wallpaper-style='glow'] body::after {
       95% 5%,
       50% 110%,
       50% 50%;
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px) brightness(1);
+  }
+  25% {
+    background-position:
+      8% 2%,
+      92% 8%,
+      52% 105%,
+      49% 48%;
+    transform: translate3d(0.5%, -0.5%, 0) scale(1.02);
+    filter: blur(1px) brightness(1.05);
   }
   50% {
     background-position:
@@ -120,7 +152,17 @@ html[data-wallpaper-style='glow'] body::after {
       88% -2%,
       55% 95%,
       48% 45%;
-    transform: translate3d(1%, -1%, 0);
+    transform: translate3d(1%, -1%, 0) scale(1.04);
+    filter: blur(2px) brightness(1.1);
+  }
+  75% {
+    background-position:
+      8% 2%,
+      92% 8%,
+      52% 105%,
+      49% 48%;
+    transform: translate3d(0.5%, -0.5%, 0) scale(1.02);
+    filter: blur(1px) brightness(1.05);
   }
 }
 
@@ -1376,13 +1418,33 @@ textarea:focus-visible {
   box-shadow: 0 14px 30px rgba(16, 185, 129, 0.18);
 }
 
-/* New Year animations */
+/* New Year animations - Enhanced */
 @keyframes snowfall {
   0% {
-    transform: translateY(-10vh) translateX(0);
+    transform: translateY(-10vh) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  20% {
+    transform: translateY(20vh) translateX(5px) rotate(20deg);
+  }
+  40% {
+    transform: translateY(40vh) translateX(-3px) rotate(-10deg);
+  }
+  60% {
+    transform: translateY(60vh) translateX(8px) rotate(30deg);
+  }
+  80% {
+    transform: translateY(80vh) translateX(-5px) rotate(-15deg);
+  }
+  95% {
+    opacity: 1;
   }
   100% {
-    transform: translateY(110vh) translateX(var(--wobble, 10px));
+    transform: translateY(110vh) translateX(var(--wobble, 10px)) rotate(45deg);
+    opacity: 0;
   }
 }
 
@@ -1390,11 +1452,23 @@ textarea:focus-visible {
   0%,
   100% {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) rotate(0deg);
+    box-shadow: 0 0 8px currentColor;
+  }
+  25% {
+    opacity: 0.6;
+    transform: scale(1.2) rotate(90deg);
+    box-shadow: 0 0 12px currentColor;
   }
   50% {
     opacity: 0.3;
-    transform: scale(0.8);
+    transform: scale(0.8) rotate(180deg);
+    box-shadow: 0 0 6px currentColor;
+  }
+  75% {
+    opacity: 0.7;
+    transform: scale(1.1) rotate(270deg);
+    box-shadow: 0 0 10px currentColor;
   }
 }
 
@@ -1408,12 +1482,68 @@ textarea:focus-visible {
   }
 }
 
+/* Floating particles animation */
+@keyframes float-up {
+  0% {
+    transform: translateY(100vh) translateX(0) scale(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(50vh) translateX(var(--float-x, 20px)) scale(1);
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-10vh) translateX(var(--float-x, 40px)) scale(0.5);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+    filter: blur(0px);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+    filter: blur(2px);
+  }
+}
+
+@keyframes orbital {
+  0% {
+    transform: rotate(0deg) translateX(var(--orbit-radius, 100px)) rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg) translateX(var(--orbit-radius, 100px)) rotate(-360deg);
+  }
+}
+
 .animate-snowfall {
   animation: snowfall linear infinite;
 }
 
 .animate-twinkle {
   animation: twinkle 1.5s ease-in-out infinite;
+}
+
+.animate-float-up {
+  animation: float-up ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-orbital {
+  animation: orbital linear infinite;
 }
 
 .twinkle-delay-0 {
