@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Manrope, Rubik } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/Providers'
@@ -37,13 +37,14 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'DMED Letters',
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-    viewportFit: 'cover',
-  },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#14b8a6' },
     { media: '(prefers-color-scheme: dark)', color: '#14b8a6' },
