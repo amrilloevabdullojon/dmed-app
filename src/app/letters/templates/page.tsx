@@ -456,7 +456,7 @@ function TemplateEditorModal({
                 placeholder="Уважаемый(-ая) {{'{{'}}applicant.name{{'}}'}},&#10;&#10;По вашему письму {{'{{'}}letter.number{{'}}'}} от {{'{{'}}letter.date{{'}}'}}..."
               />
               <p className="text-xs text-gray-500 mt-1">
-                Используйте переменные: {'{{'}}letter.number{{'}}'}}, {'{{'}}applicant.name{{'}}'}}, {'{{'}}owner.name{{'}}'}} и др.
+                Используйте переменные: {'{{letter.number}}'}, {'{{applicant.name}}'}, {'{{owner.name}}'} и др.
               </p>
             </div>
 
