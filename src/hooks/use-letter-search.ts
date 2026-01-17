@@ -162,7 +162,7 @@ export function useLetterSearch() {
       ])
 
       const csv =
-        [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n')
+        [headers, ...rows].map((row) => row.map((cell: string) => `"${cell}"`).join(',')).join('\n')
 
       // Скачиваем файл
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
