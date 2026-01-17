@@ -13,6 +13,8 @@ interface PersonalizationSettings {
   backgroundAnimations: boolean
   wallpaperStyle: 'aurora' | 'nebula' | 'glow' | 'cosmic'
   wallpaperIntensity: number
+  snowfall: boolean
+  particles: boolean
 }
 
 export const PersonalizationTab = memo(function PersonalizationTab() {
@@ -26,6 +28,8 @@ export const PersonalizationTab = memo(function PersonalizationTab() {
       backgroundAnimations: true,
       wallpaperStyle: 'aurora',
       wallpaperIntensity: 60,
+      snowfall: false,
+      particles: false,
     }
   )
 
@@ -286,10 +290,28 @@ export const PersonalizationTab = memo(function PersonalizationTab() {
               className="w-full accent-emerald-400"
             />
             <p className="mt-1 text-xs text-gray-400">
-              {
-                '\u041f\u043e\u043b\u0437\u0443\u0439\u0442\u0435\u0441\u044c \u0441\u043b\u0430\u0439\u0434\u0435\u0440\u043e\u043c, \u0447\u0442\u043e\u0431\u044b \u0443\u0441\u0438\u043b\u0438\u0442\u044c \u0438\u043b\u0438 \u043e\u0441\u043b\u0430\u0431\u0438\u0442\u044c \u044d\u0444\u0444\u0435\u043a\u0442.'
-              }
+              Пользуйтесь слайдером, чтобы усилить или ослабить эффект.
             </p>
+          </div>
+
+          <div className="mt-4 space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+            <h4 className="text-sm font-semibold text-white">Дополнительные эффекты</h4>
+
+            <SettingsToggle
+              label="Падающий снег"
+              description="Анимация падающих снежинок с реалистичным движением и вращением."
+              icon={<Sparkles className="h-4 w-4" />}
+              enabled={settings.snowfall ?? false}
+              onToggle={(enabled) => updateSetting('snowfall', enabled)}
+            />
+
+            <SettingsToggle
+              label="Плавающие частицы"
+              description="Всплывающие светящиеся частицы для атмосферного эффекта."
+              icon={<Sparkles className="h-4 w-4" />}
+              enabled={settings.particles ?? false}
+              onToggle={(enabled) => updateSetting('particles', enabled)}
+            />
           </div>
         </div>
       </div>
