@@ -270,9 +270,13 @@ function TemplateCard({
         </div>
         <div className="flex items-center gap-2 ml-2">
           {template.isPublic ? (
-            <Globe className="w-4 h-4 text-green-600" title="Публичный" />
+            <span title="Публичный">
+              <Globe className="w-4 h-4 text-green-600" />
+            </span>
           ) : (
-            <Lock className="w-4 h-4 text-gray-400" title="Личный" />
+            <span title="Личный">
+              <Lock className="w-4 h-4 text-gray-400" />
+            </span>
           )}
         </div>
       </div>
