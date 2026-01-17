@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger.server'
 import { getPendingReminders, markReminderAsSent } from '@/lib/letter-reminders'
 import { REMINDER_TYPE_LABELS } from '@/lib/letter-reminders.constants'
-import { sendEmail } from '@/lib/email'
+import { sendEmail } from '@/lib/notifications'
 
 /**
  * POST /api/letters/reminders/process
