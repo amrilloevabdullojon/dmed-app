@@ -15,26 +15,32 @@ interface Snowflake {
 
 export function Snowfall() {
   const [newYearVibe] = useLocalStorage<boolean>('new-year-vibe', false)
-  const [personalization] = useLocalStorage<{ backgroundAnimations?: boolean }>(
+  const [personalization] = useLocalStorage<{
+    backgroundAnimations?: boolean
+    snowfall?: boolean
+  }>(
     'personalization-settings',
-    { backgroundAnimations: true }
+    { backgroundAnimations: true, snowfall: false }
   )
   const backgroundAnimations = personalization?.backgroundAnimations ?? true
+  const snowfallEnabled = personalization?.snowfall ?? false
   const [snowflakes] = useState<Snowflake[]>(() => {
     if (typeof window === 'undefined') return []
-    const flakeCount = window.innerWidth < 768 ? 24 : 50
+    const flakeCount = window.innerWidth < 768 ? 30 : 60
     return Array.from({ length: flakeCount }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       size: Math.random() * 4 + 2,
       speed: Math.random() * 3 + 2,
       opacity: Math.random() * 0.6 + 0.4,
-      wobble: Math.random() * 10,
+      wobble: Math.random() * 15 - 7.5, // -7.5 to 7.5
       delay: -Math.random() * 10,
     }))
   })
 
-  if (!newYearVibe || !backgroundAnimations) return null
+  // Show snowfall if either New Year mode OR snowfall toggle is enabled
+  const shouldShowSnowfall = (newYearVibe || snowfallEnabled) && backgroundAnimations
+  if (!shouldShowSnowfall) return null
 
   return (
     <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
