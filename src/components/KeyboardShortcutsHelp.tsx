@@ -1,173 +1,184 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { X, Command, Keyboard } from 'lucide-react'
-import { useKeyboardShortcut, getShortcutDisplay } from '@/hooks/useKeyboardShortcuts'
+import React, { useState } from 'react'
+import { X, Keyboard } from 'lucide-react'
+import { useKeyboardShortcut } from '@/hooks/use-keyboard-shortcuts'
 
-interface ShortcutItem {
-  keys: {
-    key: string
-    modifiers?: { ctrl?: boolean; alt?: boolean; shift?: boolean; meta?: boolean }
-  }
-  description: string
-  category: string
+interface ShortcutGroup {
+  title: string
+  shortcuts: Array<{
+    keys: string
+    description: string
+  }>
 }
 
-const shortcuts: ShortcutItem[] = [
-  // Навигация
-  { keys: { key: '/' }, description: 'Перейти к поиску', category: 'Навигация' },
-  {
-    keys: { key: 'h', modifiers: { alt: true } },
-    description: 'На главную',
-    category: 'Навигация',
-  },
-  { keys: { key: 'g', modifiers: { alt: true } }, description: 'К письмам', category: 'Навигация' },
+/**
+ * Модальное окно со справкой по горячим клавишам
+ *
+ * Открывается по нажатию "?"
+ */
+export function KeyboardShortcutsHelp() {
+  const [isOpen, setIsOpen] = useState(false)
 
-  // Действия
-  {
-    keys: { key: 'n', modifiers: { ctrl: true } },
-    description: 'Новое письмо',
-    category: 'Действия',
-  },
-  { keys: { key: 's', modifiers: { ctrl: true } }, description: 'Сохранить', category: 'Действия' },
-  { keys: { key: 'Escape' }, description: 'Закрыть / Отмена', category: 'Действия' },
+  // Открытие по "?"
+  useKeyboardShortcut({
+    key: '?',
+    shift: true, // Shift+/ = ?
+    description: 'Show keyboard shortcuts',
+    handler: () => setIsOpen(true),
+  })
 
-  // Список
-  { keys: { key: 'ArrowUp' }, description: 'Предыдущий элемент', category: 'Список' },
-  { keys: { key: 'ArrowDown' }, description: 'Следующий элемент', category: 'Список' },
-  { keys: { key: 'Enter' }, description: 'Открыть выбранное', category: 'Список' },
-  { keys: { key: 'j' }, description: 'Вниз по списку', category: 'Список' },
-  { keys: { key: 'k' }, description: 'Вверх по списку', category: 'Список' },
-
-  // Справка
-  {
-    keys: { key: '?', modifiers: { shift: true } },
-    description: 'Показать горячие клавиши',
-    category: 'Справка',
-  },
-]
-
-interface KeyboardShortcutsHelpProps {
-  isOpen: boolean
-  onClose: () => void
-}
-
-export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelpProps) {
-  // Close on Escape
-  useKeyboardShortcut('Escape', onClose, { enabled: isOpen })
-
-  // Prevent body scroll
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [isOpen])
+  // Закрытие по Escape
+  useKeyboardShortcut({
+    key: 'Escape',
+    description: 'Close shortcuts help',
+    handler: () => setIsOpen(false),
+    enabled: isOpen,
+  })
 
   if (!isOpen) return null
 
-  // Group shortcuts by category
-  const categories = shortcuts.reduce(
-    (acc, shortcut) => {
-      if (!acc[shortcut.category]) {
-        acc[shortcut.category] = []
-      }
-      acc[shortcut.category].push(shortcut)
-      return acc
+  const shortcutGroups: ShortcutGroup[] = [
+    {
+      title: 'Общие',
+      shortcuts: [
+        { keys: 'Ctrl+K', description: 'Открыть командную палитру' },
+        { keys: '?', description: 'Показать справку по горячим клавишам' },
+        { keys: '/', description: 'Фокус на поиске' },
+        { keys: 'Esc', description: 'Закрыть модальное окно' },
+      ],
     },
-    {} as Record<string, ShortcutItem[]>
-  )
+    {
+      title: 'Навигация',
+      shortcuts: [
+        { keys: 'G then H', description: 'Перейти на главную' },
+        { keys: 'G then L', description: 'Перейти к письмам' },
+        { keys: 'G then A', description: 'Перейти к аналитике' },
+        { keys: 'G then S', description: 'Перейти к настройкам' },
+      ],
+    },
+    {
+      title: 'Действия',
+      shortcuts: [
+        { keys: 'Ctrl+N', description: 'Создать новое письмо' },
+        { keys: 'E', description: 'Редактировать (на странице письма)' },
+        { keys: 'D', description: 'Удалить (на странице письма)' },
+        { keys: 'Ctrl+S', description: 'Сохранить' },
+      ],
+    },
+    {
+      title: 'Списки',
+      shortcuts: [
+        { keys: 'J / ↓', description: 'Следующий элемент' },
+        { keys: 'K / ↑', description: 'Предыдущий элемент' },
+        { keys: 'Enter', description: 'Открыть выбранный элемент' },
+        { keys: 'X', description: 'Выбрать/снять выбор' },
+      ],
+    },
+    {
+      title: 'Редактирование',
+      shortcuts: [
+        { keys: 'Ctrl+Enter', description: 'Отправить форму' },
+        { keys: 'Ctrl+Z', description: 'Отменить' },
+        { keys: 'Ctrl+Y', description: 'Повторить' },
+        { keys: 'Ctrl+A', description: 'Выбрать всё' },
+      ],
+    },
+  ]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
+    <>
+      {/* Overlay */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden="true"
+        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+        onClick={() => setIsOpen(false)}
       />
 
       {/* Modal */}
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="shortcuts-title"
-        className="relative z-10 max-h-[80vh] w-full max-w-lg overflow-auto rounded-xl border border-gray-700 bg-gray-800 p-6 shadow-2xl"
-      >
+      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 rounded-xl border border-gray-700 bg-gray-800 shadow-2xl">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center justify-between border-b border-gray-700 p-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/20">
-              <Keyboard className="h-5 w-5 text-blue-400" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600/20">
+              <Keyboard className="h-5 w-5 text-emerald-400" />
             </div>
-            <h2 id="shortcuts-title" className="text-lg font-semibold text-white">
-              Горячие клавиши
-            </h2>
+            <div>
+              <h2 className="text-xl font-semibold text-white">Горячие клавиши</h2>
+              <p className="text-sm text-gray-400">
+                Используйте клавиатуру для быстрой навигации
+              </p>
+            </div>
           </div>
           <button
-            onClick={onClose}
-            className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-700 hover:text-white"
-            aria-label="Закрыть"
+            onClick={() => setIsOpen(false)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-700 hover:text-white"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Shortcuts by category */}
-        <div className="space-y-6">
-          {Object.entries(categories).map(([category, items]) => (
-            <div key={category}>
-              <h3 className="mb-3 text-sm font-medium text-gray-400">{category}</h3>
-              <div className="space-y-2">
-                {items.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between rounded-lg bg-gray-700/50 px-3 py-2"
-                  >
-                    <span className="text-sm text-gray-300">{item.description}</span>
-                    <kbd className="rounded bg-gray-600 px-2 py-1 font-mono text-xs text-gray-200">
-                      {getShortcutDisplay(item.keys)}
-                    </kbd>
-                  </div>
-                ))}
+        {/* Content */}
+        <div className="max-h-[70vh] overflow-y-auto p-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            {shortcutGroups.map((group) => (
+              <div key={group.title}>
+                <h3 className="mb-3 font-semibold text-white">{group.title}</h3>
+                <div className="space-y-2">
+                  {group.shortcuts.map((shortcut, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between rounded-lg bg-gray-900/50 p-3"
+                    >
+                      <span className="text-sm text-gray-300">{shortcut.description}</span>
+                      <kbd className="flex items-center gap-1 rounded bg-gray-700 px-2 py-1 font-mono text-xs text-gray-300">
+                        {shortcut.keys.split(' ').map((part, i) => (
+                          <React.Fragment key={i}>
+                            {i > 0 && <span className="text-gray-500">then</span>}
+                            <span>{part}</span>
+                          </React.Fragment>
+                        ))}
+                      </kbd>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* Footer hint */}
-        <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
-          <Command className="h-3 w-3" />
-          <span>Нажмите Escape для закрытия</span>
+        {/* Footer */}
+        <div className="border-t border-gray-700 p-4 text-center">
+          <p className="text-sm text-gray-500">
+            Нажмите <kbd className="rounded bg-gray-700 px-2 py-0.5">?</kbd> чтобы открыть эту
+            справку снова
+          </p>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 
 /**
- * Hook for using keyboard shortcuts help modal
+ * Floating button для открытия справки
  */
-export function useKeyboardShortcutsHelp() {
-  const [isOpen, setIsOpen] = useState(false)
+export function KeyboardShortcutsButton() {
+  const [isHelpOpen, setIsHelpOpen] = useState(false)
 
-  // Open on Shift+?
-  useKeyboardShortcut('?', () => setIsOpen(true), {
-    modifiers: { shift: true },
-    ignoreInputs: true,
-  })
+  return (
+    <>
+      <button
+        onClick={() => setIsHelpOpen(true)}
+        className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-gray-800 shadow-lg transition hover:bg-gray-700"
+        title="Горячие клавиши (?)"
+      >
+        <Keyboard className="h-5 w-5 text-gray-300" />
+      </button>
 
-  const open = () => setIsOpen(true)
-  const close = () => setIsOpen(false)
-
-  return {
-    isOpen,
-    open,
-    close,
-    KeyboardShortcutsDialog: <KeyboardShortcutsHelp isOpen={isOpen} onClose={close} />,
-  }
+      {isHelpOpen && (
+        <div onClick={() => setIsHelpOpen(false)}>
+          <KeyboardShortcutsHelp />
+        </div>
+      )}
+    </>
+  )
 }
