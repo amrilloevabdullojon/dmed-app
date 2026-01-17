@@ -6,6 +6,7 @@ import { Snowfall, NewYearBanner } from '@/components/Snowfall'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 import { AuthGuard } from '@/components/AuthGuard'
 import { SkipToContent } from '@/components/SkipToContent'
+import { PWAProvider } from '@/components/PWAProvider'
 
 const manrope = Manrope({
   subsets: ['latin', 'cyrillic'],
@@ -30,6 +31,23 @@ export const metadata: Metadata = {
     icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
     apple: [{ url: '/apple-touch-icon.svg', type: 'image/svg+xml' }],
   },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'DMED Letters',
+  },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: 'cover',
+  },
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#14b8a6' },
+    { media: '(prefers-color-scheme: dark)', color: '#14b8a6' },
+  ],
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -40,12 +58,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <SkipToContent />
         <Providers>
-          <AuthGuard>
-            <NewYearBanner />
-            {children}
-            <Snowfall />
-            <OfflineIndicator />
-          </AuthGuard>
+          <PWAProvider>
+            <AuthGuard>
+              <NewYearBanner />
+              {children}
+              <Snowfall />
+              <OfflineIndicator />
+            </AuthGuard>
+          </PWAProvider>
         </Providers>
       </body>
     </html>
