@@ -1353,6 +1353,73 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
+/* Enhanced micro-interactions */
+.interactive-scale {
+  transition: transform 0.15s ease-out;
+}
+
+.interactive-scale:hover {
+  transform: scale(1.02);
+}
+
+.interactive-scale:active {
+  transform: scale(0.98);
+}
+
+.interactive-lift {
+  transition: all 0.2s ease-out;
+}
+
+.interactive-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.interactive-glow {
+  transition: all 0.2s ease-out;
+}
+
+.interactive-glow:hover {
+  box-shadow: 0 0 20px rgba(var(--accent), 0.3);
+}
+
+.interactive-glow:focus-visible {
+  box-shadow: 0 0 20px rgba(var(--accent), 0.5);
+  outline: 2px solid rgba(var(--accent), 0.5);
+  outline-offset: 2px;
+}
+
+/* Input focus effects */
+input:focus,
+textarea:focus,
+select:focus {
+  transition: all 0.2s ease-out;
+}
+
+/* Respecting reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  button:active {
+    transform: none;
+  }
+
+  .interactive-scale:hover,
+  .interactive-scale:active {
+    transform: none;
+  }
+
+  .interactive-lift:hover {
+    transform: none;
+  }
+}
+
 /* Scrollbar styles */
 ::-webkit-scrollbar {
   width: 8px;
