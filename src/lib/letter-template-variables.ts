@@ -127,7 +127,7 @@ export function substituteLetterVariables(
     'letter.org': letter.org || '',
     'letter.date': formatDate(letter.date),
     'letter.deadlineDate': formatDate(letter.deadlineDate),
-    'letter.status': STATUS_LABELS[letter.status] || letter.status,
+    'letter.status': letter.status ? (STATUS_LABELS[letter.status] || letter.status) : '',
     'letter.type': letter.type || '',
     'letter.content': letter.content || '',
     'letter.zordoc': letter.zordoc || '',
