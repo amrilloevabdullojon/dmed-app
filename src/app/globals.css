@@ -1246,6 +1246,23 @@ h4 {
   animation: slideOutLeft 0.4s ease-out forwards;
 }
 
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 500px;
+  }
+}
+
+.animate-slideDown {
+  animation: slideDown 0.3s ease-out;
+}
+
 @keyframes slideOutLeftOld {
   from {
     opacity: 1;
