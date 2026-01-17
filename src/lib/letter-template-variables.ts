@@ -32,10 +32,34 @@ export const LETTER_TEMPLATE_VARIABLES = {
 }
 
 /**
- * Тип для данных письма с owner
+ * Тип для данных письма с owner (совместим с разными источниками)
  */
 type LetterWithOwner = Letter & {
   owner?: User | null
+}
+
+/**
+ * Минимальный тип для подстановки переменных
+ */
+type LetterForSubstitution = {
+  number?: string | null
+  org?: string | null
+  date?: Date | string | null
+  deadlineDate?: Date | string | null
+  status?: string
+  type?: string | null
+  content?: string | null
+  zordoc?: string | null
+  jiraLink?: string | null
+  applicantName?: string | null
+  applicantEmail?: string | null
+  applicantPhone?: string | null
+  contacts?: string | null
+  owner?: {
+    name?: string | null
+    email?: string | null
+  } | null
+  [key: string]: any
 }
 
 /**
@@ -92,7 +116,7 @@ const STATUS_LABELS: Record<string, string> = {
  */
 export function substituteLetterVariables(
   text: string,
-  letter: LetterWithOwner
+  letter: LetterForSubstitution
 ): string {
   let result = text
 
