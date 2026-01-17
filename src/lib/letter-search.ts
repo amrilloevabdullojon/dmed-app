@@ -252,7 +252,8 @@ export async function searchLetters(
     // Для relevance сортируем по updatedAt как fallback
     // В будущем можно использовать PostgreSQL full-text search ranking
     orderBy.updatedAt = 'desc'
-  } else {
+  } else if (sortBy !== 'relevance') {
+    // Убеждаемся, что sortBy не является 'relevance'
     orderBy[sortBy] = sortOrder
   }
 
