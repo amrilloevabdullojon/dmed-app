@@ -60,9 +60,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Отправляем PDF напрямую в Gemini AI
-    logger.debug('Parsing PDF with AI', { filename: file.name, size: file.size })
+    logger.debug('Parse PDF', 'Parsing PDF with AI', { filename: file.name, size: file.size })
     const aiData = await extractLetterDataFromPdf(base64)
-    logger.debug('AI parsing completed', { success: !!aiData })
+    logger.debug('Parse PDF', 'AI parsing completed', { success: !!aiData })
 
     const normalizeNumber = (value: string | null): string | null => {
       if (!value) return null
