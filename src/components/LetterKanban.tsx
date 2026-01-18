@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { LetterStatus } from '@prisma/client'
+import type { LetterStatus } from '@/types/prisma'
 import { STATUS_LABELS, formatDate, getWorkingDaysUntilDeadline, pluralizeDays } from '@/lib/utils'
 import { AlertTriangle, GripVertical, MessageSquare, Star, User } from 'lucide-react'
 
@@ -243,3 +243,5 @@ export function LetterKanban({ letters, onStatusChange }: LetterKanbanProps) {
     </div>
   )
 }
+
+

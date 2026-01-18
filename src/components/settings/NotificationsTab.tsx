@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { SettingsToggle } from './SettingsToggle'
 import { useNotificationSettings } from '@/hooks/useNotificationSettings'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 import {
   DEFAULT_NOTIFICATION_SETTINGS,
   NotificationChannel,
@@ -65,6 +66,7 @@ const priorityOptions: { value: NotificationPriority; label: string }[] = [
 
 export const NotificationsTab = memo(function NotificationsTab() {
   const { settings, isLoading, isSaving, updateSettings } = useNotificationSettings()
+  const push = usePushNotifications()
 
   const updateSetting = <K extends keyof NotificationSettings>(
     key: K,
@@ -293,11 +295,35 @@ export const NotificationsTab = memo(function NotificationsTab() {
           />
           <SettingsToggle
             label="Push-уведомления"
-            description="Показывать push-уведомления в браузере."
+            description={
+              push.isSupported
+                ? 'Показывать push-уведомления в браузере.'
+                : 'Push-уведомления не поддерживаются вашим браузером.'
+            }
             icon={<Bell className="h-4 w-4" />}
-            enabled={settings.pushNotifications}
-            onToggle={(enabled) => updateSetting('pushNotifications', enabled)}
+            enabled={settings.pushNotifications && push.isSubscribed}
+            onToggle={async (enabled) => {
+              updateSetting('pushNotifications', enabled)
+              if (enabled) {
+                if (!push.isSubscribed) {
+                  const permitted = await push.requestPermission()
+                  if (permitted) {
+                    await push.subscribeToPush()
+                  }
+                }
+              } else {
+                if (push.isSubscribed) {
+                  await push.unsubscribeFromPush()
+                }
+              }
+            }}
           />
+          {push.error && (
+            <div className="ml-11 text-xs text-red-400">{push.error}</div>
+          )}
+          {push.isLoading && (
+            <div className="ml-11 text-xs text-gray-400">Загрузка...</div>
+          )}
         </div>
       </div>
 

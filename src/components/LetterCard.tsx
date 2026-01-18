@@ -1,7 +1,7 @@
 'use client'
 
 import { memo } from 'react'
-import type { LetterStatus } from '@prisma/client'
+import type { LetterStatus } from '@/types/prisma'
 import {
   STATUS_LABELS,
   STATUS_COLORS,
@@ -255,3 +255,5 @@ export const LetterCard = memo(function LetterCard({ letter, onToggleFavorite }:
     </Link>
   )
 })
+
+

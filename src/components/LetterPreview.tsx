@@ -1,10 +1,10 @@
-﻿'use client'
+'use client'
 
 import { useEffect } from 'react'
 import { StatusBadge } from './StatusBadge'
 import { X, Loader2, Calendar, Clock, User, ExternalLink, ArrowRight } from 'lucide-react'
 import { formatDate, getWorkingDaysUntilDeadline, pluralizeDays, isDoneStatus } from '@/lib/utils'
-import type { LetterStatus } from '@prisma/client'
+import type { LetterStatus } from '@/types/prisma'
 import Link from 'next/link'
 import { useLetter } from '@/hooks/useLetters'
 
@@ -171,7 +171,7 @@ export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
               {/* Answer */}
               {letter.answer && (
                 <div>
-                  <h4 className="mb-2 text-sm font-medium text-gray-400">Ответ</h4>
+                  <h4 className="mb-2 text-sm font-medium text-gray-400">?????</h4>
                   <p className="whitespace-pre-wrap text-sm text-white">{letter.answer}</p>
                 </div>
               )}
@@ -195,7 +195,7 @@ export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
               {/* Comment */}
               {letter.comment && (
                 <div>
-                  <h4 className="mb-2 text-sm font-medium text-gray-400">Комментарий</h4>
+                  <h4 className="mb-2 text-sm font-medium text-gray-400">???????????</h4>
                   <p className="whitespace-pre-wrap text-sm text-gray-300">{letter.comment}</p>
                 </div>
               )}
@@ -230,3 +230,5 @@ export function LetterPreview({ letterId, onClose }: LetterPreviewProps) {
     </>
   )
 }
+
+

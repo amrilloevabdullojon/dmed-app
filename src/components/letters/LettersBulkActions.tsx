@@ -1,7 +1,7 @@
 'use client'
 
 import { memo } from 'react'
-import type { LetterStatus } from '@prisma/client'
+import type { LetterStatus } from '@/types/prisma'
 import { STATUS_LABELS } from '@/lib/utils'
 import { CheckSquare, Loader2, Trash2, UserPlus, CheckCircle, X } from 'lucide-react'
 
@@ -135,3 +135,5 @@ export const LettersBulkActions = memo(function LettersBulkActions({
     </div>
   )
 })
+
+

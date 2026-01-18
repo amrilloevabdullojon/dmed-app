@@ -48,7 +48,7 @@ import { usePagination } from '@/hooks/usePagination'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useEffect, useState, useRef, useCallback, useMemo, Suspense, startTransition } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import type { LetterStatus } from '@prisma/client'
+import type { LetterStatus } from '@/types/prisma'
 import { STATUS_LABELS, getWorkingDaysUntilDeadline, pluralizeDays } from '@/lib/utils'
 import { LETTER_TYPES } from '@/lib/constants'
 import {
@@ -1426,3 +1426,5 @@ export default function LettersPage() {
     </Suspense>
   )
 }
+
+

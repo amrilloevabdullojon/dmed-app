@@ -38,7 +38,7 @@ const getTransport = () => {
   })
 }
 
-export const sendEmail = async (to: string, subject: string, text: string) => {
+export const sendEmail = async (to: string, subject: string, text: string, html?: string) => {
   const transport = getTransport()
   if (!transport || !SMTP_FROM) {
     console.warn('SMTP not configured')
@@ -50,6 +50,7 @@ export const sendEmail = async (to: string, subject: string, text: string) => {
       to,
       subject,
       text,
+      html,
     })
     return true
   } catch (error) {

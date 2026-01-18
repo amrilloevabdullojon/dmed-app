@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import type { LetterStatus } from '@prisma/client'
+import type { LetterStatus } from '@/types/prisma'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -207,3 +207,5 @@ export function downloadCsv(data: string[][], filename: string): void {
   link.click()
   URL.revokeObjectURL(url)
 }
+
+

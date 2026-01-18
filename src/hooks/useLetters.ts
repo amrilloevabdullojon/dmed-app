@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useDebouncedState } from '@/hooks/useDebounce'
 import { SEARCH_DEBOUNCE_MS } from '@/lib/constants'
-import type { LetterStatus } from '@prisma/client'
+import type { LetterStatus } from '@/types/prisma'
 
 interface Letter {
   id: string
@@ -274,3 +274,5 @@ export function useCreateLetter() {
     },
   })
 }
+
+

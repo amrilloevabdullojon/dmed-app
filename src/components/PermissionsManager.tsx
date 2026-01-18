@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Loader2, Shield, RefreshCw, Check, X, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/components/Toast'
-import type { Role } from '@prisma/client'
+import type { Role } from '@/types/prisma'
 
 type Permission = string
 
@@ -285,3 +285,5 @@ export function PermissionsManager() {
     </div>
   )
 }
+
+

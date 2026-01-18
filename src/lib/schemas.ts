@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { LetterStatus } from '@prisma/client'
+import type { LetterStatus } from '@/types/prisma'
 import { parseDateValue } from '@/lib/utils'
 
 // ==================== COMMON ====================
@@ -348,3 +348,5 @@ export type UpdateProfileInput = z.infer<typeof updateProfileSchema>
 export type CreateTemplateInput = z.infer<typeof createTemplateSchema>
 export type UpdateTemplateInput = z.infer<typeof updateTemplateSchema>
 export type PaginationInput = z.infer<typeof paginationSchema>
+
+

@@ -75,6 +75,7 @@ model User {
   favorites       Favorite[]
   history         History[]
   answerTemplates AnswerTemplate[]
+  letterTemplates LetterTemplate[] @relation("LetterTemplateCreator")
   notifications   Notification[]
   notificationsCreated Notification[] @relation("NotificationActor")
   notificationPreference NotificationPreference?
@@ -90,6 +91,9 @@ model User {
   requestsAssigned   Request[]        @relation("RequestAssignee")
   requestComments    RequestComment[] @relation("RequestCommentAuthor")
   requestHistory     RequestHistory[] @relation("RequestHistoryActor")
+  pushSubscriptions  PushSubscription[]
+  requestTemplates   RequestResponseTemplate[]
+  preferences        UserPreferences?
 
   @@index([role])              // Индекс для фильтрации по роли
   @@index([canLogin])          // Индекс для фильтрации по доступу
@@ -125,6 +129,60 @@ model UserProfile {
   updatedAt       DateTime           @updatedAt
 
   @@index([userId])
+}
+
+model UserPreferences {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Тема и локализация
+  theme    ThemeMode @default(DARK)
+  language String    @default("ru")
+  density  UIDensity @default(COMFORTABLE)
+
+  // Анимации
+  animations           Boolean @default(true)
+  backgroundAnimations Boolean @default(true)
+  pageTransitions      Boolean @default(true)
+  microInteractions    Boolean @default(true)
+  listAnimations       Boolean @default(true)
+  modalAnimations      Boolean @default(true)
+  scrollAnimations     Boolean @default(true)
+
+  // Фоновые эффекты
+  wallpaperStyle     WallpaperStyle @default(AURORA)
+  wallpaperIntensity Int            @default(60)
+  snowfall           Boolean        @default(false)
+  particles          Boolean        @default(false)
+
+  // Уведомления
+  soundNotifications  Boolean @default(true)
+  desktopNotifications Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+enum ThemeMode {
+  LIGHT
+  DARK
+  AUTO
+}
+
+enum UIDensity {
+  COMPACT
+  COMFORTABLE
+  SPACIOUS
+}
+
+enum WallpaperStyle {
+  AURORA
+  NEBULA
+  GLOW
+  COSMIC
 }
 
 enum Role {
@@ -302,6 +360,12 @@ enum RequestCategory {
   OTHER           // Другое
 }
 
+enum SlaStatus {
+  ON_TIME       // В срок
+  AT_RISK       // Под угрозой нарушения
+  BREACHED      // Нарушен
+}
+
 model Request {
   id              String          @id @default(cuid())
   organization    String
@@ -318,12 +382,19 @@ model Request {
   source          String?
   ipHash          String?
 
+  // SLA fields
+  slaDeadline      DateTime?
+  firstResponseAt  DateTime?
+  resolvedAt       DateTime?
+  slaStatus        SlaStatus       @default(ON_TIME)
+
   // Soft delete
   deletedAt       DateTime?
 
   files           RequestFile[]
   comments        RequestComment[]
   history         RequestHistory[]
+  tags            RequestTag[]
 
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -333,6 +404,8 @@ model Request {
   @@index([priority])
   @@index([category])
   @@index([deletedAt])
+  @@index([slaStatus])
+  @@index([slaDeadline])
 }
 
 model RequestFile {
@@ -380,6 +453,34 @@ model RequestHistory {
 
   @@index([requestId, createdAt])
   @@index([userId])
+}
+
+// Шаблоны ответов для заявок
+model RequestResponseTemplate {
+  id          String          @id @default(cuid())
+  name        String
+  content     String          @db.Text
+  category    RequestCategory?
+  isPublic    Boolean         @default(false)
+  createdById String
+  createdBy   User            @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([category])
+  @@index([createdById])
+  @@index([isPublic])
+}
+
+// Теги для заявок
+model RequestTag {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  color     String    @default("#6B7280")
+  requests  Request[]
+  createdAt DateTime  @default(now())
+
+  @@index([name])
 }
 
 // ===== ФАЙЛЫ =====
@@ -577,6 +678,29 @@ model AnswerTemplate {
   @@index([category])
 }
 
+// ===== ШАБЛОНЫ ПИСЕМ =====
+
+model LetterTemplate {
+  id          String   @id @default(cuid())
+  name        String   // Название шаблона
+  subject     String?  // Тема письма (опционально)
+  body        String   @db.Text // Тело письма
+  signature   String?  @db.Text // Подпись (опционально)
+  category    String?  // Категория шаблона
+  variables   String[] @default([]) // Доступные переменные
+  isPublic    Boolean  @default(false) // Публичный или личный
+  usageCount  Int      @default(0) // Счётчик использований
+  createdById String
+  createdBy   User     @relation("LetterTemplateCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([createdById])
+  @@index([isPublic])
+  @@index([usageCount])
+}
+
 // ===== Notifications =====
 
 model Notification {
@@ -704,4 +828,21 @@ model PermissionAudit {
   createdAt  DateTime @default(now())
 
   @@index([role, createdAt])
+}
+
+// ===== PUSH SUBSCRIPTIONS =====
+
+model PushSubscription {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint       String
+  p256dh         String
+  auth           String
+  expirationTime DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId, endpoint])
+  @@index([userId])
 }

@@ -20,6 +20,8 @@ import { createHash, randomUUID } from 'crypto'
 import { extname } from 'path'
 import { logger } from '@/lib/logger.server'
 import { requirePermission } from '@/lib/permission-guard'
+import { calculateSlaDeadline } from '@/lib/request-sla'
+import { sendRequestCreatedEmail } from '@/lib/request-email'
 
 const ALLOWED_REQUEST_EXTENSIONS = new Set(
   REQUEST_ALLOWED_FILE_EXTENSIONS.split(',')
@@ -313,6 +315,10 @@ export async function POST(request: NextRequest) {
     const honeypot = (formData.get('website') || '').toString().trim()
     const isSpam = Boolean(honeypot)
 
+    const createdAt = new Date()
+    const priority = 'NORMAL' // По умолчанию для новых заявок
+    const slaDeadline = calculateSlaDeadline(createdAt, priority)
+
     const requestRecord = await prisma.request.create({
       data: {
         organization: sanitizeInput(rawData.organization, 500),
@@ -322,8 +328,11 @@ export async function POST(request: NextRequest) {
         contactTelegram: sanitizeInput(rawData.contactTelegram, 100),
         description: sanitizeInput(rawData.description, 10000),
         status: isSpam ? 'SPAM' : 'NEW',
+        priority,
         source: sanitizeInput(request.headers.get('referer') || 'web', 200),
         ipHash: buildRequestIpHash(clientId),
+        slaDeadline: isSpam ? null : slaDeadline,
+        slaStatus: 'ON_TIME',
       },
     })
 
@@ -430,6 +439,19 @@ export async function POST(request: NextRequest) {
           filesCount: savedFiles,
         })
         await sendTelegramMessage(chatId, message)
+      }
+
+      // Отправляем email уведомление заявителю
+      if (!isSpam) {
+        sendRequestCreatedEmail({
+          id: requestRecord.id,
+          organization: requestRecord.organization,
+          contactName: requestRecord.contactName,
+          contactEmail: requestRecord.contactEmail,
+          description: requestRecord.description,
+        }).catch((err) => {
+          logger.error('POST /api/requests', 'Failed to send email notification', err)
+        })
       }
     }
 

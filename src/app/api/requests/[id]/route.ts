@@ -8,6 +8,8 @@ import { requirePermission } from '@/lib/permission-guard'
 import { formatRequestStatusChangeMessage, sendTelegramMessage } from '@/lib/telegram'
 import { csrfGuard } from '@/lib/security'
 import type { Prisma } from '@prisma/client'
+import { calculateSlaDeadline, calculateSlaStatus } from '@/lib/request-sla'
+import { sendRequestStatusUpdateEmail } from '@/lib/request-email'
 
 const CONTEXT = 'API:Requests:[id]'
 
@@ -40,6 +42,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
             author: { select: { id: true, name: true, email: true, image: true } },
           },
         },
+        tags: true,
         _count: { select: { history: true } },
       },
     })
@@ -99,6 +102,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         category: true,
         assignedToId: true,
         assignedTo: { select: { name: true, email: true } },
+        createdAt: true,
+        slaDeadline: true,
+        resolvedAt: true,
+        slaStatus: true,
       },
     })
 
@@ -117,6 +124,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         oldValue: currentRequest.status,
         newValue: parsed.data.status,
       })
+
+      // Если заявка завершена, устанавливаем resolvedAt
+      if (parsed.data.status === 'DONE' && !currentRequest.resolvedAt) {
+        updateData.resolvedAt = new Date()
+      }
+
+      // Если заявка снова открыта, сбрасываем resolvedAt
+      if (parsed.data.status !== 'DONE' && currentRequest.resolvedAt) {
+        updateData.resolvedAt = null
+      }
     }
 
     // Обработка изменения приоритета
@@ -127,6 +144,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         oldValue: currentRequest.priority,
         newValue: parsed.data.priority,
       })
+
+      // Пересчитываем SLA дедлайн при изменении приоритета
+      const newDeadline = calculateSlaDeadline(currentRequest.createdAt, parsed.data.priority)
+      updateData.slaDeadline = newDeadline
     }
 
     // Обработка изменения категории
@@ -172,6 +193,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No updates provided.' }, { status: 400 })
+    }
+
+    // Обновляем SLA статус если нужно
+    const newSlaStatus = calculateSlaStatus(
+      updateData.slaDeadline ? (updateData.slaDeadline as Date) : currentRequest.slaDeadline,
+      updateData.resolvedAt ? (updateData.resolvedAt as Date) : currentRequest.resolvedAt,
+      (updateData.status as string) || currentRequest.status
+    )
+    if (newSlaStatus !== currentRequest.slaStatus) {
+      updateData.slaStatus = newSlaStatus
     }
 
     // Обновляем заявку и записываем историю в одной транзакции
@@ -231,6 +262,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           logger.error(CONTEXT, err, { action: 'telegram_notification', requestId: id })
         })
       }
+
+      // Отправляем email уведомление заявителю
+      sendRequestStatusUpdateEmail({
+        id: updated.id,
+        organization: updated.organization,
+        contactName: updated.contactName,
+        contactEmail: updated.contactEmail,
+        status: updated.status,
+      }).catch((err) => {
+        logger.error(CONTEXT, err, { action: 'email_notification', requestId: id })
+      })
     }
 
     return NextResponse.json({ success: true, request: updated })

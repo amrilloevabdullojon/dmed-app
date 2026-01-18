@@ -36,7 +36,7 @@ const RelatedLetters = dynamic(
 )
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import type { LetterStatus } from '@prisma/client'
+import type { LetterStatus } from '@/types/prisma'
 import {
   STATUS_LABELS,
   formatDate,
@@ -1153,3 +1153,5 @@ export default function LetterDetailPage() {
     </div>
   )
 }
+
+

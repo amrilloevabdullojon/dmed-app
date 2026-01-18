@@ -1,4 +1,4 @@
-import type { LetterStatus } from '@prisma/client'
+import type { LetterStatus } from '@/types/prisma'
 
 // ==================== СТАТУСЫ ====================
 
@@ -196,3 +196,5 @@ export const SEARCH_DEBOUNCE_MS = 300
 
 /** Задержка debounce для автосохранения (в мс) */
 export const AUTOSAVE_DEBOUNCE_MS = 1000
+
+

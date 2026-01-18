@@ -1,10 +1,10 @@
-﻿'use client'
+'use client'
 
 import { useRef, useMemo, useCallback } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { LetterCard } from './LetterCard'
 import { StatusBadge } from './StatusBadge'
-import type { LetterStatus } from '@prisma/client'
+import type { LetterStatus } from '@/types/prisma'
 import { ArrowDown, ArrowUp, ArrowUpDown, CheckSquare, Eye, Square } from 'lucide-react'
 import { formatDate, getWorkingDaysUntilDeadline, isDoneStatus, pluralizeDays } from '@/lib/utils'
 
@@ -98,7 +98,7 @@ export function VirtualLetterList({
                           ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30'
                           : 'bg-white/10 text-slate-300 opacity-100 md:opacity-0 md:group-hover:opacity-100'
                       }`}
-                      aria-label={`Выбрать письмо ${letter.number}`}
+                      aria-label={`??????? ?????? ${letter.number}`}
                     >
                       <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                         <path
@@ -278,7 +278,7 @@ export function VirtualLetterTable({
                     className={`rounded p-1 ${
                       isSelected ? 'text-teal-300' : 'text-slate-400 hover:text-white'
                     }`}
-                    aria-label={`Выбрать письмо ${letter.number}`}
+                    aria-label={`??????? ?????? ${letter.number}`}
                   >
                     {isSelected ? (
                       <CheckSquare className="h-5 w-5" />
@@ -331,3 +331,5 @@ export function VirtualLetterTable({
     </div>
   )
 }
+
+

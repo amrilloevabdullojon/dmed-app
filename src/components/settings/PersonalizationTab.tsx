@@ -1,43 +1,127 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, useState, useEffect } from 'react'
 import { Palette, Globe, Sparkles, Monitor } from 'lucide-react'
 import { SettingsToggle } from './SettingsToggle'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { toast } from 'sonner'
 
 interface PersonalizationSettings {
-  theme: 'light' | 'dark' | 'auto'
-  language: 'ru' | 'en'
-  density: 'compact' | 'comfortable' | 'spacious'
+  theme: 'LIGHT' | 'DARK' | 'AUTO'
+  language: string
+  density: 'COMPACT' | 'COMFORTABLE' | 'SPACIOUS'
   animations: boolean
   backgroundAnimations: boolean
-  wallpaperStyle: 'aurora' | 'nebula' | 'glow'
+  pageTransitions: boolean
+  microInteractions: boolean
+  listAnimations: boolean
+  modalAnimations: boolean
+  scrollAnimations: boolean
+  wallpaperStyle: 'AURORA' | 'NEBULA' | 'GLOW' | 'COSMIC'
   wallpaperIntensity: number
+  snowfall: boolean
+  particles: boolean
+  soundNotifications: boolean
+  desktopNotifications: boolean
 }
 
 export const PersonalizationTab = memo(function PersonalizationTab() {
-  const [settings, setSettings] = useLocalStorage<PersonalizationSettings>(
-    'personalization-settings',
-    {
-      theme: 'dark',
-      language: 'ru',
-      density: 'comfortable',
-      animations: true,
-      backgroundAnimations: true,
-      wallpaperStyle: 'aurora',
-      wallpaperIntensity: 60,
-    }
-  )
+  const [settings, setSettings] = useState<PersonalizationSettings>({
+    theme: 'DARK',
+    language: 'ru',
+    density: 'COMFORTABLE',
+    animations: true,
+    backgroundAnimations: true,
+    pageTransitions: true,
+    microInteractions: true,
+    listAnimations: true,
+    modalAnimations: true,
+    scrollAnimations: true,
+    wallpaperStyle: 'AURORA',
+    wallpaperIntensity: 60,
+    snowfall: false,
+    particles: false,
+    soundNotifications: true,
+    desktopNotifications: true,
+  })
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
 
-  const updateSetting = <K extends keyof PersonalizationSettings>(
+  // Загрузка настроек при монтировании
+  useEffect(() => {
+    async function loadPreferences() {
+      try {
+        const response = await fetch('/api/user/preferences')
+        if (response.ok) {
+          const data = await response.json()
+          setSettings({
+            theme: data.theme || 'DARK',
+            language: data.language || 'ru',
+            density: data.density || 'COMFORTABLE',
+            animations: data.animations ?? true,
+            backgroundAnimations: data.backgroundAnimations ?? true,
+            pageTransitions: data.pageTransitions ?? true,
+            microInteractions: data.microInteractions ?? true,
+            listAnimations: data.listAnimations ?? true,
+            modalAnimations: data.modalAnimations ?? true,
+            scrollAnimations: data.scrollAnimations ?? true,
+            wallpaperStyle: data.wallpaperStyle || 'AURORA',
+            wallpaperIntensity: data.wallpaperIntensity ?? 60,
+            snowfall: data.snowfall ?? false,
+            particles: data.particles ?? false,
+            soundNotifications: data.soundNotifications ?? true,
+            desktopNotifications: data.desktopNotifications ?? true,
+          })
+        }
+      } catch (error) {
+        console.error('Failed to load preferences:', error)
+        toast.error('Не удалось загрузить настройки')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadPreferences()
+  }, [])
+
+  const updateSetting = async <K extends keyof PersonalizationSettings>(
     key: K,
     value: PersonalizationSettings[K]
   ) => {
+    // Оптимистичное обновление UI
+    const previousSettings = settings
     setSettings((prev) => ({ ...prev, [key]: value }))
+
+    setIsSaving(true)
+    try {
+      const response = await fetch('/api/user/preferences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: value }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save setting')
+      }
+    } catch (error) {
+      console.error('Failed to save setting:', error)
+      // Откат изменений при ошибке
+      setSettings(previousSettings)
+      toast.error('Не удалось сохранить настройку')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="text-gray-400">Загрузка настроек...</div>
+      </div>
+    )
   }
 
   const backgroundAnimationsEnabled = settings.backgroundAnimations ?? true
-  const wallpaperStyle = settings.wallpaperStyle ?? 'aurora'
+  const wallpaperStyle = settings.wallpaperStyle ?? 'AURORA'
   const wallpaperIntensity = settings.wallpaperIntensity ?? 60
 
   return (
@@ -60,9 +144,9 @@ export const PersonalizationTab = memo(function PersonalizationTab() {
           <label className="mb-3 block text-sm font-medium text-white">Цветовая схема</label>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <button
-              onClick={() => updateSetting('theme', 'light')}
+              onClick={() => updateSetting('theme', 'LIGHT')}
               className={`flex items-center gap-3 rounded-xl border p-4 transition ${
-                settings.theme === 'light'
+                settings.theme === 'LIGHT'
                   ? 'border-emerald-400/50 bg-emerald-500/15 shadow-[0_0_18px_rgba(16,185,129,0.25)]'
                   : 'border-white/10 bg-white/5 hover:bg-white/10'
               }`}
@@ -77,9 +161,9 @@ export const PersonalizationTab = memo(function PersonalizationTab() {
             </button>
 
             <button
-              onClick={() => updateSetting('theme', 'dark')}
+              onClick={() => updateSetting('theme', 'DARK')}
               className={`flex items-center gap-3 rounded-xl border p-4 transition ${
-                settings.theme === 'dark'
+                settings.theme === 'DARK'
                   ? 'border-emerald-400/50 bg-emerald-500/15 shadow-[0_0_18px_rgba(16,185,129,0.25)]'
                   : 'border-white/10 bg-white/5 hover:bg-white/10'
               }`}
@@ -94,9 +178,9 @@ export const PersonalizationTab = memo(function PersonalizationTab() {
             </button>
 
             <button
-              onClick={() => updateSetting('theme', 'auto')}
+              onClick={() => updateSetting('theme', 'AUTO')}
               className={`flex items-center gap-3 rounded-xl border p-4 transition ${
-                settings.theme === 'auto'
+                settings.theme === 'AUTO'
                   ? 'border-emerald-400/50 bg-emerald-500/15 shadow-[0_0_18px_rgba(16,185,129,0.25)]'
                   : 'border-white/10 bg-white/5 hover:bg-white/10'
               }`}
@@ -111,10 +195,10 @@ export const PersonalizationTab = memo(function PersonalizationTab() {
             </button>
           </div>
           <p className="mt-2 text-xs text-gray-400">
-            {settings.theme === 'auto' &&
+            {settings.theme === 'AUTO' &&
               'Тема будет автоматически меняться в зависимости от системных настроек'}
-            {settings.theme === 'light' && 'Применена светлая тема оформления'}
-            {settings.theme === 'dark' && 'Применена темная тема оформления'}
+            {settings.theme === 'LIGHT' && 'Применена светлая тема оформления'}
+            {settings.theme === 'DARK' && 'Применена темная тема оформления'}
           </p>
         </div>
       </div>
@@ -167,9 +251,9 @@ export const PersonalizationTab = memo(function PersonalizationTab() {
           <label className="mb-3 block text-sm font-medium text-white">Плотность</label>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <button
-              onClick={() => updateSetting('density', 'compact')}
+              onClick={() => updateSetting('density', 'COMPACT')}
               className={`rounded-xl border p-4 text-left transition ${
-                settings.density === 'compact'
+                settings.density === 'COMPACT'
                   ? 'border-emerald-400/50 bg-emerald-500/15 shadow-[0_0_18px_rgba(16,185,129,0.25)]'
                   : 'border-white/10 bg-white/5 hover:bg-white/10'
               }`}
@@ -179,9 +263,9 @@ export const PersonalizationTab = memo(function PersonalizationTab() {
             </button>
 
             <button
-              onClick={() => updateSetting('density', 'comfortable')}
+              onClick={() => updateSetting('density', 'COMFORTABLE')}
               className={`rounded-xl border p-4 text-left transition ${
-                settings.density === 'comfortable'
+                settings.density === 'COMFORTABLE'
                   ? 'border-emerald-400/50 bg-emerald-500/15 shadow-[0_0_18px_rgba(16,185,129,0.25)]'
                   : 'border-white/10 bg-white/5 hover:bg-white/10'
               }`}
@@ -191,9 +275,9 @@ export const PersonalizationTab = memo(function PersonalizationTab() {
             </button>
 
             <button
-              onClick={() => updateSetting('density', 'spacious')}
+              onClick={() => updateSetting('density', 'SPACIOUS')}
               className={`rounded-xl border p-4 text-left transition ${
-                settings.density === 'spacious'
+                settings.density === 'SPACIOUS'
                   ? 'border-emerald-400/50 bg-emerald-500/15 shadow-[0_0_18px_rgba(16,185,129,0.25)]'
                   : 'border-white/10 bg-white/5 hover:bg-white/10'
               }`}
@@ -259,14 +343,13 @@ export const PersonalizationTab = memo(function PersonalizationTab() {
               disabled={!backgroundAnimationsEnabled}
               className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-white transition focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
             >
-              <option value="aurora">{'\u0410\u0432\u0440\u043e\u0440\u0430'}</option>
-              <option value="nebula">{'\u041d\u0435\u0431\u0443\u043b\u0430'}</option>
-              <option value="glow">{'\u0421\u0438\u044f\u043d\u0438\u0435'}</option>
+              <option value="AURORA">Аврора</option>
+              <option value="NEBULA">Небула</option>
+              <option value="GLOW">Сияние</option>
+              <option value="COSMIC">Космос</option>
             </select>
             <p className="mt-1 text-xs text-gray-400">
-              {
-                '\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0445\u0430\u0440\u0430\u043a\u0442\u0435\u0440 \u0444\u043e\u043d\u0430: \u043c\u044f\u0433\u043a\u0430\u044f \u0430\u0432\u0440\u043e\u0440\u0430, \u0433\u043b\u0443\u0431\u043e\u043a\u0430\u044f \u043d\u0435\u0431\u0443\u043b\u0430 \u0438\u043b\u0438 \u0447\u0438\u0441\u0442\u043e\u0435 \u0441\u0438\u044f\u043d\u0438\u0435.'
-              }
+              Выберите характер фона: мягкая аврора, глубокая небула, чистое сияние или космическая атмосфера.
             </p>
           </div>
           <div>
@@ -287,10 +370,72 @@ export const PersonalizationTab = memo(function PersonalizationTab() {
               className="w-full accent-emerald-400"
             />
             <p className="mt-1 text-xs text-gray-400">
-              {
-                '\u041f\u043e\u043b\u0437\u0443\u0439\u0442\u0435\u0441\u044c \u0441\u043b\u0430\u0439\u0434\u0435\u0440\u043e\u043c, \u0447\u0442\u043e\u0431\u044b \u0443\u0441\u0438\u043b\u0438\u0442\u044c \u0438\u043b\u0438 \u043e\u0441\u043b\u0430\u0431\u0438\u0442\u044c \u044d\u0444\u0444\u0435\u043a\u0442.'
-              }
+              Пользуйтесь слайдером, чтобы усилить или ослабить эффект.
             </p>
+          </div>
+
+          <div className="mt-4 space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+            <h4 className="text-sm font-semibold text-white">Дополнительные эффекты</h4>
+
+            <SettingsToggle
+              label="Падающий снег"
+              description="Анимация падающих снежинок с реалистичным движением и вращением."
+              icon={<Sparkles className="h-4 w-4" />}
+              enabled={settings.snowfall ?? false}
+              onToggle={(enabled) => updateSetting('snowfall', enabled)}
+            />
+
+            <SettingsToggle
+              label="Плавающие частицы"
+              description="Всплывающие светящиеся частицы для атмосферного эффекта."
+              icon={<Sparkles className="h-4 w-4" />}
+              enabled={settings.particles ?? false}
+              onToggle={(enabled) => updateSetting('particles', enabled)}
+            />
+          </div>
+
+          <div className="mt-4 space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+            <h4 className="text-sm font-semibold text-white">Переходы и взаимодействия</h4>
+
+            <SettingsToggle
+              label="Переходы между страницами"
+              description="Плавные анимации при навигации между страницами приложения."
+              icon={<Sparkles className="h-4 w-4" />}
+              enabled={settings.pageTransitions ?? true}
+              onToggle={(enabled) => updateSetting('pageTransitions', enabled)}
+            />
+
+            <SettingsToggle
+              label="Микро-взаимодействия"
+              description="Анимации при наведении и взаимодействии с кнопками и формами."
+              icon={<Sparkles className="h-4 w-4" />}
+              enabled={settings.microInteractions ?? true}
+              onToggle={(enabled) => updateSetting('microInteractions', enabled)}
+            />
+
+            <SettingsToggle
+              label="Анимации списков"
+              description="Плавное появление и сортировка элементов в списках."
+              icon={<Sparkles className="h-4 w-4" />}
+              enabled={settings.listAnimations ?? true}
+              onToggle={(enabled) => updateSetting('listAnimations', enabled)}
+            />
+
+            <SettingsToggle
+              label="Анимации модальных окон"
+              description="Плавное открытие и закрытие диалогов и модальных окон."
+              icon={<Sparkles className="h-4 w-4" />}
+              enabled={settings.modalAnimations ?? true}
+              onToggle={(enabled) => updateSetting('modalAnimations', enabled)}
+            />
+
+            <SettingsToggle
+              label="Анимации при прокрутке"
+              description="Эффекты появления элементов при прокрутке страницы."
+              icon={<Sparkles className="h-4 w-4" />}
+              enabled={settings.scrollAnimations ?? true}
+              onToggle={(enabled) => updateSetting('scrollAnimations', enabled)}
+            />
           </div>
         </div>
       </div>

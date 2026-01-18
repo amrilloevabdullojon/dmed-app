@@ -5,7 +5,7 @@ import { Header } from '@/components/Header'
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { STATUS_LABELS } from '@/lib/utils'
-import type { LetterStatus } from '@prisma/client'
+import type { LetterStatus } from '@/types/prisma'
 import {
   Loader2,
   Building2,
@@ -2576,3 +2576,5 @@ export default function ReportsPage() {
     </div>
   )
 }
+
+

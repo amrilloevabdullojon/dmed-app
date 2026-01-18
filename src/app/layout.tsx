@@ -3,8 +3,11 @@ import { Manrope, Rubik } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/Providers'
 import { Snowfall, NewYearBanner } from '@/components/Snowfall'
+import { Particles } from '@/components/Particles'
 import { OfflineIndicator } from '@/components/OfflineIndicator'
 import { AuthGuard } from '@/components/AuthGuard'
+import { PageTransition } from '@/components/PageTransition'
+import { ThemeProvider } from '@/components/ThemeProvider'
 import { SkipToContent } from '@/components/SkipToContent'
 import { PWAProvider } from '@/components/PWAProvider'
 
@@ -57,15 +60,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${manrope.variable} ${spaceGrotesk.variable} app-body min-h-screen text-white`}
       >
-        <SkipToContent />
         <Providers>
           <PWAProvider>
-            <AuthGuard>
-              <NewYearBanner />
-              {children}
-              <Snowfall />
-              <OfflineIndicator />
-            </AuthGuard>
+            <ThemeProvider>
+              <SkipToContent />
+              <AuthGuard>
+                <NewYearBanner />
+                <PageTransition>{children}</PageTransition>
+                <Particles />
+                <Snowfall />
+                <OfflineIndicator />
+              </AuthGuard>
+            </ThemeProvider>
           </PWAProvider>
         </Providers>
       </body>

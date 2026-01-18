@@ -7,6 +7,9 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { StatsWidgets } from '@/components/StatsWidgets'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
+import { DashboardSection } from '@/components/DashboardSection'
+import { StatsSkeleton, CardSkeleton } from '@/components/ui/Skeleton'
+import { toast, handleApiError } from '@/lib/toast'
 import {
   FileText,
   Clock,
@@ -21,7 +24,7 @@ import {
   Activity,
 } from 'lucide-react'
 import { formatDate, getWorkingDaysUntilDeadline, pluralizeDays, STATUS_LABELS } from '@/lib/utils'
-import type { LetterStatus } from '@prisma/client'
+import type { LetterStatus } from '@/types/prisma'
 
 interface Letter {
   id: string
@@ -129,6 +132,7 @@ export default function HomePage() {
       setRecentRequests(requestsData.requests || [])
     } catch (error) {
       console.error('Failed to load dashboard:', error)
+      handleApiError(error, 'Не удалось загрузить данные дашборда')
     } finally {
       setLoading(false)
     }
@@ -583,3 +587,5 @@ export default function HomePage() {
     </div>
   )
 }
+
+

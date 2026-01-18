@@ -4,11 +4,14 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { csrfGuard } from '@/lib/security'
 import { logger } from '@/lib/logger.server'
+import { NotificationType } from '@prisma/client'
 import { z } from 'zod'
 
 const updateSchema = z.object({
   ids: z.array(z.string()).optional(),
   all: z.boolean().optional(),
+  filter: z.enum(['unread', 'deadlines', 'comments', 'statuses', 'assignments', 'system']).optional(),
+  action: z.enum(['read', 'archive', 'delete']).optional(),
 })
 
 export async function GET(request: NextRequest) {
@@ -70,16 +73,44 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: result.error.errors[0].message }, { status: 400 })
     }
 
-    const { ids, all } = result.data
+    const { ids, all, filter, action = 'read' } = result.data
 
-    if (all) {
+    const buildWhere = () => {
+      const where: {
+        userId: string
+        type?: NotificationType
+        isRead?: boolean
+        id?: { in: string[] }
+      } = {
+        userId: session.user.id,
+      }
+
+      if (ids && ids.length > 0) {
+        where.id = { in: ids }
+      } else if (all) {
+        if (filter === 'unread') {
+          where.isRead = false
+        } else if (filter === 'comments') {
+          where.type = NotificationType.COMMENT
+        } else if (filter === 'statuses') {
+          where.type = NotificationType.STATUS
+        } else if (filter === 'assignments') {
+          where.type = NotificationType.ASSIGNMENT
+        } else if (filter === 'system') {
+          where.type = NotificationType.SYSTEM
+        }
+      }
+
+      return where
+    }
+
+    const where = buildWhere()
+
+    if (action === 'delete') {
+      await prisma.notification.deleteMany({ where })
+    } else if (action === 'read') {
       await prisma.notification.updateMany({
-        where: { userId: session.user.id, isRead: false },
-        data: { isRead: true },
-      })
-    } else if (ids && ids.length > 0) {
-      await prisma.notification.updateMany({
-        where: { id: { in: ids }, userId: session.user.id },
+        where,
         data: { isRead: true },
       })
     }

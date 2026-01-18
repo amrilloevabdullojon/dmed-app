@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { FileText, Loader2, ExternalLink, ChevronRight } from 'lucide-react'
 import { StatusBadge } from './StatusBadge'
 import { formatDate } from '@/lib/utils'
-import type { LetterStatus } from '@prisma/client'
+import type { LetterStatus } from '@/types/prisma'
 
 interface RelatedLetter {
   id: string
@@ -116,3 +116,5 @@ export function RelatedLetters({ currentLetterId, organization }: RelatedLetters
     </div>
   )
 }
+
+

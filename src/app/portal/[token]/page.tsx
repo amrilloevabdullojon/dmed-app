@@ -1,5 +1,5 @@
-﻿import Link from 'next/link'
-import type { LetterStatus } from '@prisma/client'
+import Link from 'next/link'
+import type { LetterStatus } from '@/types/prisma'
 import { prisma } from '@/lib/prisma'
 import {
   STATUS_LABELS,
@@ -511,3 +511,5 @@ export default async function ApplicantPortalPage({ params, searchParams }: Page
     </div>
   )
 }
+
+

@@ -1,6 +1,6 @@
 'use client'
 
-import type { LetterStatus } from '@prisma/client'
+import type { LetterStatus } from '@/types/prisma'
 import { STATUS_LABELS } from '@/lib/utils'
 import { Circle, CircleDot, Clock, HelpCircle, CheckCircle, CheckCircle2 } from 'lucide-react'
 
@@ -87,3 +87,5 @@ export function StatusBadge({ status, size = 'md', mobileOptimized = false }: St
     </span>
   )
 }
+
+

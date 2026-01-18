@@ -22,6 +22,7 @@ import { useFetch, useMutation } from '@/hooks/useFetch'
 import { useNotificationSettings } from '@/hooks/useNotificationSettings'
 import { useToast } from '@/components/Toast'
 import { hapticLight, hapticMedium } from '@/lib/haptic'
+import { playNotificationSound, setSoundEnabled } from '@/lib/sounds'
 import { isWithinQuietHours } from '@/lib/notification-settings'
 
 interface NotificationLetter {
@@ -728,6 +729,22 @@ export function Notifications() {
       setLoadDeadlineNotifications(true)
     }
   }, [isOpen, notificationSettings.notifyOnDeadline])
+
+  useEffect(() => {
+    setSoundEnabled(notificationSettings.soundNotifications)
+  }, [notificationSettings.soundNotifications])
+
+  useEffect(() => {
+    const prevCount = localStorage.getItem('prev-notification-count')
+    const currentCount = totalCount.toString()
+
+    if (prevCount && Number.parseInt(prevCount, 10) < totalCount && notificationSettings.soundNotifications) {
+      const hasDeadlines = counts.deadlines > 0
+      playNotificationSound(hasDeadlines ? 'deadline' : 'message')
+    }
+
+    localStorage.setItem('prev-notification-count', currentCount)
+  }, [totalCount, counts.deadlines, notificationSettings.soundNotifications])
 
   const isLoading = userNotificationsQuery.isLoading && unifiedNotifications.length === 0
   const isNotificationsDisabled = !notificationSettings.inAppNotifications
