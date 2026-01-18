@@ -388,7 +388,10 @@ export function EnhancedToastProvider({
   const [toasts, setToasts] = useState<ToastState[]>([])
 
   useEffect(() => {
-    return enhancedToast.subscribe(setToasts)
+    const unsubscribe = enhancedToast.subscribe(setToasts)
+    return () => {
+      unsubscribe()
+    }
   }, [])
 
   const positionClasses = {
