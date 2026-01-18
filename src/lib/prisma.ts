@@ -1,16 +1,5 @@
 import { Prisma, PrismaClient } from '@prisma/client'
 
-// Conditionally import logger only on server
-const logger =
-  typeof window === 'undefined'
-    ? // eslint-disable-next-line @typescript-eslint/no-var-requires
-      require('@/lib/logger.server').logger
-    : {
-        warn: () => {},
-        info: () => {},
-        error: () => {},
-      }
-
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
@@ -42,9 +31,9 @@ const prismaClientSingleton = () => {
         target: event.target,
       }
       if (event.duration >= 1000) {
-        logger.warn('Prisma', 'Slow query', meta)
+        console.warn('[Prisma] Slow query', meta)
       } else {
-        logger.info('Prisma', 'Query', meta)
+        console.log('[Prisma] Query', meta)
       }
     })
   }
@@ -267,7 +256,7 @@ async function logLetterChange(
   } catch (error) {
     // Логируем ошибку, но не прерываем основную операцию
     if (process.env.NODE_ENV === 'development') {
-      logger.error('LetterChangeLog', error)
+      console.error('[LetterChangeLog]', error)
     }
   }
 }
