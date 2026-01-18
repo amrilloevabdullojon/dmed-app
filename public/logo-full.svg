@@ -1,26 +1,32 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="240" height="64" viewBox="0 0 240 64" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Modern teal gradient -->
-    <linearGradient id="modernBg" x1="0%" y1="0%" x2="100%" y2="100%">
+    <!-- Modern teal gradient for icon -->
+    <linearGradient id="iconBg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#115E59;stop-opacity:1" />
       <stop offset="50%" style="stop-color:#0F766E;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#14B8A6;stop-opacity:1" />
     </linearGradient>
 
     <!-- Mesh gradient overlay -->
-    <radialGradient id="meshGrad">
+    <radialGradient id="meshOverlay">
       <stop offset="0%" style="stop-color:#5EEAD4;stop-opacity:0.3" />
       <stop offset="100%" style="stop-color:#0F766E;stop-opacity:0" />
     </radialGradient>
 
     <!-- Letter paper gradient -->
-    <linearGradient id="paperGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+    <linearGradient id="paper" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#F0FDFA;stop-opacity:0.98" />
     </linearGradient>
 
+    <!-- Text gradient -->
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#F8FAFC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#CBD5E1;stop-opacity:1" />
+    </linearGradient>
+
     <!-- Soft shadow -->
-    <filter id="softShadow">
+    <filter id="shadow">
       <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
       <feOffset dx="0" dy="3" result="offsetblur"/>
       <feComponentTransfer>
@@ -33,7 +39,7 @@
     </filter>
 
     <!-- Glow for notification -->
-    <filter id="notifGlow">
+    <filter id="glow">
       <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
       <feMerge>
         <feMergeNode in="coloredBlur"/>
@@ -42,31 +48,22 @@
     </filter>
   </defs>
 
-  <!-- Background with rounded corners -->
-  <rect width="64" height="64" rx="20" fill="url(#modernBg)"/>
-
-  <!-- Mesh gradient overlay for depth -->
-  <rect width="64" height="64" rx="20" fill="url(#meshGrad)"/>
-
-  <!-- Subtle noise texture -->
+  <!-- Icon background -->
+  <rect width="64" height="64" rx="20" fill="url(#iconBg)"/>
+  <rect width="64" height="64" rx="20" fill="url(#meshOverlay)"/>
   <rect width="64" height="64" rx="20" fill="white" opacity="0.03"/>
 
-  <!-- Main letter icon -->
-  <g filter="url(#softShadow)">
-    <!-- Envelope base -->
+  <!-- Letter icon -->
+  <g filter="url(#shadow)">
     <path d="M14 24 C14 21.7909 15.7909 20 18 20 L46 20 C48.2091 20 50 21.7909 50 24 L50 42 C50 44.2091 48.2091 46 46 46 L18 46 C15.7909 46 14 44.2091 14 42 Z"
-          fill="url(#paperGrad)"/>
-
-    <!-- Top fold line with gradient -->
+          fill="url(#paper)"/>
     <path d="M14 24 L32 36 L50 24"
-          stroke="url(#modernBg)"
+          stroke="url(#iconBg)"
           stroke-width="3"
           stroke-linecap="round"
           stroke-linejoin="round"
           fill="none"
           opacity="0.85"/>
-
-    <!-- Bottom fold accent -->
     <path d="M20 42 L32 34 L44 42"
           stroke="#14B8A6"
           stroke-width="2"
@@ -74,37 +71,43 @@
           stroke-linejoin="round"
           fill="none"
           opacity="0.3"/>
-
-    <!-- Letter content lines -->
-    <g opacity="0.4">
-      <line x1="22" y1="28" x2="32" y2="28" stroke="#0F766E" stroke-width="1.5" stroke-linecap="round"/>
-      <line x1="22" y1="32" x2="28" y2="32" stroke="#0F766E" stroke-width="1.5" stroke-linecap="round"/>
-      <line x1="36" y1="28" x2="42" y2="28" stroke="#0F766E" stroke-width="1.5" stroke-linecap="round"/>
-      <line x1="36" y1="32" x2="42" y2="32" stroke="#0F766E" stroke-width="1.5" stroke-linecap="round"/>
-    </g>
-
-    <!-- DMED badge in center -->
     <circle cx="32" cy="38" r="6" fill="#14B8A6" opacity="0.15"/>
     <text x="32" y="41"
-          font-family="SF Pro Display, system-ui, -apple-system, sans-serif"
+          font-family="SF Pro Display, system-ui, sans-serif"
           font-weight="700"
           font-size="8"
           fill="#0F766E"
-          text-anchor="middle"
-          letter-spacing="0.5">D</text>
+          text-anchor="middle">D</text>
   </g>
 
-  <!-- Notification badge with glow -->
-  <g filter="url(#notifGlow)">
+  <!-- Notification badge -->
+  <g filter="url(#glow)">
     <circle cx="50" cy="16" r="6" fill="#F59E0B"/>
     <circle cx="50" cy="16" r="6" fill="#FDE047" opacity="0.5"/>
     <circle cx="50" cy="16" r="4" fill="#FCD34D"/>
     <circle cx="51" cy="15" r="1.5" fill="#FEF9C3"/>
   </g>
 
-  <!-- Outer border highlight -->
   <rect width="64" height="64" rx="20" fill="none" stroke="white" stroke-width="0.5" opacity="0.15"/>
-
-  <!-- Inner highlight for glass effect -->
   <rect x="4" y="4" width="56" height="28" rx="16" fill="white" opacity="0.08"/>
+
+  <!-- Text: DMED Letters -->
+  <g>
+    <!-- Main title -->
+    <text x="80" y="33"
+          font-family="SF Pro Display, Inter, system-ui, -apple-system, sans-serif"
+          font-weight="700"
+          font-size="24"
+          fill="url(#textGrad)"
+          letter-spacing="-0.5">DMED Letters</text>
+
+    <!-- Subtitle -->
+    <text x="80" y="48"
+          font-family="SF Pro Display, Inter, system-ui, sans-serif"
+          font-weight="500"
+          font-size="11"
+          fill="#F59E0B"
+          letter-spacing="1.5"
+          opacity="0.8">DOCUMENT FLOW SYSTEM</text>
+  </g>
 </svg>

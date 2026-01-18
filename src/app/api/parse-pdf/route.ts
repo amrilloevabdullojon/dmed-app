@@ -43,12 +43,15 @@ export async function POST(request: NextRequest) {
     let filenameData: { number?: string; date?: Date; description?: string } = {}
 
     if (fullFilenameMatch) {
+      // ИСПРАВЛЕНИЕ БАГА: используем Date.UTC для избежания проблем с таймзонами
       filenameData = {
         number: fullFilenameMatch[1],
         date: new Date(
-          parseInt(fullFilenameMatch[4]),
-          parseInt(fullFilenameMatch[3]) - 1,
-          parseInt(fullFilenameMatch[2])
+          Date.UTC(
+            parseInt(fullFilenameMatch[4]), // year
+            parseInt(fullFilenameMatch[3]) - 1, // month (0-indexed)
+            parseInt(fullFilenameMatch[2]) // day
+          )
         ),
         description: fullFilenameMatch[5].replace(/[_-]/g, ' '),
       }
@@ -57,11 +60,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Отправляем PDF напрямую в Gemini AI
-    // eslint-disable-next-line no-console
-    console.log('Sending PDF to Gemini AI...')
+    logger.debug('Parsing PDF with AI', { filename: file.name, size: file.size })
     const aiData = await extractLetterDataFromPdf(base64)
-    // eslint-disable-next-line no-console
-    console.log('AI response:', JSON.stringify(aiData, null, 2))
+    logger.debug('AI parsing completed', { success: !!aiData })
 
     const normalizeNumber = (value: string | null): string | null => {
       if (!value) return null

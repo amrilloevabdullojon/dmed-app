@@ -17,9 +17,9 @@ export const authOptions: AuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      // Allow linking Google accounts to existing users created manually
-      // This is safe because we verify user existence in signIn callback
-      allowDangerousEmailAccountLinking: true,
+      // SECURITY: Disabled dangerous email linking to prevent account takeover
+      // Users must manually link accounts through profile settings
+      allowDangerousEmailAccountLinking: false,
     }),
   ],
   // Use JWT strategy for better performance (no DB query on each request)

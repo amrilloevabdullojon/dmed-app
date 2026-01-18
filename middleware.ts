@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { applySecurityHeaders, setCsrfTokenCookie } from '@/lib/security'
+import { ROLE_HIERARCHY } from '@/lib/constants'
 import type { Role } from '@prisma/client'
 
 const PUBLIC_PREFIXES = ['/login', '/u', '/portal']
@@ -17,15 +18,6 @@ const PUBLIC_FILES = [
 
 const ADMIN_ROUTES = ['/users', '/settings/system']
 const MANAGER_ROUTES = ['/stats/detailed', '/templates/manage']
-
-const ROLE_HIERARCHY: Record<Role, number> = {
-  VIEWER: 0,
-  EMPLOYEE: 1,
-  AUDITOR: 2,
-  MANAGER: 3,
-  ADMIN: 4,
-  SUPERADMIN: 5,
-}
 
 const isPublicPath = (pathname: string) =>
   PUBLIC_PATHS.includes(pathname) ||

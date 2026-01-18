@@ -132,15 +132,16 @@ html[data-wallpaper-style='glow'] body::after {
 .app-body {
   font-family: var(--font-manrope), system-ui, sans-serif;
   letter-spacing: -0.01em;
-  font-size: clamp(0.875rem, 0.8rem + 0.25vw, 1rem);
+  font-size: clamp(0.875rem, 0.85rem + 0.3vw, 1rem);
 }
 
 h1,
 h2,
 h3,
+h4,
 .font-display {
   font-family: var(--font-space), var(--font-manrope), system-ui, sans-serif;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
 h1 {
@@ -152,7 +153,11 @@ h2 {
 }
 
 h3 {
-  font-size: clamp(1rem, 0.9rem + 0.5vw, 1.25rem);
+  font-size: clamp(1.125rem, 1rem + 0.6vw, 1.5rem);
+}
+
+h4 {
+  font-size: clamp(1rem, 0.95rem + 0.4vw, 1.125rem);
 }
 
 /* Dark mode */
@@ -541,6 +546,24 @@ h3 {
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
 }
 
+/* Header refinement utilities */
+.app-header-refined {
+  background: rgba(var(--panel) / 0.85);
+  border-bottom: 1px solid rgba(var(--panel-border) / 0.3);
+  backdrop-filter: blur(20px);
+}
+
+.app-nav-link-refined {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  border-bottom: 2px solid transparent;
+}
+
+.app-nav-link-refined[data-active='true'] {
+  background: linear-gradient(135deg, rgba(var(--accent) / 0.25), rgba(var(--accent) / 0.05));
+  border-bottom-color: rgb(var(--accent));
+}
+
 .app-shell {
   background: transparent;
 }
@@ -793,6 +816,18 @@ h3 {
   background: #ffffff;
   border-color: rgba(15, 23, 42, 0.2);
   color: #0f172a;
+}
+
+/* Label contrast utilities */
+.label-primary {
+  color: rgb(var(--text-primary) / 0.9);
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.label-secondary {
+  color: rgb(var(--text-muted) / 0.8);
+  font-size: 0.75rem;
 }
 
 .light .app-kbd {
@@ -1067,6 +1102,31 @@ h3 {
   animation: scaleIn 0.2s ease-out;
 }
 
+@keyframes radialIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-radialIn {
+  animation: radialIn 0.25s ease-out;
+}
+
+/* Enhanced hover lift for cards */
+.hover-lift {
+  transition: all 0.2s ease-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+
 .animate-shimmer {
   background: linear-gradient(
     90deg,
@@ -1156,15 +1216,24 @@ h3 {
   animation: statusPulse 2s ease-in-out infinite;
 }
 
-/* Hover lift for interactive elements */
-.hover-lift {
+/* Hover lift for interactive elements - Enhanced */
+.hover-lift-original {
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
 }
 
-.hover-lift:hover {
+.hover-lift-original:hover {
   transform: translateY(-1px);
+}
+
+/* Enhanced button transitions */
+button {
+  transition: all 0.2s ease-out;
+}
+
+button:active {
+  transform: scale(0.98);
 }
 
 /* Badge pulse for notifications */

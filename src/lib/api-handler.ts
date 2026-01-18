@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger.server'
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
 import { runWithRequestContext } from '@/lib/request-context'
 import { isValidCsrfRequest } from '@/lib/security'
+import { ROLE_HIERARCHY } from '@/lib/constants'
 import type { Role } from '@prisma/client'
 import { z, ZodError, ZodType, ZodTypeDef } from 'zod'
 
@@ -48,15 +49,6 @@ interface HandlerOptions<TBody = unknown, TQuery = unknown> {
 interface RequestContext<TBody = unknown, TQuery = unknown> {
   body: TBody
   query: TQuery
-}
-
-const ROLE_HIERARCHY: Record<Role, number> = {
-  VIEWER: 0,
-  EMPLOYEE: 1,
-  AUDITOR: 2,
-  MANAGER: 3,
-  ADMIN: 4,
-  SUPERADMIN: 5,
 }
 
 function hasMinRole(userRole: Role, minRole: Role): boolean {

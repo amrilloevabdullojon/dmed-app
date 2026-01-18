@@ -131,7 +131,7 @@ export function Header() {
 
   const isActive = (path: string) => pathname === path
 
-  const navLinkClass = 'app-nav-link whitespace-nowrap text-sm'
+  const navLinkClass = 'app-nav-link app-nav-link-refined whitespace-nowrap text-sm'
 
   useEffect(() => {
     if (!mobileMenuOpen) return
@@ -150,7 +150,7 @@ export function Header() {
   }, [mobileMenuOpen, closeMobileMenu])
 
   return (
-    <header className="app-header relative sticky top-0 z-[120] backdrop-blur">
+    <header className="app-header app-header-refined relative sticky top-0 z-[120]">
       {/* Christmas lights */}
       {newYearVibe && backgroundAnimations && (
         <div className="pointer-events-none absolute left-0 right-0 top-0 hidden justify-around overflow-hidden sm:flex">
@@ -170,13 +170,13 @@ export function Header() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center justify-between sm:h-16">
           {/* Logo */}
-          <Link href="/" className="flex shrink-0 items-center gap-3">
-            <div className="relative h-9 w-9 overflow-hidden rounded-xl shadow-lg shadow-teal-500/30 sm:h-10 sm:w-10">
+          <Link href="/" className="flex shrink-0 items-center gap-3 transition-transform hover:scale-105">
+            <div className="relative h-10 w-10 overflow-hidden rounded-xl shadow-lg shadow-teal-500/30 sm:h-11 sm:w-11">
               <Image src="/logo-mark.svg" alt="DMED" fill className="object-contain" priority />
             </div>
             <div className="hidden leading-tight sm:block">
               <span className="text-lg font-semibold text-white">DMED Letters</span>
-              <span className="block text-xs tracking-wide text-amber-300/80">Document Flow</span>
+              <span className="block text-xs tracking-wide text-amber-300/60">Document Flow</span>
             </div>
             <span className="text-sm font-semibold text-white sm:hidden">DMED</span>
           </Link>
