@@ -5,6 +5,9 @@ import { authOptions } from '@/lib/auth'
 import { logger } from '@/lib/logger.server'
 import { NotificationChannel, NotificationType, type Prisma } from '@prisma/client'
 
+const isMissingNotificationActorColumn = (error: unknown) =>
+  error instanceof Error && error.message.includes('Notification.actorId')
+
 const toCsvValue = (value: string | number | null | undefined) => {
   if (value === null || value === undefined) return ''
   const stringValue = String(value)
@@ -65,30 +68,70 @@ export async function GET(request: NextRequest) {
       where.deliveries = { some: { channel: channel as NotificationChannel } }
     }
 
-    const [total, notifications] = await prisma.$transaction([
-      prisma.notification.count({ where }),
-      prisma.notification.findMany({
+    const total = await prisma.notification.count({ where })
+
+    const buildSelect = (includeActor: boolean) => ({
+      id: true,
+      createdAt: true,
+      type: true,
+      priority: true,
+      title: true,
+      body: true,
+      letter: { select: { id: true, number: true, org: true } },
+      deliveries: {
+        select: {
+          id: true,
+          channel: true,
+          status: true,
+          recipient: true,
+          sentAt: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      },
+      ...(includeActor ? { actor: { select: { id: true, name: true, email: true } } } : {}),
+    })
+
+    let notifications: Array<{
+      id: string
+      createdAt: Date
+      type: NotificationType
+      priority: string
+      title: string
+      body: string | null
+      letter: { id: string; number: string; org: string } | null
+      deliveries: Array<{
+        id: string
+        channel: NotificationChannel
+        status: string
+        recipient: string | null
+        sentAt: Date | null
+        createdAt: Date
+      }>
+      actor?: { id: string; name: string | null; email: string | null } | null
+    }>
+
+    try {
+      notifications = await prisma.notification.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         take: format === 'csv' ? undefined : limit,
         skip: format === 'csv' ? undefined : offset,
-        include: {
-          letter: { select: { id: true, number: true, org: true } },
-          actor: { select: { id: true, name: true, email: true } },
-          deliveries: {
-            select: {
-              id: true,
-              channel: true,
-              status: true,
-              recipient: true,
-              sentAt: true,
-              createdAt: true,
-            },
-            orderBy: { createdAt: 'asc' },
-          },
-        },
-      }),
-    ])
+        select: buildSelect(true),
+      })
+    } catch (error) {
+      if (!isMissingNotificationActorColumn(error)) {
+        throw error
+      }
+
+      notifications = await prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: format === 'csv' ? undefined : limit,
+        skip: format === 'csv' ? undefined : offset,
+        select: buildSelect(false),
+      })
+    }
 
     if (format === 'csv') {
       const rows: string[] = []

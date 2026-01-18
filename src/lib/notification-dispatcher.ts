@@ -15,6 +15,9 @@ import type {
   Prisma,
 } from '@prisma/client'
 
+const isMissingNotificationActorColumn = (error: unknown) =>
+  error instanceof Error && error.message.includes('Notification.actorId')
+
 type DispatchNotificationInput = {
   event: NotificationEventType
   title: string
@@ -218,19 +221,30 @@ export const dispatchNotification = async ({
     const hasAnyChannel = Object.values(channelFlags).some(Boolean)
     if (!hasAnyChannel) continue
 
-    const notification = await prisma.notification.create({
-      data: {
-        userId: user.id,
-        letterId: letterId || undefined,
-        actorId: actorId || undefined,
-        type: event,
-        title,
-        body: body || undefined,
-        priority,
-        dedupeKey: baseDedupeKey,
-        metadata: metadata ? (metadata as unknown as Prisma.InputJsonValue) : undefined,
-      },
-    })
+    const data = {
+      userId: user.id,
+      letterId: letterId || undefined,
+      actorId: actorId || undefined,
+      type: event,
+      title,
+      body: body || undefined,
+      priority,
+      dedupeKey: baseDedupeKey,
+      metadata: metadata ? (metadata as unknown as Prisma.InputJsonValue) : undefined,
+    }
+
+    let notification: { id: string }
+
+    try {
+      notification = await prisma.notification.create({ data })
+    } catch (error) {
+      if (!isMissingNotificationActorColumn(error)) {
+        throw error
+      }
+
+      const { actorId: _actorId, ...fallbackData } = data
+      notification = await prisma.notification.create({ data: fallbackData })
+    }
 
     const messageText = buildMessage(title, body)
     const shouldMute =
