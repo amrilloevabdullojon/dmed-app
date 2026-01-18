@@ -1,5 +1,15 @@
 import { Prisma, PrismaClient } from '@prisma/client'
-import { logger } from '@/lib/logger.server'
+
+// Conditionally import logger only on server
+const logger =
+  typeof window === 'undefined'
+    ? // eslint-disable-next-line @typescript-eslint/no-var-requires
+      require('@/lib/logger.server').logger
+    : {
+        warn: () => {},
+        info: () => {},
+        error: () => {},
+      }
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
