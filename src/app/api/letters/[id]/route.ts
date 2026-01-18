@@ -24,6 +24,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return permissionError
     }
 
+    // Parse pagination parameters for comments
+    const { searchParams } = new URL(request.url)
+    const commentsPage = Math.max(1, parseInt(searchParams.get('commentsPage') || '1', 10))
+    const commentsLimit = Math.min(50, Math.max(1, parseInt(searchParams.get('commentsLimit') || '20', 10)))
+    const commentsSkip = (commentsPage - 1) * commentsLimit
+
     const letter = await prisma.letter.findUnique({
       where: { id },
       include: {
@@ -32,21 +38,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         },
         files: true,
         tags: true,
+        // OPTIMIZED: Removed nested replies loading to prevent N+1
+        // Clients should use GET /api/letters/[id]/comments endpoint for full comment tree
         comments: {
           include: {
             author: {
               select: { id: true, name: true, email: true, image: true },
             },
-            replies: {
-              include: {
-                author: {
-                  select: { id: true, name: true, email: true, image: true },
-                },
-              },
+            _count: {
+              select: { replies: true },
             },
           },
           where: { parentId: null },
           orderBy: { createdAt: 'desc' },
+          take: commentsLimit,
+          skip: commentsSkip,
         },
         watchers: {
           include: {
@@ -111,6 +117,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       uploadError: file.uploadError,
     }))
 
+    // Get total comment count for pagination
+    const totalComments = await prisma.comment.count({
+      where: { letterId: id, parentId: null },
+    })
+
     const { favorites, files, ...letterData } = letter
     void favorites
     void files
@@ -120,6 +131,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       files: sanitizedFiles,
       isWatching,
       isFavorite,
+      commentsPagination: {
+        page: commentsPage,
+        limit: commentsLimit,
+        total: totalComments,
+        hasMore: commentsSkip + letter.comments.length < totalComments,
+      },
     })
   } catch (error) {
     logger.error('GET /api/letters/[id]', error)

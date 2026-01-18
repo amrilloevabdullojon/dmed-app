@@ -1,0 +1,113 @@
+/**
+ * REFACTORED VERSION - Example of using createHandler wrapper
+ *
+ * This is an example of how the favorites route can be refactored
+ * to use the createHandler utility for cleaner, more maintainable code.
+ *
+ * Benefits:
+ * - Automatic auth, CSRF, and rate limiting
+ * - Type-safe body/query validation
+ * - Consistent error handling
+ * - Less boilerplate (100+ lines → ~60 lines)
+ * - Better performance tracking
+ *
+ * To apply this refactoring:
+ * 1. Replace route.ts content with this file
+ * 2. Remove .refactored.ts.example extension
+ * 3. Test the endpoint
+ */
+
+import { NextResponse } from 'next/server'
+import { z } from 'zod'
+import { prisma } from '@/lib/prisma'
+import { createHandler } from '@/lib/create-handler'
+
+// Validation schema for POST request
+const toggleFavoriteSchema = z.object({
+  letterId: z.string().min(1, 'Letter ID is required'),
+})
+
+// GET /api/favorites - получить избранные письма пользователя
+export const GET = createHandler({
+  auth: 'required',
+  rateLimit: 'default',
+  handler: async ({ session }) => {
+    const favorites = await prisma.favorite.findMany({
+      where: { userId: session!.user.id },
+      include: {
+        letter: {
+          include: {
+            owner: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return NextResponse.json({
+      favorites: favorites.map((f) => ({
+        ...f.letter,
+        favoritedAt: f.createdAt,
+      })),
+    })
+  },
+})
+
+// POST /api/favorites - добавить/удалить из избранного (toggle)
+export const POST = createHandler({
+  schema: toggleFavoriteSchema,
+  auth: 'required',
+  rateLimit: 'default',
+  handler: async ({ body, session }) => {
+    const { letterId } = body
+
+    // Проверить существование письма
+    const letter = await prisma.letter.findUnique({
+      where: { id: letterId },
+      select: { id: true },
+    })
+
+    if (!letter) {
+      return NextResponse.json({ error: 'Letter not found' }, { status: 404 })
+    }
+
+    // Проверить есть ли уже в избранном
+    const existing = await prisma.favorite.findUnique({
+      where: {
+        letterId_userId: {
+          letterId,
+          userId: session!.user.id,
+        },
+      },
+    })
+
+    if (existing) {
+      // Удалить из избранного
+      await prisma.favorite.delete({
+        where: { id: existing.id },
+      })
+
+      return NextResponse.json({
+        success: true,
+        isFavorite: false,
+        message: 'Удалено из избранного',
+      })
+    }
+
+    // Добавить в избранное
+    await prisma.favorite.create({
+      data: {
+        letterId,
+        userId: session!.user.id,
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      isFavorite: true,
+      message: 'Добавлено в избранное',
+    })
+  },
+})

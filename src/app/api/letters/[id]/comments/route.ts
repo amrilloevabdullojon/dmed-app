@@ -15,6 +15,92 @@ const commentSchema = z.object({
   parentId: z.string().optional().nullable(),
 })
 
+// GET /api/letters/[id]/comments - получить комментарии с пагинацией
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const permissionError = requirePermission(session.user.role, 'VIEW_LETTERS')
+    if (permissionError) {
+      return permissionError
+    }
+
+    // Verify letter exists and user has access
+    const letter = await prisma.letter.findUnique({
+      where: { id },
+      select: { id: true, ownerId: true },
+    })
+
+    if (!letter) {
+      return NextResponse.json({ error: 'Letter not found' }, { status: 404 })
+    }
+
+    // Parse pagination parameters
+    const { searchParams } = new URL(request.url)
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)))
+    const skip = (page - 1) * limit
+    const includeReplies = searchParams.get('includeReplies') !== 'false' // default true
+
+    // Fetch comments with optional replies
+    const comments = await prisma.comment.findMany({
+      where: {
+        letterId: id,
+        parentId: null,
+      },
+      include: {
+        author: {
+          select: { id: true, name: true, email: true, image: true },
+        },
+        ...(includeReplies
+          ? {
+              replies: {
+                include: {
+                  author: {
+                    select: { id: true, name: true, email: true, image: true },
+                  },
+                },
+                orderBy: { createdAt: 'asc' },
+              },
+            }
+          : {
+              _count: {
+                select: { replies: true },
+              },
+            }),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip,
+    })
+
+    // Get total count for pagination
+    const total = await prisma.comment.count({
+      where: {
+        letterId: id,
+        parentId: null,
+      },
+    })
+
+    return NextResponse.json({
+      comments,
+      pagination: {
+        page,
+        limit,
+        total,
+        hasMore: skip + comments.length < total,
+      },
+    })
+  } catch (error) {
+    logger.error('GET /api/letters/[id]/comments', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params

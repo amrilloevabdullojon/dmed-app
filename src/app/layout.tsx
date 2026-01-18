@@ -1,3 +1,6 @@
+// Validate environment variables FIRST before any other imports
+import '@/lib/env.validation'
+
 import type { Metadata, Viewport } from 'next'
 import { Manrope, Rubik } from 'next/font/google'
 import './globals.css'
