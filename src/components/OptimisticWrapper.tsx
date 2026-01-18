@@ -199,7 +199,7 @@ export const optimisticHelpers = {
   /**
    * Переставляет элемент в массиве
    */
-  moveInArray: <T>(array: T[], fromIndex: number, toIndex: number): T[] => {
+  moveInArray<T>(array: T[], fromIndex: number, toIndex: number): T[] {
     const result = [...array]
     const [removed] = result.splice(fromIndex, 1)
     result.splice(toIndex, 0, removed)
