@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { env, hasSentry, hasRedis, hasTelegram } from '@/lib/env.validation'
 
 interface CheckResult {
   status: 'ok' | 'error' | 'warning'
@@ -94,8 +95,41 @@ export async function GET(request: Request) {
   if (verbose) {
     checks.externalServices = {}
 
+    // Sentry
+    if (hasSentry) {
+      checks.externalServices.sentry = {
+        status: 'ok',
+        details: {
+          configured: true,
+          environment: env.NODE_ENV,
+        },
+      }
+    }
+
+    // Redis
+    if (hasRedis) {
+      try {
+        // Test Redis connection
+        const { redis } = await import('@/lib/redis')
+        const redisStart = Date.now()
+        await redis.ping()
+        const latency = Date.now() - redisStart
+
+        checks.externalServices.redis = {
+          status: latency > 500 ? 'warning' : 'ok',
+          latency,
+          details: { configured: true },
+        }
+      } catch (error) {
+        checks.externalServices.redis = {
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Redis connection failed',
+        }
+      }
+    }
+
     // Google Sheets
-    if (process.env.GOOGLE_SPREADSHEET_ID) {
+    if (env.GOOGLE_SPREADSHEET_ID) {
       checks.externalServices.googleSheets = {
         status: 'ok',
         details: { configured: true },
@@ -103,7 +137,7 @@ export async function GET(request: Request) {
     }
 
     // Google Drive
-    if (process.env.GOOGLE_DRIVE_FOLDER_ID) {
+    if (env.GOOGLE_DRIVE_FOLDER_ID) {
       checks.externalServices.googleDrive = {
         status: 'ok',
         details: { configured: true },
@@ -111,7 +145,7 @@ export async function GET(request: Request) {
     }
 
     // Telegram
-    if (process.env.TELEGRAM_BOT_TOKEN) {
+    if (hasTelegram) {
       checks.externalServices.telegram = {
         status: 'ok',
         details: { configured: true },
@@ -136,9 +170,19 @@ export async function GET(request: Request) {
     timestamp: new Date().toISOString(),
     uptime: process.uptime ? Math.round(process.uptime()) : 0,
     version: process.env.npm_package_version || '1.0.0',
-    environment: process.env.NODE_ENV || 'development',
+    environment: env.NODE_ENV,
     checks,
     responseTime: Date.now() - startTime,
+  }
+
+  // Log health check failures
+  if (status !== 'healthy') {
+    const { logger } = await import('@/lib/logger.server')
+    logger.warn('health.check', `Health status: ${status}`, {
+      checks: Object.fromEntries(
+        Object.entries(checks).map(([key, value]) => [key, value.status])
+      ),
+    })
   }
 
   // Добавить метрики для мониторинга

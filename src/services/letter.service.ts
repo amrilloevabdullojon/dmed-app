@@ -305,6 +305,30 @@ export class LetterService {
     value: string | null,
     userId: string
   ): Promise<void> {
+    // SECURITY: Whitelist of allowed fields to prevent SQL injection
+    const ALLOWED_FIELDS = [
+      'status',
+      'ownerId',
+      'deadlineDate',
+      'priority',
+      'category',
+      'summary',
+      'content',
+      'incomingNumber',
+      'incomingDate',
+      'organization',
+      'organizationAddress',
+      'applicantName',
+      'applicantContact',
+    ] as const
+
+    if (!ALLOWED_FIELDS.includes(field as any)) {
+      throw new LetterServiceError(
+        `Недопустимое поле для обновления: ${field}`,
+        'INVALID_FIELD'
+      )
+    }
+
     const letter = await prisma.letter.findFirst({
       where: { id: letterId, deletedAt: null },
       select: { id: true, [field]: true },
