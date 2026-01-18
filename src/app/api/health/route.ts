@@ -20,6 +20,8 @@ interface HealthStatus {
     memory: CheckResult & { used: number; total: number; percent: number }
     disk?: CheckResult
     externalServices?: {
+      sentry?: CheckResult
+      redis?: CheckResult
       googleSheets?: CheckResult
       googleDrive?: CheckResult
       telegram?: CheckResult
