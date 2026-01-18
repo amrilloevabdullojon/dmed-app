@@ -1138,6 +1138,20 @@ h4 {
   animation: shimmer 1.5s infinite;
 }
 
+/* Slow pulse animation for urgent items */
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
 .no-bg-animations .animate-snowfall,
 .no-bg-animations .animate-twinkle,
 .no-bg-animations .animate-lights > * {

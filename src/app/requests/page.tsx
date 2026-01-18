@@ -8,9 +8,12 @@ import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 import { useToast } from '@/components/Toast'
 import { formatDate } from '@/lib/utils'
 import { PAGE_SIZE } from '@/lib/constants'
-import { Loader2, RefreshCw, Search, Flag, Tag, MessageSquare, AlertTriangle } from 'lucide-react'
+import { Loader2, RefreshCw, Search, Flag, Tag, MessageSquare, AlertTriangle, Download, ArrowUpDown } from 'lucide-react'
 import { RequestListSkeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { RequestStats } from '@/components/RequestStats'
+import { RequestSLABadge } from '@/components/RequestSLABadge'
+import { ActiveFilters } from '@/components/ActiveFilters'
 
 type RequestStatus = 'NEW' | 'IN_REVIEW' | 'DONE' | 'SPAM' | 'CANCELLED'
 type RequestPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'
@@ -101,7 +104,10 @@ export default function RequestsPage() {
   const [priorityFilter, setPriorityFilter] = useState<RequestPriority | ''>('')
   const [categoryFilter, setCategoryFilter] = useState<RequestCategory | ''>('')
   const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<'date' | 'priority'>('date')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [refreshKey, setRefreshKey] = useState(0)
+  const [exporting, setExporting] = useState(false)
   const fetchedRef = useRef(false)
 
   useEffect(() => {
@@ -167,6 +173,77 @@ export default function RequestsPage() {
     setRefreshKey((prev) => prev + 1)
   }
 
+  const handleExportCSV = async () => {
+    setExporting(true)
+    try {
+      const params = new URLSearchParams()
+      if (statusFilter) params.set('status', statusFilter)
+      if (priorityFilter) params.set('priority', priorityFilter)
+      if (categoryFilter) params.set('category', categoryFilter)
+      if (search.trim()) params.set('search', search.trim())
+
+      const response = await fetch(`/api/requests/export?${params.toString()}`)
+      if (!response.ok) throw new Error('Ошибка экспорта')
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `requests-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      toastError('Не удалось экспортировать данные')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const activeFilters = [
+    statusFilter && {
+      key: 'status',
+      label: 'Статус',
+      value: statusFilter,
+      displayValue: STATUS_LABELS[statusFilter],
+    },
+    priorityFilter && {
+      key: 'priority',
+      label: 'Приоритет',
+      value: priorityFilter,
+      displayValue: PRIORITY_LABELS[priorityFilter],
+    },
+    categoryFilter && {
+      key: 'category',
+      label: 'Категория',
+      value: categoryFilter,
+      displayValue: CATEGORY_LABELS[categoryFilter],
+    },
+    search && {
+      key: 'search',
+      label: 'Поиск',
+      value: search,
+      displayValue: search.length > 30 ? search.substring(0, 30) + '...' : search,
+    },
+  ].filter(Boolean) as Array<{ key: string; label: string; value: string; displayValue: string }>
+
+  const handleRemoveFilter = (key: string) => {
+    if (key === 'status') setStatusFilter('')
+    if (key === 'priority') setPriorityFilter('')
+    if (key === 'category') setCategoryFilter('')
+    if (key === 'search') setSearch('')
+    setPage(1)
+  }
+
+  const handleClearAllFilters = () => {
+    setStatusFilter('')
+    setPriorityFilter('')
+    setCategoryFilter('')
+    setSearch('')
+    setPage(1)
+  }
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen app-shell flex items-center justify-center bg-gray-900">
@@ -193,15 +270,41 @@ export default function RequestsPage() {
               </p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={handleRefresh}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            {'Обновить'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              disabled={exporting || loading}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition disabled:opacity-50"
+              title="Экспортировать в CSV"
+            >
+              {exporting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">Экспорт</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Обновить</span>
+            </button>
+          </div>
         </div>
+
+        {/* Statistics Dashboard */}
+        <RequestStats key={refreshKey} />
+
+        {/* Active Filters */}
+        <ActiveFilters
+          filters={activeFilters}
+          onRemove={handleRemoveFilter}
+          onClearAll={handleClearAllFilters}
+        />
 
         <div className="panel panel-soft panel-glass rounded-2xl p-4 mb-6 space-y-3">
           <div className="flex flex-col md:flex-row gap-3 md:items-center">
@@ -218,6 +321,17 @@ export default function RequestsPage() {
                 className="w-full pl-9 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500"
               />
             </div>
+            <button
+              type="button"
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white hover:bg-gray-700 transition text-sm"
+              title="Изменить порядок сортировки"
+            >
+              <ArrowUpDown className="w-4 h-4" />
+              <span className="hidden md:inline">
+                {sortOrder === 'desc' ? 'Новые первые' : 'Старые первые'}
+              </span>
+            </button>
           </div>
           <div className="flex flex-wrap gap-3">
             <select
@@ -350,6 +464,11 @@ export default function RequestsPage() {
                         <Tag className="w-3 h-3" />
                         {CATEGORY_LABELS[request.category]}
                       </span>
+                      <RequestSLABadge
+                        createdAt={request.createdAt}
+                        status={request.status}
+                        compact
+                      />
                       {request.status === 'NEW' && (
                         <span className="w-2 h-2 rounded-full bg-sky-400 status-dot-new" />
                       )}
