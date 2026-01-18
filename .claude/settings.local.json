@@ -36,7 +36,8 @@
       "Bash(dir:*)",
       "Bash(echo:*)",
       "Bash(npm run prisma:*)",
-      "Bash(DATABASE_URL=\"postgresql://postgres:SnDQShjszpPbjTmSUknCYcutXhLELaNE@caboose.proxy.rlwy.net:48199/railway?sslmode=require\" npx prisma migrate deploy:*)"
+      "Bash(DATABASE_URL=\"postgresql://postgres:SnDQShjszpPbjTmSUknCYcutXhLELaNE@caboose.proxy.rlwy.net:48199/railway?sslmode=require\" npx prisma migrate deploy:*)",
+      "Bash(node_modules/.bin/next build:*)"
     ]
   }
 }
