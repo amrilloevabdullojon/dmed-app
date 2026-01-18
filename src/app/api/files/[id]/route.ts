@@ -34,6 +34,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'File not found' }, { status: 404 })
     }
 
+    // Проверка прав доступа: только владелец письма или пользователь с правами MANAGE_LETTERS
+    const canManageLetters = hasPermission(session.user.role, 'MANAGE_LETTERS')
+    const isOwner = file.letter.ownerId === session.user.id
+    if (!canManageLetters && !isOwner) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     if (file.storageProvider === FileStorageProvider.LOCAL && file.storagePath) {
       const absolutePath = getLocalFileAbsolutePath(file.storagePath)
       if (!existsSync(absolutePath)) {

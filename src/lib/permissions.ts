@@ -54,6 +54,41 @@ async function loadPermissions(): Promise<Record<Role, Permission[]>> {
   if (permissionsCache && now - cacheTimestamp < CACHE_TTL) {
     return permissionsCache
   }
+
+  // ИСПРАВЛЕНИЕ: загружаем разрешения из БД
+  try {
+    const { prisma } = await import('@/lib/prisma')
+    const dbPermissions = await prisma.rolePermission.findMany({
+      select: {
+        role: true,
+        permission: true,
+      },
+    })
+
+    // Если есть записи в БД, используем их
+    if (dbPermissions.length > 0) {
+      const permissions: Record<Role, Permission[]> = { ...DEFAULT_ROLE_PERMISSIONS }
+
+      // Группируем разрешения по ролям
+      for (const { role, permission } of dbPermissions) {
+        if (!permissions[role]) {
+          permissions[role] = []
+        }
+        if (!permissions[role].includes(permission as Permission)) {
+          permissions[role].push(permission as Permission)
+        }
+      }
+
+      permissionsCache = permissions
+      cacheTimestamp = now
+      return permissions
+    }
+  } catch (error) {
+    // Если ошибка загрузки из БД, используем дефолтные
+    console.error('Failed to load permissions from DB:', error)
+  }
+
+  // Используем дефолтные разрешения как fallback
   permissionsCache = DEFAULT_ROLE_PERMISSIONS
   cacheTimestamp = now
   return DEFAULT_ROLE_PERMISSIONS
