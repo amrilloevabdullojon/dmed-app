@@ -29,7 +29,14 @@ export async function GET(request: NextRequest) {
       where: { userId: session.user.id },
       orderBy: { createdAt: 'desc' },
       take: limit,
-      include: {
+      select: {
+        id: true,
+        type: true,
+        title: true,
+        body: true,
+        priority: true,
+        isRead: true,
+        createdAt: true,
         letter: {
           select: {
             id: true,
