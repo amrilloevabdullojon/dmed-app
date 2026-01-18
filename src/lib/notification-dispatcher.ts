@@ -6,6 +6,7 @@ import {
   normalizeNotificationSettings,
   isWithinQuietHours,
 } from '@/lib/notification-settings'
+import { logger } from '@/lib/logger.server'
 import { sendEmail, sendSms } from '@/lib/notifications'
 import { sendTelegramMessage } from '@/lib/telegram'
 import type {
@@ -17,6 +18,16 @@ import type {
 
 const isMissingNotificationActorColumn = (error: unknown) =>
   error instanceof Error && error.message.includes('Notification.actorId')
+
+const isMissingNotificationPreferenceTable = (error: unknown) =>
+  error instanceof Error &&
+  /NotificationPreference/i.test(error.message) &&
+  /does not exist/i.test(error.message)
+
+const isMissingNotificationSubscriptionTable = (error: unknown) =>
+  error instanceof Error &&
+  /NotificationSubscription/i.test(error.message) &&
+  /does not exist/i.test(error.message)
 
 type DispatchNotificationInput = {
   event: NotificationEventType
@@ -102,12 +113,24 @@ const resolveSubscriptions = async (
   event: NotificationEventType,
   actorId?: string | null
 ): Promise<string[]> => {
-  const subscriptions = await prisma.notificationSubscription.findMany({
-    where: {
-      OR: [{ event: 'ALL' }, { event }],
-    },
-    select: { userId: true, scope: true, value: true },
-  })
+  let subscriptions: Array<{ userId: string; scope: string; value: string | null }>
+  try {
+    subscriptions = await prisma.notificationSubscription.findMany({
+      where: {
+        OR: [{ event: 'ALL' }, { event }],
+      },
+      select: { userId: true, scope: true, value: true },
+    })
+  } catch (error) {
+    if (isMissingNotificationSubscriptionTable(error)) {
+      logger.warn(
+        'dispatchNotification',
+        'NotificationSubscription table missing, skipping subscription delivery'
+      )
+      return []
+    }
+    throw error
+  }
 
   if (subscriptions.length === 0) return []
 
@@ -150,23 +173,44 @@ export const dispatchNotification = async ({
 
   if (recipients.size === 0) return
 
-  const users = await prisma.user.findMany({
-    where: { id: { in: Array.from(recipients) } },
-    select: {
-      id: true,
-      email: true,
-      telegramChatId: true,
-      notifyEmail: true,
-      notifyTelegram: true,
-      notifySms: true,
-      notifyInApp: true,
-      quietHoursStart: true,
-      quietHoursEnd: true,
-      digestFrequency: true,
-      profile: { select: { phone: true } },
-      notificationPreference: { select: { settings: true } },
-    },
-  })
+  const userSelectBase = {
+    id: true,
+    email: true,
+    telegramChatId: true,
+    notifyEmail: true,
+    notifyTelegram: true,
+    notifySms: true,
+    notifyInApp: true,
+    quietHoursStart: true,
+    quietHoursEnd: true,
+    digestFrequency: true,
+    profile: { select: { phone: true } },
+  } satisfies Prisma.UserSelect
+
+  const userSelectWithPreference = {
+    ...userSelectBase,
+    notificationPreference: { select: { settings: true } },
+  } satisfies Prisma.UserSelect
+
+  type UserBase = Prisma.UserGetPayload<{ select: typeof userSelectBase }>
+  type UserWithPreference = Prisma.UserGetPayload<{ select: typeof userSelectWithPreference }>
+
+  let users: Array<UserBase | UserWithPreference>
+  try {
+    users = await prisma.user.findMany({
+      where: { id: { in: Array.from(recipients) } },
+      select: userSelectWithPreference,
+    })
+  } catch (error) {
+    if (!isMissingNotificationPreferenceTable(error)) {
+      throw error
+    }
+    logger.warn('dispatchNotification', 'NotificationPreference table missing, using user defaults')
+    users = await prisma.user.findMany({
+      where: { id: { in: Array.from(recipients) } },
+      select: userSelectBase,
+    })
+  }
 
   const matrixDefaults = new Map(
     DEFAULT_NOTIFICATION_SETTINGS.matrix.map((item) => [item.event, item])
@@ -177,11 +221,12 @@ export const dispatchNotification = async ({
   const baseDedupeKey = dedupeKey || [event, letterId || 'none', actorId || 'system'].join(':')
 
   for (const user of users) {
-    const settings = user.notificationPreference?.settings
-      ? normalizeNotificationSettings(
-          user.notificationPreference.settings as unknown as NotificationSettings
-        )
-      : buildSettingsFromUser(user)
+    const settings =
+      'notificationPreference' in user && user.notificationPreference?.settings
+        ? normalizeNotificationSettings(
+            user.notificationPreference.settings as unknown as NotificationSettings
+          )
+        : buildSettingsFromUser(user)
 
     if (!isEventEnabled(settings, event)) {
       continue

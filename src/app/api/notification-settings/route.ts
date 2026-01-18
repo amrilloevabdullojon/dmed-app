@@ -73,6 +73,17 @@ const settingsSchema = z
   })
   .partial()
 
+const isMissingNotificationTable = (error: unknown, table: string) =>
+  error instanceof Error &&
+  /does not exist/i.test(error.message) &&
+  new RegExp(table, 'i').test(error.message)
+
+const isMissingNotificationPreferenceTable = (error: unknown) =>
+  isMissingNotificationTable(error, 'NotificationPreference')
+
+const isMissingNotificationSubscriptionTable = (error: unknown) =>
+  isMissingNotificationTable(error, 'NotificationSubscription')
+
 const mapDigestFrequency = (digest: NotificationSettings['emailDigest']): DigestFrequency => {
   if (digest === 'daily') return 'DAILY'
   if (digest === 'weekly') return 'WEEKLY'
@@ -136,10 +147,21 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const preference = await prisma.notificationPreference.findUnique({
-      where: { userId: session.user.id },
-      select: { settings: true },
-    })
+    let preference: { settings: Prisma.JsonValue } | null = null
+    try {
+      preference = await prisma.notificationPreference.findUnique({
+        where: { userId: session.user.id },
+        select: { settings: true },
+      })
+    } catch (error) {
+      if (!isMissingNotificationPreferenceTable(error)) {
+        throw error
+      }
+      logger.warn(
+        'GET /api/notification-settings',
+        'NotificationPreference table missing, falling back to user defaults'
+      )
+    }
 
     if (preference?.settings) {
       const parsed = settingsSchema.safeParse(preference.settings as unknown)
@@ -195,15 +217,7 @@ export async function PUT(request: NextRequest) {
     const nextSettings = normalizeNotificationSettings(parsed.data)
     const subscriptions = normalizeSubscriptions(nextSettings)
 
-    await prisma.$transaction([
-      prisma.notificationPreference.upsert({
-        where: { userId: session.user.id },
-        update: { settings: nextSettings as unknown as Prisma.InputJsonValue },
-        create: {
-          userId: session.user.id,
-          settings: nextSettings as unknown as Prisma.InputJsonValue,
-        },
-      }),
+    const buildUpdateUser = () =>
       prisma.user.update({
         where: { id: session.user.id },
         data: {
@@ -215,9 +229,22 @@ export async function PUT(request: NextRequest) {
           quietHoursEnd: nextSettings.quietHoursEnabled ? nextSettings.quietHoursEnd : null,
           digestFrequency: mapDigestFrequency(nextSettings.emailDigest),
         },
-      }),
+      })
+
+    const buildPreferenceUpsert = () =>
+      prisma.notificationPreference.upsert({
+        where: { userId: session.user.id },
+        update: { settings: nextSettings as unknown as Prisma.InputJsonValue },
+        create: {
+          userId: session.user.id,
+          settings: nextSettings as unknown as Prisma.InputJsonValue,
+        },
+      })
+
+    const hasSubscriptions = subscriptions.length > 0
+    const buildSubscriptionOps = () => [
       prisma.notificationSubscription.deleteMany({ where: { userId: session.user.id } }),
-      ...(subscriptions.length > 0
+      ...(hasSubscriptions
         ? [
             prisma.notificationSubscription.createMany({
               data: subscriptions.map((subscription) => ({
@@ -229,7 +256,64 @@ export async function PUT(request: NextRequest) {
             }),
           ]
         : []),
-    ])
+    ]
+
+    try {
+      await prisma.$transaction([
+        buildPreferenceUpsert(),
+        buildUpdateUser(),
+        ...buildSubscriptionOps(),
+      ])
+    } catch (error) {
+      const missingPreference = isMissingNotificationPreferenceTable(error)
+      const missingSubscription = isMissingNotificationSubscriptionTable(error)
+      if (!missingPreference && !missingSubscription) {
+        throw error
+      }
+
+      if (missingPreference) {
+        logger.warn(
+          'PUT /api/notification-settings',
+          'NotificationPreference table missing, storing settings on user record only'
+        )
+      }
+      if (missingSubscription) {
+        logger.warn(
+          'PUT /api/notification-settings',
+          'NotificationSubscription table missing, skipping subscription updates'
+        )
+      }
+
+      await buildUpdateUser()
+
+      if (!missingPreference) {
+        try {
+          await buildPreferenceUpsert()
+        } catch (innerError) {
+          if (!isMissingNotificationPreferenceTable(innerError)) {
+            throw innerError
+          }
+          logger.warn(
+            'PUT /api/notification-settings',
+            'NotificationPreference table missing, storing settings on user record only'
+          )
+        }
+      }
+
+      if (!missingSubscription) {
+        try {
+          await prisma.$transaction(buildSubscriptionOps())
+        } catch (innerError) {
+          if (!isMissingNotificationSubscriptionTable(innerError)) {
+            throw innerError
+          }
+          logger.warn(
+            'PUT /api/notification-settings',
+            'NotificationSubscription table missing, skipping subscription updates'
+          )
+        }
+      }
+    }
 
     return NextResponse.json({ settings: nextSettings })
   } catch (error) {
