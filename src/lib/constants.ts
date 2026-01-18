@@ -147,6 +147,16 @@ export const USER_ROLES = {
   VIEWER: { label: "Наблюдатель", color: 'text-slate-500' },
 } as const
 
+/** Иерархия ролей для проверки прав (используется в hasMinRole) */
+export const ROLE_HIERARCHY = {
+  VIEWER: 0,
+  EMPLOYEE: 1,
+  AUDITOR: 2,
+  MANAGER: 3,
+  ADMIN: 4,
+  SUPERADMIN: 5,
+} as const
+
 // ==================== ДАТЫ ====================
 
 export const DATE_FORMAT = 'dd.MM.yyyy'

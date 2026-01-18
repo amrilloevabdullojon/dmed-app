@@ -1,67 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { prisma } from '@/lib/prisma'
-import { authOptions } from '@/lib/auth'
 import { STATUS_LABELS, formatDate } from '@/lib/utils'
 import { logger } from '@/lib/logger.server'
+import { withValidation } from '@/lib/api-handler'
+import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 
+// Zod schema для валидации query параметров
+const exportQuerySchema = z.object({
+  status: z.string().optional(),
+  filter: z.enum(['overdue', 'urgent', 'done', 'active', 'favorites', 'unassigned', 'mine']).optional(),
+  owner: z.string().optional(),
+  type: z.string().optional(),
+  ids: z.string().optional(),
+})
+
+type ExportQuery = z.infer<typeof exportQuerySchema>
+
 // GET /api/export - экспорт писем в CSV (совместимо с Excel)
-export async function GET(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+export const GET = withValidation<any, never, ExportQuery>(
+  async (request, session, { query }) => {
+    try {
+      const ids = query.ids?.split(',').filter(Boolean)
 
-    const searchParams = request.nextUrl.searchParams
-    const status = searchParams.get('status')
-    const filter = searchParams.get('filter')
-    const owner = searchParams.get('owner')
-    const type = searchParams.get('type')
-    const ids = searchParams.get('ids')?.split(',').filter(Boolean)
-
-    // Построить фильтр
-    const where: any = {}
-
-    if (ids && ids.length > 0) {
-      where.id = { in: ids }
-    } else {
-      if (status) {
-        where.status = status
+      // Построить фильтр с типизацией
+      interface LetterWhereInput {
+        id?: { in: string[] }
+        status?: any
+        ownerId?: string | null
+        type?: string
+        deadlineDate?: any
+        favorites?: any
       }
 
-      if (owner) {
-        where.ownerId = owner
-      }
+      const where: LetterWhereInput = {}
 
-      if (type) {
-        where.type = type
-      }
-
-      if (filter === 'overdue') {
-        where.deadlineDate = { lt: new Date() }
-        where.status = { notIn: ['READY', 'DONE'] }
-      } else if (filter === 'urgent') {
-        const now = new Date()
-        where.deadlineDate = {
-          gte: now,
-          lte: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
+      if (ids && ids.length > 0) {
+        where.id = { in: ids }
+      } else {
+        if (query.status) {
+          where.status = query.status
         }
-        where.status = { notIn: ['READY', 'DONE'] }
-      } else if (filter === 'done') {
-        where.status = { in: ['READY', 'DONE'] }
-      } else if (filter === 'active') {
-        where.status = { notIn: ['READY', 'DONE'] }
-      } else if (filter === 'favorites') {
-        where.favorites = { some: { userId: session.user.id } }
-      } else if (filter === 'unassigned') {
-        where.ownerId = null
-      } else if (filter === 'mine') {
-        where.ownerId = session.user.id
+
+        if (query.owner) {
+          where.ownerId = query.owner
+        }
+
+        if (query.type) {
+          where.type = query.type
+        }
+
+        if (query.filter === 'overdue') {
+          where.deadlineDate = { lt: new Date() }
+          where.status = { notIn: ['READY', 'DONE'] }
+        } else if (query.filter === 'urgent') {
+          const now = new Date()
+          where.deadlineDate = {
+            gte: now,
+            lte: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000),
+          }
+          where.status = { notIn: ['READY', 'DONE'] }
+        } else if (query.filter === 'done') {
+          where.status = { in: ['READY', 'DONE'] }
+        } else if (query.filter === 'active') {
+          where.status = { notIn: ['READY', 'DONE'] }
+        } else if (query.filter === 'favorites') {
+          where.favorites = { some: { userId: session.user.id } }
+        } else if (query.filter === 'unassigned') {
+          where.ownerId = null
+        } else if (query.filter === 'mine') {
+          where.ownerId = session.user.id
+        }
       }
-    }
 
     const letters = await prisma.letter.findMany({
       where,
@@ -130,17 +141,23 @@ export async function GET(request: NextRequest) {
         '\r\n'
       )
 
-    // Отправляем файл
-    const filename = `letters_${new Date().toISOString().split('T')[0]}.csv`
+      // Отправляем файл
+      const filename = `letters_${new Date().toISOString().split('T')[0]}.csv`
 
-    return new NextResponse(csv, {
-      headers: {
-        'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-      },
-    })
-  } catch (error) {
-    logger.error('GET /api/export', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+      return new NextResponse(csv, {
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+        },
+      })
+    } catch (error) {
+      logger.error('GET /api/export', error)
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
+  },
+  {
+    minRole: 'VIEWER', // Требуется минимум роль VIEWER для экспорта
+    querySchema: exportQuerySchema,
+    rateLimit: 'standard',
   }
-}
+)

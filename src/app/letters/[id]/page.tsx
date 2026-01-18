@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { EditableField } from '@/components/EditableField'
 import { SLAIndicator } from '@/components/SLAIndicator'
 import { useConfirmDialog } from '@/components/ConfirmDialog'
+import { QuickActionsMenu } from '@/components/QuickActionsMenu'
 import dynamic from 'next/dynamic'
 
 // Lazy load components that appear below the fold
@@ -583,6 +584,37 @@ export default function LetterDetailPage() {
     )
   }
 
+  // Quick actions for mobile FAB
+  const quickActions = [
+    {
+      icon: Copy,
+      label: 'Копировать номер',
+      onClick: () => {
+        if (letter) {
+          navigator.clipboard.writeText(letter.number)
+          toast.success('Номер скопирован')
+        }
+      },
+    },
+    {
+      icon: Link2,
+      label: 'Копировать ссылку',
+      onClick: () => {
+        navigator.clipboard.writeText(window.location.href)
+        toast.success('Ссылка скопирована')
+      },
+    },
+    {
+      icon: Bell,
+      label: 'Уведомить исполнителя',
+      onClick: () => {
+        if (!notifyDisabled) {
+          handleNotifyOwner()
+        }
+      },
+    },
+  ]
+
   return (
     <div className="app-shell min-h-screen overflow-auto bg-gray-900">
       <Header />
@@ -655,17 +687,28 @@ export default function LetterDetailPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Mobile Sticky Status Bar */}
+        <div className="sticky top-14 z-10 mb-4 rounded-lg border border-gray-700/60 bg-gray-800/95 p-3 backdrop-blur-md md:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <StatusBadge status={letter.status} size="sm" />
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <Clock className="h-3.5 w-3.5" />
+              {formatDate(letter.deadlineDate)}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3">
           {/* Main Content */}
-          <div className="space-y-6 lg:col-span-2">
-            <div className="rounded-lg border border-gray-700 bg-gray-800 p-6">
+          <div className="space-y-4 lg:col-span-2">
+            <div className="rounded-lg border border-gray-700/60 bg-gray-800/95 p-4 hover-lift md:p-6">
               <ActivityFeed letterId={letter.id} maxItems={3} title="Последние действия" compact />
             </div>
 
             {/* Header Card */}
-            <div className="rounded-lg border border-gray-700 bg-gray-800 p-6">
+            <div className="rounded-lg border border-gray-700/60 bg-gray-800/95 p-4 hover-lift md:p-6">
               <div className="mb-4">
-                <label className="mb-2 block text-sm font-medium text-gray-400">
+                <label className="mb-2 block text-sm font-medium text-gray-300/90">
                   {'\u0422\u0438\u043f \u0437\u0430\u043f\u0440\u043e\u0441\u0430'}
                 </label>
                 <select
@@ -687,14 +730,14 @@ export default function LetterDetailPage() {
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="mb-2 flex items-center gap-3">
-                    <span className="font-mono text-lg text-emerald-400">№{letter.number}</span>
+                    <span className="font-mono text-base text-emerald-400 md:text-lg">№{letter.number}</span>
                     {letter.type && (
                       <span className="rounded bg-gray-700 px-2 py-1 text-sm text-gray-400">
                         {letter.type}
                       </span>
                     )}
                   </div>
-                  <h1 className="text-2xl font-bold text-white">{letter.org}</h1>
+                  <h1 className="text-xl font-bold text-white md:text-2xl">{letter.org}</h1>
                 </div>
                 <StatusBadge status={letter.status} size="lg" />
               </div>
@@ -723,8 +766,8 @@ export default function LetterDetailPage() {
             </div>
 
             {/* Editable Fields Card */}
-            <div className="rounded-lg border border-gray-700 bg-gray-800 p-6">
-              <h3 className="mb-4 text-lg font-semibold text-white">Информация о письме</h3>
+            <div className="rounded-lg border border-gray-700/60 bg-gray-800/95 p-4 hover-lift md:p-6">
+              <h3 className="mb-4 text-lg font-semibold text-white md:text-xl">Информация о письме</h3>
 
               {canEditIdentity && (
                 <>
@@ -883,16 +926,16 @@ export default function LetterDetailPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-4 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
             {/* Info Card */}
-            <div className="rounded-lg border border-gray-700 bg-gray-800 p-6">
-              <h3 className="mb-4 text-lg font-semibold text-white">Информация</h3>
+            <div className="rounded-lg border border-gray-700/60 bg-gray-800/95 p-4 hover-lift md:p-6">
+              <h3 className="mb-4 text-lg font-semibold text-white md:text-xl">Информация</h3>
 
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <Calendar className="h-5 w-5 text-gray-500" />
                   <div>
-                    <div className="text-xs text-gray-500">Дата письма</div>
+                    <div className="text-xs text-gray-400/80">Дата письма</div>
                     <div className="text-white">{formatDate(letter.date)}</div>
                   </div>
                 </div>
@@ -1104,6 +1147,9 @@ export default function LetterDetailPage() {
       </main>
 
       {Dialog}
+
+      {/* Quick Actions FAB for Mobile */}
+      {letter && <QuickActionsMenu actions={quickActions} />}
     </div>
   )
 }

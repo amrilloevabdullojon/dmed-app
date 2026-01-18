@@ -47,16 +47,12 @@ export async function POST(request: NextRequest) {
 
     let result
 
+    // ИСПРАВЛЕНИЕ БАГА: to_sheets должен ЭКСПОРТИРОВАТЬ, from_sheets - ИМПОРТИРОВАТЬ
     if (direction === 'to_sheets') {
-      const imported = await importFromGoogleSheets()
-      const exported = await syncToGoogleSheets()
-      result = {
-        success: true,
-        imported: imported.imported || 0,
-        rowsAffected: exported.rowsAffected || 0,
-        conflicts: imported.conflicts || [],
-      }
+      // Экспортируем данные в Google Sheets
+      result = await syncToGoogleSheets()
     } else {
+      // Импортируем данные из Google Sheets
       result = await importFromGoogleSheets()
     }
 

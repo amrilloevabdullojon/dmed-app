@@ -49,36 +49,26 @@ type LettersListResponse =
   | { letters: LetterSummary[]; pagination: PaginationMeta }
   | { error: string }
 
-const resolveAutoOwnerId = async () => {
-  const users = await prisma.user.findMany({
-    where: { canLogin: true },
-    select: { id: true },
-  })
+// ОПТИМИЗАЦИЯ: используем один SQL запрос вместо загрузки всех пользователей
+const resolveAutoOwnerId = async (): Promise<string | null> => {
+  // Используем raw SQL для эффективного подсчёта активных писем и выбора пользователя
+  const result = await prisma.$queryRaw<Array<{ id: string }>>`
+    SELECT u.id
+    FROM "User" u
+    WHERE u."canLogin" = true
+      AND u."deletedAt" IS NULL
+      AND u."isActive" = true
+    ORDER BY (
+      SELECT COUNT(*)
+      FROM "Letter" l
+      WHERE l."ownerId" = u.id
+        AND l."deletedAt" IS NULL
+        AND l."status" NOT IN ('READY', 'DONE')
+    ) ASC, u.id ASC
+    LIMIT 1
+  `
 
-  if (users.length === 0) return null
-
-  const userIds = users.map((user) => user.id)
-
-  const counts = await prisma.letter.groupBy({
-    by: ['ownerId'],
-    where: {
-      ownerId: { in: userIds },
-      deletedAt: null,
-      status: { notIn: ['READY', 'DONE'] },
-    },
-    _count: { _all: true },
-  })
-
-  const countByUser = new Map(counts.map((item) => [item.ownerId, item._count._all]))
-
-  const sorted = [...userIds].sort((a, b) => {
-    const countA = countByUser.get(a) || 0
-    const countB = countByUser.get(b) || 0
-    if (countA !== countB) return countA - countB
-    return a.localeCompare(b)
-  })
-
-  return sorted[0] || null
+  return result[0]?.id || null
 }
 
 // GET /api/letters - получить все письма
@@ -183,59 +173,68 @@ export async function POST(request: NextRequest) {
     const deadlineDate =
       data.deadlineDate || addWorkingDays(data.date, DEFAULT_DEADLINE_WORKING_DAYS)
 
-    // Создать письмо
-    const letter = await prisma.letter.create({
-      data: {
-        number: data.number,
-        org: data.org,
-        date: data.date,
-        deadlineDate,
-        type: data.type,
-        content: data.content,
-        comment: data.comment,
-        contacts: data.contacts,
-        jiraLink: data.jiraLink,
-        applicantName: data.applicantName,
-        applicantEmail: data.applicantEmail,
-        applicantPhone: data.applicantPhone,
-        applicantTelegramChatId: data.applicantTelegramChatId,
-        applicantAccessToken,
-        applicantAccessTokenExpiresAt,
-        ownerId,
-        status: 'NOT_REVIEWED',
-        priority: 50,
-      },
-      include: {
-        owner: {
-          select: { id: true, name: true, email: true },
-        },
-      },
-    })
-
-    // Записать в историю
-    await prisma.history.create({
-      data: {
-        letterId: letter.id,
-        userId: session.user.id,
-        field: 'created',
-        newValue: JSON.stringify({ number: letter.number, org: letter.org }),
-      },
-    })
-
-    // Автоподписать владельца
+    // Подготовить список наблюдателей
     const watcherIds = new Set<string>()
     watcherIds.add(session.user.id)
-    if (letter.ownerId) watcherIds.add(letter.ownerId)
+    if (ownerId) watcherIds.add(ownerId)
 
-    if (watcherIds.size > 0) {
-      await prisma.watcher.createMany({
-        data: Array.from(watcherIds).map((userId) => ({
-          letterId: letter.id,
-          userId,
-        })),
-        skipDuplicates: true,
+    // Создать письмо, историю и watchers в одной транзакции
+    const letter = await prisma.$transaction(async (tx) => {
+      // Создать письмо
+      const newLetter = await tx.letter.create({
+        data: {
+          number: data.number,
+          org: data.org,
+          date: data.date,
+          deadlineDate,
+          type: data.type,
+          content: data.content,
+          comment: data.comment,
+          contacts: data.contacts,
+          jiraLink: data.jiraLink,
+          applicantName: data.applicantName,
+          applicantEmail: data.applicantEmail,
+          applicantPhone: data.applicantPhone,
+          applicantTelegramChatId: data.applicantTelegramChatId,
+          applicantAccessToken,
+          applicantAccessTokenExpiresAt,
+          ownerId,
+          status: 'NOT_REVIEWED',
+          priority: 50,
+        },
+        include: {
+          owner: {
+            select: { id: true, name: true, email: true },
+          },
+        },
       })
-    }
+
+      // Записать в историю
+      await tx.history.create({
+        data: {
+          letterId: newLetter.id,
+          userId: session.user.id,
+          field: 'created',
+          newValue: JSON.stringify({ number: newLetter.number, org: newLetter.org }),
+        },
+      })
+
+      // Автоподписать наблюдателей
+      if (watcherIds.size > 0) {
+        await tx.watcher.createMany({
+          data: Array.from(watcherIds).map((userId) => ({
+            letterId: newLetter.id,
+            userId,
+            notifyOnChange: true,
+            notifyOnComment: true,
+            notifyOnDeadline: true,
+          })),
+          skipDuplicates: true,
+        })
+      }
+
+      return newLetter
+    })
 
     if (letter.ownerId && letter.ownerId !== session.user.id) {
       await dispatchNotification({
