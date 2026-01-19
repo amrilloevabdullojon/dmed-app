@@ -55,8 +55,8 @@ export type PaginationParams = {
 
 export type UserWithStats = User & {
   _count: {
-    ownedLetters: number
-    watchedLetters: number
+    letters: number
+    watchers: number
     comments: number
   }
 }
@@ -76,8 +76,8 @@ export class UserService {
           include: {
             _count: {
               select: {
-                ownedLetters: true,
-                watchedLetters: true,
+                letters: true,
+                watchers: true,
                 comments: true,
               },
             },
@@ -147,8 +147,8 @@ export class UserService {
           include: {
             _count: {
               select: {
-                ownedLetters: true,
-                watchedLetters: true,
+                letters: true,
+                watchers: true,
                 comments: true,
               },
             },
