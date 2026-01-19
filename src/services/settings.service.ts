@@ -133,7 +133,7 @@ export type FullProfileData = {
   user: {
     id: string
     name: string | null
-    email: string
+    email: string | null
     image: string | null
     role: Role
     lastLoginAt: Date | null
