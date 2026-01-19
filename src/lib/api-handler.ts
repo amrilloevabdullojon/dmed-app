@@ -92,7 +92,7 @@ function finalizeApiResponse<T>(
   requestId: string
 ): NextResponse<T | { error: string }> {
   response.headers.set('x-request-id', requestId)
-  return applySecurityHeaders(response)
+  return applySecurityHeaders(response as NextResponse<T | { error: string }>)
 }
 
 /**
