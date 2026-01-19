@@ -57,12 +57,17 @@ export async function GET(request: NextRequest) {
     // Проверяем кэш
     const includeReport = request.nextUrl.searchParams.get('includeReport') === '1'
     const cacheKey = includeReport ? CACHE_KEYS.STATS_REPORT : CACHE_KEYS.STATS
+    const cacheTtlMs = includeReport ? CACHE_TTL.STATS_REPORT : CACHE_TTL.STATS
+    const cacheSeconds = Math.max(1, Math.floor(cacheTtlMs / 1000))
+    const responseHeaders: HeadersInit = {
+      'Cache-Control': `private, max-age=${cacheSeconds}, stale-while-revalidate=${cacheSeconds}`,
+    }
     const cachedStats = await cache.get<StatsData>(cacheKey)
     if (!includeReport && cachedStats && Array.isArray(cachedStats.byOrgTypePeriod)) {
-      return NextResponse.json(cachedStats)
+      return NextResponse.json(cachedStats, { headers: responseHeaders })
     }
     if (includeReport && cachedStats?.report?.letters) {
-      return NextResponse.json(cachedStats)
+      return NextResponse.json(cachedStats, { headers: responseHeaders })
     }
 
     const now = new Date()
@@ -169,6 +174,7 @@ export async function GET(request: NextRequest) {
         select: { id: true, name: true, email: true },
       }),
     ])
+    const userById = new Map(allUsers.map((user) => [user.id, user]))
 
     // Статистика по статусам
     const byStatus: Record<LetterStatus, number> = {
@@ -190,7 +196,7 @@ export async function GET(request: NextRequest) {
     const ownerStats = byOwner
       .map((o) => {
         const ownerId = o.ownerId ?? 'unassigned'
-        const user = allUsers.find((u) => u.id === o.ownerId)
+        const user = o.ownerId ? userById.get(o.ownerId) : undefined
         const name = o.ownerId
           ? user?.name || user?.email?.split('@')[0] || ownerId
           : 'Не назначено'
@@ -362,7 +368,7 @@ export async function GET(request: NextRequest) {
     // Сохраняем в кэш
     await cache.set(cacheKey, result, includeReport ? CACHE_TTL.STATS_REPORT : CACHE_TTL.STATS)
 
-    return NextResponse.json(result)
+    return NextResponse.json(result, { headers: responseHeaders })
   } catch (error) {
     logger.error('GET /api/stats', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

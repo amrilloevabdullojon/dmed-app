@@ -8,6 +8,7 @@ import { logger } from '@/lib/logger.server'
 import { csrfGuard } from '@/lib/security'
 import { createUserSchema, usersQuerySchema } from '@/lib/schemas'
 import { USER_ROLES } from '@/lib/constants'
+import { CACHE_TTL } from '@/lib/cache'
 
 const CONTEXT = 'API:Users'
 
@@ -98,15 +99,23 @@ export async function GET(request: NextRequest) {
       profile: undefined,
     }))
 
-    return NextResponse.json({
-      users: normalizedUsers,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+    const cacheSeconds = Math.max(1, Math.floor(CACHE_TTL.USERS / 1000))
+    return NextResponse.json(
+      {
+        users: normalizedUsers,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
       },
-    })
+      {
+        headers: {
+          'Cache-Control': `private, max-age=${cacheSeconds}, stale-while-revalidate=${cacheSeconds}`,
+        },
+      }
+    )
   } catch (error) {
     logger.error(CONTEXT, error, { method: 'GET' })
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -22,6 +22,7 @@ import { logger } from '@/lib/logger.server'
 import { requirePermission } from '@/lib/permission-guard'
 import { calculateSlaDeadline } from '@/lib/request-sla'
 import { sendRequestCreatedEmail } from '@/lib/request-email'
+import { CACHE_TTL } from '@/lib/cache'
 
 const ALLOWED_REQUEST_EXTENSIONS = new Set(
   REQUEST_ALLOWED_FILE_EXTENSIONS.split(',')
@@ -221,18 +222,26 @@ export const GET = withValidation<RequestsListResult, unknown, RequestQueryInput
         logger.info('GET /api/requests', 'Request completed', logMeta)
       }
 
-      return NextResponse.json({
-        requests: requests.map((request) => ({
-          ...request,
-          description: request.description ? request.description.slice(0, 240) : '',
-        })),
-        pagination: {
-          page: pageValue,
-          limit: limitValue,
-          total,
-          totalPages: Math.ceil(total / limitValue),
+      const cacheSeconds = Math.max(1, Math.floor(CACHE_TTL.REQUESTS_LIST / 1000))
+      return NextResponse.json(
+        {
+          requests: requests.map((request) => ({
+            ...request,
+            description: request.description ? request.description.slice(0, 240) : '',
+          })),
+          pagination: {
+            page: pageValue,
+            limit: limitValue,
+            total,
+            totalPages: Math.ceil(total / limitValue),
+          },
         },
-      })
+        {
+          headers: {
+            'Cache-Control': `private, max-age=${cacheSeconds}, stale-while-revalidate=${cacheSeconds}`,
+          },
+        }
+      )
     } catch (error) {
       logger.error('GET /api/requests', error, { requestId, query })
       return NextResponse.json(

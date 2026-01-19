@@ -11,6 +11,7 @@ import { withValidation } from '@/lib/api-handler'
 import { letterFiltersSchema, paginationSchema } from '@/lib/schemas'
 import { LetterService } from '@/services/letter.service'
 import { PORTAL_TOKEN_EXPIRY_DAYS, DEFAULT_DEADLINE_WORKING_DAYS } from '@/lib/constants'
+import { CACHE_TTL } from '@/lib/cache'
 import { requirePermission } from '@/lib/permission-guard'
 import { csrfGuard } from '@/lib/security'
 import { z } from 'zod'
@@ -80,10 +81,18 @@ export const GET = withValidation<LettersListResponse, unknown, LettersQueryInpu
     const { page, limit, ...filters } = query
     const result = await LetterService.findMany(filters, { page, limit }, session.user.id)
 
-    return NextResponse.json({
-      letters: result.data,
-      pagination: result.pagination,
-    })
+    const cacheSeconds = Math.max(1, Math.floor(CACHE_TTL.LETTERS_LIST / 1000))
+    return NextResponse.json(
+      {
+        letters: result.data,
+        pagination: result.pagination,
+      },
+      {
+        headers: {
+          'Cache-Control': `private, max-age=${cacheSeconds}, stale-while-revalidate=${cacheSeconds}`,
+        },
+      }
+    )
   },
   { querySchema: lettersQuerySchema, rateLimit: { limit: 120, windowMs: 60 * 1000 } }
 )

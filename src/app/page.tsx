@@ -56,6 +56,12 @@ interface StatsResponse {
     urgent: number
     done: number
     inProgress: number
+    notReviewed: number
+    todayDeadlines: number
+    weekDeadlines: number
+    monthNew: number
+    monthDone: number
+    avgDays: number
   }
   byStatus: Record<LetterStatus, number>
 }
@@ -73,6 +79,7 @@ export default function HomePage() {
   const { data: session, status } = useSession()
   useAuthRedirect(status)
   const [stats, setStats] = useState<Stats | null>(null)
+  const [statsSummary, setStatsSummary] = useState<StatsResponse['summary'] | null>(null)
   const [recentLetters, setRecentLetters] = useState<Letter[]>([])
   const [urgentLetters, setUrgentLetters] = useState<Letter[]>([])
   const [overdueLetters, setOverdueLetters] = useState<Letter[]>([])
@@ -113,6 +120,7 @@ export default function HomePage() {
         ])
 
       if (statsData?.summary) {
+        setStatsSummary(statsData.summary)
         setStats({
           total: statsData.summary.total,
           active: statsData.summary.inProgress,
@@ -122,6 +130,7 @@ export default function HomePage() {
           byStatus: statsData.byStatus,
         })
       } else {
+        setStatsSummary(null)
         setStats(null)
       }
 
@@ -173,7 +182,7 @@ export default function HomePage() {
             <h1 className="font-display text-2xl font-semibold text-white sm:text-3xl">
               Добро пожаловать, {session.user.name || session.user.email?.split('@')[0]}!
             </h1>
-            <p className="text-muted mt-1 flex items-center gap-2">
+            <p className="mt-1 flex items-center gap-2 text-muted">
               <span className="inline-flex items-center gap-1 rounded-full border border-teal-400/20 bg-teal-500/15 px-2 py-0.5 text-xs text-teal-300">
                 {roleLabel}
               </span>
@@ -206,7 +215,7 @@ export default function HomePage() {
 
         {/* Stats Widgets */}
         <div className="mb-8">
-          <StatsWidgets />
+          <StatsWidgets summary={statsSummary} loading={loading} />
         </div>
 
         {/* Progress + Status breakdown */}
@@ -587,5 +596,3 @@ export default function HomePage() {
     </div>
   )
 }
-
-

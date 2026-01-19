@@ -26,13 +26,25 @@ interface StatsResponse {
   }
 }
 
-export function StatsWidgets() {
-  const [stats, setStats] = useState<StatsResponse['summary'] | null>(null)
-  const [loading, setLoading] = useState(true)
+type StatsWidgetsProps = {
+  summary?: StatsResponse['summary'] | null
+  loading?: boolean
+}
+
+export function StatsWidgets({ summary, loading }: StatsWidgetsProps) {
+  const [stats, setStats] = useState<StatsResponse['summary'] | null>(summary ?? null)
+  const [isLoading, setIsLoading] = useState(loading ?? summary === undefined)
 
   useEffect(() => {
+    if (summary !== undefined || loading !== undefined) {
+      setStats(summary ?? null)
+      setIsLoading(Boolean(loading))
+      return
+    }
+
     const fetchStats = async () => {
       try {
+        setIsLoading(true)
         const res = await fetch('/api/stats')
         if (res.ok) {
           const data: StatsResponse = await res.json()
@@ -41,7 +53,7 @@ export function StatsWidgets() {
       } catch (error) {
         console.error('Failed to fetch stats:', error)
       } finally {
-        setLoading(false)
+        setIsLoading(false)
       }
     }
 
@@ -49,9 +61,9 @@ export function StatsWidgets() {
     // Refresh every 5 minutes
     const interval = setInterval(fetchStats, 5 * 60 * 1000)
     return () => clearInterval(interval)
-  }, [])
+  }, [summary, loading])
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {[...Array(4)].map((_, i) => (

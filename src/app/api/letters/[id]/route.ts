@@ -10,6 +10,7 @@ import { hasPermission } from '@/lib/permissions'
 import { requirePermission } from '@/lib/permission-guard'
 import { csrfGuard } from '@/lib/security'
 import { logger } from '@/lib/logger.server'
+import { CACHE_TTL } from '@/lib/cache'
 
 // GET /api/letters/[id] - получить письмо по ID
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -27,7 +28,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Parse pagination parameters for comments
     const { searchParams } = new URL(request.url)
     const commentsPage = Math.max(1, parseInt(searchParams.get('commentsPage') || '1', 10))
-    const commentsLimit = Math.min(50, Math.max(1, parseInt(searchParams.get('commentsLimit') || '20', 10)))
+    const commentsLimit = Math.min(
+      50,
+      Math.max(1, parseInt(searchParams.get('commentsLimit') || '20', 10))
+    )
     const commentsSkip = (commentsPage - 1) * commentsLimit
 
     const letter = await prisma.letter.findUnique({
@@ -126,18 +130,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     void favorites
     void files
 
-    return NextResponse.json({
-      ...letterData,
-      files: sanitizedFiles,
-      isWatching,
-      isFavorite,
-      commentsPagination: {
-        page: commentsPage,
-        limit: commentsLimit,
-        total: totalComments,
-        hasMore: commentsSkip + letter.comments.length < totalComments,
+    const cacheSeconds = Math.max(1, Math.floor(CACHE_TTL.LETTER_DETAIL / 1000))
+    return NextResponse.json(
+      {
+        ...letterData,
+        files: sanitizedFiles,
+        isWatching,
+        isFavorite,
+        commentsPagination: {
+          page: commentsPage,
+          limit: commentsLimit,
+          total: totalComments,
+          hasMore: commentsSkip + letter.comments.length < totalComments,
+        },
       },
-    })
+      {
+        headers: {
+          'Cache-Control': `private, max-age=${cacheSeconds}, stale-while-revalidate=${cacheSeconds}`,
+        },
+      }
+    )
   } catch (error) {
     logger.error('GET /api/letters/[id]', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
