@@ -24,8 +24,8 @@ const STATUS_LABELS_UZ: Record<LetterStatus, string> = {
 }
 
 type PageProps = {
-  params: { token: string }
-  searchParams?: { lang?: string }
+  params: Promise<{ token: string }>
+  searchParams?: Promise<{ lang?: string }>
 }
 
 type PortalCopy = {
@@ -200,14 +200,16 @@ function formatFileSize(bytes?: number | null) {
 }
 
 export default async function ApplicantPortalPage({ params, searchParams }: PageProps) {
-  const lang = searchParams?.lang === 'uz' ? 'uz' : 'ru'
+  const { token } = await params
+  const resolvedSearchParams = searchParams ? await searchParams : undefined
+  const lang = resolvedSearchParams?.lang === 'uz' ? 'uz' : 'ru'
   const copy = lang === 'uz' ? UZ_COPY : RU_COPY
   const locale = lang === 'uz' ? 'uz-UZ' : 'ru-RU'
   const statusLabels = lang === 'uz' ? STATUS_LABELS_UZ : STATUS_LABELS
 
   const letter = await prisma.letter.findFirst({
     where: {
-      applicantAccessToken: params.token,
+      applicantAccessToken: token,
     },
     include: {
       comments: {
@@ -238,7 +240,7 @@ export default async function ApplicantPortalPage({ params, searchParams }: Page
       <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4 text-white">
         <div className="panel panel-glass space-y-3 rounded-2xl p-8 text-center">
           <h1 className="text-2xl font-semibold">{copy.notFoundTitle}</h1>
-          <p className="text-muted text-sm">{copy.notFoundBody}</p>
+          <p className="text-sm text-muted">{copy.notFoundBody}</p>
         </div>
       </div>
     )
@@ -249,7 +251,7 @@ export default async function ApplicantPortalPage({ params, searchParams }: Page
       <div className="flex min-h-screen items-center justify-center bg-gray-900 px-4 text-white">
         <div className="panel panel-glass space-y-3 rounded-2xl p-8 text-center">
           <h1 className="text-2xl font-semibold">{copy.expiredTitle}</h1>
-          <p className="text-muted text-sm">{copy.expiredBody}</p>
+          <p className="text-sm text-muted">{copy.expiredBody}</p>
         </div>
       </div>
     )
@@ -310,7 +312,7 @@ export default async function ApplicantPortalPage({ params, searchParams }: Page
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-semibold text-white">{copy.portalTitle}</h1>
-              <p className="text-muted text-sm">{copy.portalSubtitle}</p>
+              <p className="text-sm text-muted">{copy.portalSubtitle}</p>
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 <p className="text-2xl font-semibold text-white">
                   {copy.letterLabel}
@@ -318,7 +320,7 @@ export default async function ApplicantPortalPage({ params, searchParams }: Page
                 </p>
                 <ApplicantCopyButton value={letter.number} language={lang} />
               </div>
-              <p className="text-muted mt-2 text-sm">
+              <p className="mt-2 text-sm text-muted">
                 {copy.lastUpdated} {formatDateTime(letter.updatedAt, locale)}
               </p>
             </div>
@@ -333,10 +335,10 @@ export default async function ApplicantPortalPage({ params, searchParams }: Page
                 {statusLabels[letter.status]}
               </span>
               <div className="flex items-center gap-2">
-                <Link className="app-pill text-xs" href={`/portal/${params.token}?lang=ru`}>
+                <Link className="app-pill text-xs" href={`/portal/${token}?lang=ru`}>
                   {copy.langRu}
                 </Link>
-                <Link className="app-pill text-xs" href={`/portal/${params.token}?lang=uz`}>
+                <Link className="app-pill text-xs" href={`/portal/${token}?lang=uz`}>
                   {copy.langUz}
                 </Link>
               </div>
@@ -401,7 +403,7 @@ export default async function ApplicantPortalPage({ params, searchParams }: Page
                     <p className="text-sm text-slate-200">
                       {item.label}: {item.status}
                     </p>
-                    <p className="text-muted text-xs">{formatDateTime(item.date, locale)}</p>
+                    <p className="text-xs text-muted">{formatDateTime(item.date, locale)}</p>
                   </div>
                 </div>
               ))}
@@ -412,17 +414,17 @@ export default async function ApplicantPortalPage({ params, searchParams }: Page
         <section id="comments" className="panel panel-glass space-y-4 rounded-2xl p-6">
           <h2 className="text-lg font-semibold">{copy.commentsTitle}</h2>
           {letter.comments.length === 0 ? (
-            <p className="text-muted text-sm">{copy.commentsEmpty}</p>
+            <p className="text-sm text-muted">{copy.commentsEmpty}</p>
           ) : (
             <div className="space-y-4">
               {commentGroups.map((group) => (
                 <div key={group.label} className="space-y-3">
-                  <div className="text-muted text-xs uppercase tracking-wider">{group.label}</div>
+                  <div className="text-xs uppercase tracking-wider text-muted">{group.label}</div>
                   {group.items.map((comment) => {
                     const isApplicant = comment.author?.email === APPLICANT_EMAIL
                     return (
                       <div key={comment.id} className="panel-soft panel-glass rounded-xl p-4">
-                        <div className="text-muted flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-slate-200">
                               {comment.author?.name ||
@@ -454,15 +456,15 @@ export default async function ApplicantPortalPage({ params, searchParams }: Page
           <div className="app-divider" />
           <div className="space-y-2">
             <h3 className="text-base font-semibold">{copy.writeCommentTitle}</h3>
-            <p className="text-muted text-sm">{copy.writeCommentHint}</p>
-            <ApplicantCommentForm token={params.token} language={lang} />
+            <p className="text-sm text-muted">{copy.writeCommentHint}</p>
+            <ApplicantCommentForm token={token} language={lang} />
           </div>
         </section>
 
         <section id="files" className="panel panel-glass space-y-4 rounded-2xl p-6">
           <h2 className="text-lg font-semibold">{copy.filesTitle}</h2>
           {letter.files.length === 0 ? (
-            <p className="text-muted text-sm">{copy.filesEmpty}</p>
+            <p className="text-sm text-muted">{copy.filesEmpty}</p>
           ) : (
             <div className="space-y-3">
               {letter.files.map((file) => (
@@ -476,7 +478,7 @@ export default async function ApplicantPortalPage({ params, searchParams }: Page
                   <div className="min-w-0">
                     <div className="truncate font-medium text-slate-200">{file.name}</div>
                     {file.size ? (
-                      <div className="text-muted text-xs">{formatFileSize(file.size)}</div>
+                      <div className="text-xs text-muted">{formatFileSize(file.size)}</div>
                     ) : null}
                   </div>
                   <span className="app-pill text-xs">{copy.downloadLabel}</span>
@@ -488,9 +490,9 @@ export default async function ApplicantPortalPage({ params, searchParams }: Page
 
         <section id="notifications" className="panel panel-glass space-y-4 rounded-2xl p-6">
           <h2 className="text-lg font-semibold">{copy.notificationsTitle}</h2>
-          <p className="text-muted text-sm">{copy.notificationsHint}</p>
+          <p className="text-sm text-muted">{copy.notificationsHint}</p>
           <ApplicantContactForm
-            token={params.token}
+            token={token}
             initialEmail={letter.applicantEmail}
             initialTelegram={letter.applicantTelegramChatId}
             language={lang}
@@ -511,5 +513,3 @@ export default async function ApplicantPortalPage({ params, searchParams }: Page
     </div>
   )
 }
-
-
