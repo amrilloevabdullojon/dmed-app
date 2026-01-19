@@ -321,12 +321,12 @@ export class LetterService {
       'applicantName',
       'applicantContact',
     ] as const
+    type AllowedField = (typeof ALLOWED_FIELDS)[number]
+    const isAllowedField = (value: string): value is AllowedField =>
+      ALLOWED_FIELDS.includes(value as AllowedField)
 
-    if (!ALLOWED_FIELDS.includes(field as any)) {
-      throw new LetterServiceError(
-        `Недопустимое поле для обновления: ${field}`,
-        'INVALID_FIELD'
-      )
+    if (!isAllowedField(field)) {
+      throw new LetterServiceError(`Недопустимое поле для обновления: ${field}`, 'INVALID_FIELD')
     }
 
     const letter = await prisma.letter.findFirst({
@@ -562,7 +562,7 @@ ${letter.org}
 export class LetterServiceError extends Error {
   constructor(
     message: string,
-    public code: 'NOT_FOUND' | 'DUPLICATE' | 'VALIDATION' | 'FORBIDDEN'
+    public code: 'NOT_FOUND' | 'DUPLICATE' | 'VALIDATION' | 'FORBIDDEN' | 'INVALID_FIELD'
   ) {
     super(message)
     this.name = 'LetterServiceError'
