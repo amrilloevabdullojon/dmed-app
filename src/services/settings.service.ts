@@ -1044,7 +1044,7 @@ export class SettingsService {
         .map((subscription) => ({
           event: subscription.event,
           scope: subscription.scope,
-          value: subscription.value?.trim() || null,
+          value: subscription.value?.trim() || undefined,
         }))
         .filter((subscription) => {
           if (subscription.scope === 'all') return true
@@ -1065,7 +1065,7 @@ export class SettingsService {
             data: normalizedSubscriptions.map((subscription) => ({
               userId,
               scope: subscription.scope.toUpperCase() as 'ROLE' | 'USER' | 'ALL',
-              value: subscription.value,
+              value: subscription.value ?? null,
               event: subscription.event,
             })),
           })
