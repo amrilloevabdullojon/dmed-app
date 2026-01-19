@@ -35,6 +35,11 @@ const isMissingNotificationSubscriptionTable = (error: unknown) =>
   /NotificationSubscription/i.test(error.message) &&
   /does not exist/i.test(error.message)
 
+const isMissingNotificationDeliveryTable = (error: unknown) =>
+  error instanceof Error &&
+  /NotificationDelivery/i.test(error.message) &&
+  /does not exist/i.test(error.message)
+
 type DispatchNotificationInput = {
   event: NotificationEventType
   title: string
@@ -340,17 +345,28 @@ export const dispatchNotification = async ({
       recipient?: string | null
       error?: string | null
     }) => {
-      await prisma.notificationDelivery.create({
-        data: {
-          notificationId: notification.id,
-          userId: user.id,
-          channel: data.channel,
-          status: data.status,
-          recipient: data.recipient || undefined,
-          error: data.error || undefined,
-          sentAt: data.status === 'SENT' ? new Date() : undefined,
-        },
-      })
+      try {
+        await prisma.notificationDelivery.create({
+          data: {
+            notificationId: notification.id,
+            userId: user.id,
+            channel: data.channel,
+            status: data.status,
+            recipient: data.recipient || undefined,
+            error: data.error || undefined,
+            sentAt: data.status === 'SENT' ? new Date() : undefined,
+          },
+        })
+      } catch (error) {
+        if (isMissingNotificationDeliveryTable(error)) {
+          logger.warn(
+            'dispatchNotification',
+            'NotificationDelivery table missing, skipping delivery audit'
+          )
+          return
+        }
+        throw error
+      }
     }
 
     if (channelFlags.IN_APP) {
