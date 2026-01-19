@@ -1,3 +1,4 @@
+import 'server-only'
 import { extractDriveFileId } from '@/lib/google-drive'
 
 const PROFILE_ASSET_PATH = '/api/profile/assets'

@@ -41,8 +41,12 @@ function finalizeResponse(request: NextRequest, response: NextResponse): NextRes
 
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
 
+  if (pathname.startsWith('/api')) {
+    return applySecurityHeaders(NextResponse.next())
+  }
+
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
   if (isPublicPath(pathname)) {
     if (token && pathname === '/login') {
       const redirectUrl = new URL('/letters', request.url)
@@ -91,5 +95,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image).*)'],
+  matcher: ['/((?!_next/static|_next/image).*)'],
 }
