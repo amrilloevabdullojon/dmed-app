@@ -86,11 +86,7 @@ export class UserService {
       })
     } catch (error) {
       logger.error('user.service', error, { userId })
-      throw new UserServiceError(
-        'Ошибка при получении пользователя',
-        'FETCH_FAILED',
-        500
-      )
+      throw new UserServiceError('Ошибка при получении пользователя', 'FETCH_FAILED', 500)
     }
   }
 
@@ -107,11 +103,7 @@ export class UserService {
       })
     } catch (error) {
       logger.error('user.service', error, { email })
-      throw new UserServiceError(
-        'Ошибка при получении пользователя',
-        'FETCH_FAILED',
-        500
-      )
+      throw new UserServiceError('Ошибка при получении пользователя', 'FETCH_FAILED', 500)
     }
   }
 
@@ -177,11 +169,7 @@ export class UserService {
       }
     } catch (error) {
       logger.error('user.service', error, { filters })
-      throw new UserServiceError(
-        'Ошибка при получении списка пользователей',
-        'LIST_FAILED',
-        500
-      )
+      throw new UserServiceError('Ошибка при получении списка пользователей', 'LIST_FAILED', 500)
     }
   }
 
@@ -194,10 +182,7 @@ export class UserService {
    *   telegramChatId: '123456'
    * })
    */
-  static async updateProfile(
-    userId: string,
-    updates: UpdateProfileInput
-  ): Promise<User> {
+  static async updateProfile(userId: string, updates: UpdateProfileInput): Promise<User> {
     try {
       const user = await prisma.user.update({
         where: { id: userId },
@@ -212,11 +197,7 @@ export class UserService {
       return user
     } catch (error) {
       logger.error('user.service', error, { userId, updates })
-      throw new UserServiceError(
-        'Ошибка при обновлении профиля',
-        'UPDATE_FAILED',
-        500
-      )
+      throw new UserServiceError('Ошибка при обновлении профиля', 'UPDATE_FAILED', 500)
     }
   }
 
@@ -247,11 +228,7 @@ export class UserService {
       return user
     } catch (error) {
       logger.error('user.service', error, { userId, settings })
-      throw new UserServiceError(
-        'Ошибка при обновлении настроек уведомлений',
-        'UPDATE_FAILED',
-        500
-      )
+      throw new UserServiceError('Ошибка при обновлении настроек уведомлений', 'UPDATE_FAILED', 500)
     }
   }
 
@@ -261,11 +238,7 @@ export class UserService {
    * @example
    * await UserService.updateRole('user1', 'ADMIN', 'admin1')
    */
-  static async updateRole(
-    userId: string,
-    newRole: Role,
-    adminUserId: string
-  ): Promise<User> {
+  static async updateRole(userId: string, newRole: Role, adminUserId: string): Promise<User> {
     try {
       // Verify admin permissions
       const admin = await prisma.user.findUnique({
@@ -274,11 +247,7 @@ export class UserService {
       })
 
       if (!admin || (admin.role !== 'ADMIN' && admin.role !== 'SUPERADMIN')) {
-        throw new UserServiceError(
-          'Недостаточно прав для изменения роли',
-          'FORBIDDEN',
-          403
-        )
+        throw new UserServiceError('Недостаточно прав для изменения роли', 'FORBIDDEN', 403)
       }
 
       // Prevent non-superadmin from creating/modifying superadmins
@@ -307,11 +276,7 @@ export class UserService {
         throw error
       }
       logger.error('user.service', error, { userId, newRole, adminUserId })
-      throw new UserServiceError(
-        'Ошибка при обновлении роли',
-        'UPDATE_FAILED',
-        500
-      )
+      throw new UserServiceError('Ошибка при обновлении роли', 'UPDATE_FAILED', 500)
     }
   }
 
@@ -358,7 +323,7 @@ export class UserService {
         prisma.notification.count({
           where: {
             userId,
-            read: false,
+            isRead: false,
           },
         }),
       ])
@@ -384,11 +349,7 @@ export class UserService {
       }
     } catch (error) {
       logger.error('user.service', error, { userId })
-      throw new UserServiceError(
-        'Ошибка при получении статистики',
-        'STATS_FAILED',
-        500
-      )
+      throw new UserServiceError('Ошибка при получении статистики', 'STATS_FAILED', 500)
     }
   }
 
@@ -422,11 +383,7 @@ export class UserService {
         throw error
       }
       logger.error('user.service', error, { userId })
-      throw new UserServiceError(
-        'Ошибка при инвалидации токенов',
-        'INVALIDATE_FAILED',
-        500
-      )
+      throw new UserServiceError('Ошибка при инвалидации токенов', 'INVALIDATE_FAILED', 500)
     }
   }
 
@@ -445,20 +402,12 @@ export class UserService {
       })
 
       if (!admin || (admin.role !== 'ADMIN' && admin.role !== 'SUPERADMIN')) {
-        throw new UserServiceError(
-          'Недостаточно прав для удаления пользователя',
-          'FORBIDDEN',
-          403
-        )
+        throw new UserServiceError('Недостаточно прав для удаления пользователя', 'FORBIDDEN', 403)
       }
 
       // Prevent deleting yourself
       if (userId === adminUserId) {
-        throw new UserServiceError(
-          'Нельзя удалить самого себя',
-          'FORBIDDEN',
-          403
-        )
+        throw new UserServiceError('Нельзя удалить самого себя', 'FORBIDDEN', 403)
       }
 
       const user = await prisma.user.findUnique({
@@ -472,11 +421,7 @@ export class UserService {
 
       // Prevent non-superadmin from deleting superadmins
       if (user.role === 'SUPERADMIN' && admin.role !== 'SUPERADMIN') {
-        throw new UserServiceError(
-          'Только SUPERADMIN может удалять SUPERADMIN',
-          'FORBIDDEN',
-          403
-        )
+        throw new UserServiceError('Только SUPERADMIN может удалять SUPERADMIN', 'FORBIDDEN', 403)
       }
 
       await prisma.user.delete({
@@ -492,11 +437,7 @@ export class UserService {
         throw error
       }
       logger.error('user.service', error, { userId, adminUserId })
-      throw new UserServiceError(
-        'Ошибка при удалении пользователя',
-        'DELETE_FAILED',
-        500
-      )
+      throw new UserServiceError('Ошибка при удалении пользователя', 'DELETE_FAILED', 500)
     }
   }
 }

@@ -90,25 +90,16 @@ export class NotificationService {
         dedupeWindowMinutes: input.dedupeWindowMinutes,
       })
 
-      logger.performance(
-        'notification.service',
-        'Notification sent',
-        startTime,
-        {
-          event: input.event,
-          userCount: input.userIds?.length || 0,
-        }
-      )
+      logger.performance('notification.service', 'Notification sent', startTime, {
+        event: input.event,
+        userCount: input.userIds?.length || 0,
+      })
     } catch (error) {
       logger.error('notification.service', error, {
         event: input.event,
         userIds: input.userIds,
       })
-      throw new NotificationServiceError(
-        'Ошибка при отправке уведомления',
-        'SEND_FAILED',
-        500
-      )
+      throw new NotificationServiceError('Ошибка при отправке уведомления', 'SEND_FAILED', 500)
     }
   }
 
@@ -142,7 +133,7 @@ export class NotificationService {
 
     const where: Prisma.NotificationWhereInput = {
       userId: filters.userId,
-      ...(filters.read !== undefined && { read: filters.read }),
+      ...(filters.read !== undefined && { isRead: filters.read }),
       ...(filters.channel && { channel: filters.channel }),
       ...(filters.priority && { priority: filters.priority }),
       ...(filters.letterId && { letterId: filters.letterId }),
@@ -196,11 +187,7 @@ export class NotificationService {
       }
     } catch (error) {
       logger.error('notification.service', error, { filters })
-      throw new NotificationServiceError(
-        'Ошибка при получении уведомлений',
-        'FETCH_FAILED',
-        500
-      )
+      throw new NotificationServiceError('Ошибка при получении уведомлений', 'FETCH_FAILED', 500)
     }
   }
 
@@ -214,32 +201,24 @@ export class NotificationService {
     try {
       const notification = await prisma.notification.findUnique({
         where: { id: notificationId },
-        select: { userId: true, read: true },
+        select: { userId: true, isRead: true },
       })
 
       if (!notification) {
-        throw new NotificationServiceError(
-          'Уведомление не найдено',
-          'NOT_FOUND',
-          404
-        )
+        throw new NotificationServiceError('Уведомление не найдено', 'NOT_FOUND', 404)
       }
 
       if (notification.userId !== userId) {
-        throw new NotificationServiceError(
-          'Доступ запрещен',
-          'FORBIDDEN',
-          403
-        )
+        throw new NotificationServiceError('Доступ запрещен', 'FORBIDDEN', 403)
       }
 
-      if (notification.read) {
+      if (notification.isRead) {
         return // Already read, no-op
       }
 
       await prisma.notification.update({
         where: { id: notificationId },
-        data: { read: true, readAt: new Date() },
+        data: { isRead: true },
       })
 
       logger.info('notification.service', 'Notification marked as read', {
@@ -251,11 +230,7 @@ export class NotificationService {
         throw error
       }
       logger.error('notification.service', error, { notificationId, userId })
-      throw new NotificationServiceError(
-        'Ошибка при обновлении уведомления',
-        'UPDATE_FAILED',
-        500
-      )
+      throw new NotificationServiceError('Ошибка при обновлении уведомления', 'UPDATE_FAILED', 500)
     }
   }
 
@@ -269,13 +244,13 @@ export class NotificationService {
     try {
       const where: Prisma.NotificationWhereInput = {
         userId,
-        read: false,
+        isRead: false,
         ...(filters?.letterId && { letterId: filters.letterId }),
       }
 
       const result = await prisma.notification.updateMany({
         where,
-        data: { read: true, readAt: new Date() },
+        data: { isRead: true },
       })
 
       logger.info('notification.service', 'Notifications marked as read', {
@@ -287,11 +262,7 @@ export class NotificationService {
       return result.count
     } catch (error) {
       logger.error('notification.service', error, { userId, filters })
-      throw new NotificationServiceError(
-        'Ошибка при обновлении уведомлений',
-        'UPDATE_FAILED',
-        500
-      )
+      throw new NotificationServiceError('Ошибка при обновлении уведомлений', 'UPDATE_FAILED', 500)
     }
   }
 
@@ -309,19 +280,11 @@ export class NotificationService {
       })
 
       if (!notification) {
-        throw new NotificationServiceError(
-          'Уведомление не найдено',
-          'NOT_FOUND',
-          404
-        )
+        throw new NotificationServiceError('Уведомление не найдено', 'NOT_FOUND', 404)
       }
 
       if (notification.userId !== userId) {
-        throw new NotificationServiceError(
-          'Доступ запрещен',
-          'FORBIDDEN',
-          403
-        )
+        throw new NotificationServiceError('Доступ запрещен', 'FORBIDDEN', 403)
       }
 
       await prisma.notification.delete({
@@ -337,11 +300,7 @@ export class NotificationService {
         throw error
       }
       logger.error('notification.service', error, { notificationId, userId })
-      throw new NotificationServiceError(
-        'Ошибка при удалении уведомления',
-        'DELETE_FAILED',
-        500
-      )
+      throw new NotificationServiceError('Ошибка при удалении уведомления', 'DELETE_FAILED', 500)
     }
   }
 
@@ -355,18 +314,14 @@ export class NotificationService {
     try {
       const where: Prisma.NotificationWhereInput = {
         userId,
-        read: false,
+        isRead: false,
         ...(filters?.letterId && { letterId: filters.letterId }),
       }
 
       return await prisma.notification.count({ where })
     } catch (error) {
       logger.error('notification.service', error, { userId, filters })
-      throw new NotificationServiceError(
-        'Ошибка при подсчете уведомлений',
-        'COUNT_FAILED',
-        500
-      )
+      throw new NotificationServiceError('Ошибка при подсчете уведомлений', 'COUNT_FAILED', 500)
     }
   }
 
@@ -384,8 +339,8 @@ export class NotificationService {
 
       const result = await prisma.notification.deleteMany({
         where: {
-          read: true,
-          readAt: {
+          isRead: true,
+          createdAt: {
             lte: cutoffDate,
           },
         },
@@ -399,11 +354,7 @@ export class NotificationService {
       return result.count
     } catch (error) {
       logger.error('notification.service', error, { daysOld })
-      throw new NotificationServiceError(
-        'Ошибка при очистке уведомлений',
-        'CLEANUP_FAILED',
-        500
-      )
+      throw new NotificationServiceError('Ошибка при очистке уведомлений', 'CLEANUP_FAILED', 500)
     }
   }
 }
