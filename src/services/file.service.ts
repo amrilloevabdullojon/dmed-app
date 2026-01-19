@@ -143,7 +143,8 @@ export class FileService {
     }
 
     // Check file type
-    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+    const isAllowedType = ALLOWED_FILE_TYPES.some((allowedType) => allowedType === file.type)
+    if (!isAllowedType) {
       throw new FileServiceError('Тип файла не поддерживается', 'INVALID_FILE_TYPE', 400)
     }
   }
