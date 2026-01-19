@@ -97,12 +97,9 @@ export const notificationChannelsSchema = z
     sms: z.boolean(),
     push: z.boolean(),
   })
-  .refine(
-    (channels) => Object.values(channels).some((enabled) => enabled === true),
-    {
-      message: 'Хотя бы один канал уведомлений должен быть включён',
-    }
-  )
+  .refine((channels) => Object.values(channels).some((enabled) => enabled === true), {
+    message: 'Хотя бы один канал уведомлений должен быть включён',
+  })
 
 /**
  * Валидация одного элемента матрицы уведомлений
@@ -117,26 +114,24 @@ export const notificationMatrixItemSchema = z.object({
  * Валидация матрицы уведомлений
  * Требование: должны быть все обязательные события
  */
-export const notificationMatrixSchema = z
-  .array(notificationMatrixItemSchema)
-  .refine(
-    (matrix) => {
-      const events = new Set(matrix.map((item) => item.event))
-      const requiredEvents: NotificationEventType[] = [
-        'NEW_LETTER',
-        'COMMENT',
-        'STATUS',
-        'ASSIGNMENT',
-        'DEADLINE_URGENT',
-        'DEADLINE_OVERDUE',
-        'SYSTEM',
-      ]
-      return requiredEvents.every((event) => events.has(event))
-    },
-    {
-      message: 'Матрица уведомлений должна содержать все типы событий',
-    }
-  )
+export const notificationMatrixSchema = z.array(notificationMatrixItemSchema).refine(
+  (matrix) => {
+    const events = new Set(matrix.map((item) => item.event))
+    const requiredEvents: NotificationEventType[] = [
+      'NEW_LETTER',
+      'COMMENT',
+      'STATUS',
+      'ASSIGNMENT',
+      'DEADLINE_URGENT',
+      'DEADLINE_OVERDUE',
+      'SYSTEM',
+    ]
+    return requiredEvents.every((event) => events.has(event))
+  },
+  {
+    message: 'Матрица уведомлений должна содержать все типы событий',
+  }
+)
 
 /**
  * Валидация подписки на уведомления
@@ -150,7 +145,10 @@ export const notificationSubscriptionSchema = z.object({
 /**
  * Валидация полных настроек уведомлений
  */
-export const notificationSettingsSchema = z
+
+const quietHoursMismatchMessage = 'Время начала и окончания тихих часов не может быть одинаковым'
+
+const notificationSettingsBaseSchema = z
   .object({
     // Channel toggles
     inAppNotifications: z.boolean(),
@@ -189,25 +187,38 @@ export const notificationSettingsSchema = z
     subscriptions: z.array(notificationSubscriptionSchema),
   })
   .strict() // Не позволять дополнительные поля
-  .refine(
-    (settings) => {
-      // Если quiet hours включены, проверяем что время корректно
-      if (settings.quietHoursEnabled) {
-        return settings.quietHoursStart !== settings.quietHoursEnd
-      }
-      return true
-    },
-    {
-      message: 'Время начала и окончания тихих часов не может быть одинаковым',
-      path: ['quietHoursEnabled'],
+
+export const notificationSettingsSchema = notificationSettingsBaseSchema.refine(
+  (settings) => {
+    if (settings.quietHoursEnabled) {
+      return settings.quietHoursStart !== settings.quietHoursEnd
     }
-  )
+    return true
+  },
+  {
+    message: quietHoursMismatchMessage,
+    path: ['quietHoursEnabled'],
+  }
+)
 
 /**
  * Валидация частичных обновлений настроек
  * Все поля опциональны, но если указаны - должны быть валидны
  */
-export const notificationSettingsUpdateSchema = notificationSettingsSchema.partial()
+
+export const notificationSettingsUpdateSchema = notificationSettingsBaseSchema
+  .partial()
+  .superRefine((settings, ctx) => {
+    if (!settings.quietHoursEnabled) return
+    if (!settings.quietHoursStart || !settings.quietHoursEnd) return
+    if (settings.quietHoursStart === settings.quietHoursEnd) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: quietHoursMismatchMessage,
+        path: ['quietHoursEnabled'],
+      })
+    }
+  })
 
 const defaultMatrix: NotificationMatrixItem[] = [
   {
