@@ -2,7 +2,6 @@
 import '@/lib/env.validation'
 
 import type { Metadata, Viewport } from 'next'
-import dynamic from 'next/dynamic'
 import { Manrope, Rubik } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/Providers'
@@ -11,20 +10,7 @@ import { PageTransition } from '@/components/PageTransition'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { SkipToContent } from '@/components/SkipToContent'
 import { PWAProvider } from '@/components/PWAProvider'
-const Particles = dynamic(() => import('@/components/Particles').then((mod) => mod.Particles), {
-  ssr: false,
-})
-const Snowfall = dynamic(() => import('@/components/Snowfall').then((mod) => mod.Snowfall), {
-  ssr: false,
-})
-const NewYearBanner = dynamic(
-  () => import('@/components/Snowfall').then((mod) => mod.NewYearBanner),
-  { ssr: false }
-)
-const OfflineIndicator = dynamic(
-  () => import('@/components/OfflineIndicator').then((mod) => mod.OfflineIndicator),
-  { ssr: false }
-)
+import { ClientEffects } from '@/components/ClientEffects'
 
 const manrope = Manrope({
   subsets: ['latin', 'cyrillic'],
@@ -80,11 +66,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ThemeProvider>
               <SkipToContent />
               <AuthGuard>
-                <NewYearBanner />
                 <PageTransition>{children}</PageTransition>
-                <Particles />
-                <Snowfall />
-                <OfflineIndicator />
+                <ClientEffects />
               </AuthGuard>
             </ThemeProvider>
           </PWAProvider>
