@@ -1,3 +1,4 @@
+import 'server-only'
 import nodemailer from 'nodemailer'
 import { sendTelegramMessage } from '@/lib/telegram'
 import { logger } from '@/lib/logger.server'

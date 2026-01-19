@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface UserPreferences {
   id: string
@@ -23,33 +23,90 @@ interface UserPreferences {
   updatedAt: string
 }
 
+type PreferencesState = {
+  preferences: UserPreferences | null
+  isLoading: boolean
+  error: Error | null
+}
+
+let cachedPreferences: UserPreferences | null = null
+let cachedError: Error | null = null
+let inFlight: Promise<UserPreferences | null> | null = null
+let hasLoaded = false
+
+const listeners = new Set<(state: PreferencesState) => void>()
+
+const getState = (): PreferencesState => ({
+  preferences: cachedPreferences,
+  isLoading: Boolean(inFlight) || (!hasLoaded && !cachedError),
+  error: cachedError,
+})
+
+const notify = () => {
+  const state = getState()
+  listeners.forEach((listener) => listener(state))
+}
+
+async function loadPreferences(): Promise<UserPreferences | null> {
+  if (inFlight) return inFlight
+
+  inFlight = (async () => {
+    try {
+      const response = await fetch('/api/user/preferences', { cache: 'no-store' })
+      if (response.ok) {
+        const data = (await response.json()) as UserPreferences
+        cachedPreferences = data
+        cachedError = null
+        hasLoaded = true
+        return data
+      }
+      if (response.status === 401) {
+        cachedPreferences = null
+        cachedError = null
+        hasLoaded = true
+        return null
+      }
+      throw new Error('Failed to load preferences')
+    } catch (error) {
+      cachedError = error instanceof Error ? error : new Error('Unknown error')
+      hasLoaded = true
+      throw cachedError
+    } finally {
+      inFlight = null
+      notify()
+    }
+  })()
+
+  notify()
+  return inFlight
+}
+
 export function useUserPreferences() {
-  const [preferences, setPreferences] = useState<UserPreferences | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  const [state, setState] = useState<PreferencesState>(getState)
 
   useEffect(() => {
-    async function loadPreferences() {
-      try {
-        const response = await fetch('/api/user/preferences')
-        if (response.ok) {
-          const data = await response.json()
-          setPreferences(data)
-        } else if (response.status === 401) {
-          // User not authenticated, use defaults
-          setPreferences(null)
-        } else {
-          throw new Error('Failed to load preferences')
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Unknown error'))
-      } finally {
-        setIsLoading(false)
-      }
+    const listener = (nextState: PreferencesState) => setState(nextState)
+    listeners.add(listener)
+
+    if (!hasLoaded && !inFlight) {
+      loadPreferences().catch(() => undefined)
     }
 
-    loadPreferences()
+    return () => {
+      listeners.delete(listener)
+    }
   }, [])
 
-  return { preferences, isLoading, error }
+  const refresh = useCallback(async () => {
+    await loadPreferences().catch(() => undefined)
+  }, [])
+
+  const setPreferences = useCallback((next: UserPreferences | null) => {
+    cachedPreferences = next
+    cachedError = null
+    hasLoaded = true
+    notify()
+  }, [])
+
+  return { ...state, refresh, setPreferences }
 }

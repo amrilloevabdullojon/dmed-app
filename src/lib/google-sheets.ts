@@ -1,4 +1,5 @@
-﻿import { google } from 'googleapis'
+﻿import 'server-only'
+import { google } from 'googleapis'
 import { prisma } from './prisma'
 import { STATUS_LABELS, STATUS_FROM_LABEL, formatDate, addWorkingDays } from './utils'
 import type { LetterStatus, Prisma } from '@prisma/client'

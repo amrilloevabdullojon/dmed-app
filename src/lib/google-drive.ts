@@ -1,3 +1,4 @@
+import 'server-only'
 import { google } from 'googleapis'
 import { Readable } from 'stream'
 
@@ -21,14 +22,9 @@ function escapeDriveQueryValue(value: string) {
   return value.replace(/'/g, "\\'")
 }
 
-export async function findOrCreateDriveFolder(params: {
-  name: string
-  parentId?: string | null
-}) {
+export async function findOrCreateDriveFolder(params: { name: string; parentId?: string | null }) {
   const drive = getDriveClient()
-  const parentFilter = params.parentId
-    ? `'${params.parentId}' in parents`
-    : "'root' in parents"
+  const parentFilter = params.parentId ? `'${params.parentId}' in parents` : "'root' in parents"
   const name = escapeDriveQueryValue(params.name)
 
   const listRes = await drive.files.list({

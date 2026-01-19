@@ -1,4 +1,5 @@
 import { getRedisClient } from '@/lib/redis'
+import { logger } from '@/lib/logger.server'
 
 /**
  * Rate limiter for API endpoints.
@@ -16,6 +17,7 @@ const cache = new Map<string, RateLimitEntry>()
 const CLEANUP_INTERVAL = 5 * 60 * 1000
 
 let cleanupTimer: NodeJS.Timeout | null = null
+let warnedRedisMissing = false
 
 function startCleanup() {
   if (cleanupTimer) return
@@ -96,6 +98,10 @@ async function checkRateLimitRedis(
 ): Promise<RateLimitResult> {
   const redis = getRedisClient()
   if (!redis) {
+    if (process.env.NODE_ENV === 'production' && !warnedRedisMissing) {
+      warnedRedisMissing = true
+      logger.warn('rate-limit', 'Redis not configured, using in-memory limiter')
+    }
     return checkRateLimitMemory(identifier, limit, windowMs)
   }
 

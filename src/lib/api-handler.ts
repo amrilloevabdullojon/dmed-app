@@ -5,10 +5,10 @@ import { authOptions } from '@/lib/auth'
 import { logger } from '@/lib/logger.server'
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rate-limit'
 import { runWithRequestContext } from '@/lib/request-context'
-import { isValidCsrfRequest } from '@/lib/security'
+import { applySecurityHeaders, isValidCsrfRequest } from '@/lib/security'
 import { ROLE_HIERARCHY } from '@/lib/constants'
 import type { Role } from '@prisma/client'
-import { z, ZodError, ZodType, ZodTypeDef } from 'zod'
+import { ZodError, ZodType, ZodTypeDef } from 'zod'
 
 /**
  * Extended session type with user role
@@ -85,6 +85,11 @@ function getRequestId(req: NextRequest): string {
     req.headers.get('x-amzn-trace-id') ||
     randomUUID()
   )
+}
+
+function finalizeApiResponse<T>(response: NextResponse<T>, requestId: string): NextResponse<T> {
+  response.headers.set('x-request-id', requestId)
+  return applySecurityHeaders(response)
 }
 
 /**
@@ -245,8 +250,7 @@ export function withAuth<T>(
       }
     }, requestId)
 
-    response.headers.set('x-request-id', requestId)
-    return response
+    return finalizeApiResponse(response, requestId)
   }
 }
 
@@ -422,8 +426,7 @@ export function withValidation<T, TBody = unknown, TQuery = unknown>(
       }
     }, requestId)
 
-    response.headers.set('x-request-id', requestId)
-    return response
+    return finalizeApiResponse(response, requestId)
   }
 }
 
@@ -431,12 +434,12 @@ export function withValidation<T, TBody = unknown, TQuery = unknown>(
  * Helper to create typed JSON response
  */
 export function jsonResponse<T>(data: T, status = 200): NextResponse<T> {
-  return NextResponse.json(data, { status })
+  return applySecurityHeaders(NextResponse.json(data, { status }))
 }
 
 /**
  * Helper to create error response
  */
 export function errorResponse(error: string, status = 400): NextResponse<{ error: string }> {
-  return NextResponse.json({ error }, { status })
+  return applySecurityHeaders(NextResponse.json({ error }, { status }))
 }

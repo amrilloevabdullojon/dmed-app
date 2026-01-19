@@ -545,6 +545,8 @@ model Comment {
   updatedAt DateTime  @updatedAt
 
   @@index([letterId])
+  @@index([authorId])
+  @@index([letterId, createdAt])
 }
 
 // ===== WATCHERS (подписки на письма) =====
@@ -561,6 +563,7 @@ model Watcher {
   createdAt        DateTime @default(now())
 
   @@unique([letterId, userId])
+  @@index([userId])
 }
 
 // ===== ИЗБРАННОЕ =====
@@ -604,6 +607,8 @@ model History {
   createdAt DateTime @default(now())
 
   @@index([letterId])
+  @@index([userId])
+  @@index([letterId, createdAt])
 }
 
 // ===== СИНХРОНИЗАЦИЯ =====

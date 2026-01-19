@@ -1,5 +1,6 @@
+import 'server-only'
 import { prisma } from './prisma'
-import { LetterStatus } from '@prisma/client'
+import { LetterStatus, Prisma } from '@prisma/client'
 
 /**
  * Параметры фильтрации аналитики
@@ -114,7 +115,10 @@ export async function getLetterStats(filters: AnalyticsFilters = {}) {
 /**
  * Статистика по времени (тренды)
  */
-export async function getLetterTrends(filters: AnalyticsFilters = {}, groupBy: 'day' | 'week' | 'month' = 'day') {
+export async function getLetterTrends(
+  filters: AnalyticsFilters = {},
+  groupBy: 'day' | 'week' | 'month' = 'day'
+) {
   const where = buildWhereClause(filters)
 
   // Получаем письма с датами
@@ -384,7 +388,7 @@ export async function getActivityPatterns(filters: AnalyticsFilters = {}) {
  * Вспомогательная функция для построения WHERE условия
  */
 function buildWhereClause(filters: AnalyticsFilters) {
-  const where: any = {
+  const where: Prisma.LetterWhereInput = {
     deletedAt: null,
   }
 
@@ -444,16 +448,15 @@ function getWeekNumber(date: Date): number {
  * Экспортирует аналитику в JSON
  */
 export async function exportAnalytics(filters: AnalyticsFilters = {}) {
-  const [stats, trends, orgStats, userStats, typeStats, performance, activity] =
-    await Promise.all([
-      getLetterStats(filters),
-      getLetterTrends(filters),
-      getOrganizationStats(filters),
-      getUserStats(filters),
-      getTypeStats(filters),
-      getPerformanceMetrics(filters),
-      getActivityPatterns(filters),
-    ])
+  const [stats, trends, orgStats, userStats, typeStats, performance, activity] = await Promise.all([
+    getLetterStats(filters),
+    getLetterTrends(filters),
+    getOrganizationStats(filters),
+    getUserStats(filters),
+    getTypeStats(filters),
+    getPerformanceMetrics(filters),
+    getActivityPatterns(filters),
+  ])
 
   return {
     generatedAt: new Date().toISOString(),

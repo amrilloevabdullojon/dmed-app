@@ -1,4 +1,5 @@
-﻿import { google } from 'googleapis'
+﻿import 'server-only'
+import { google } from 'googleapis'
 import { prisma, getPendingChanges, markChangesSynced, markChangeFailed } from './prisma'
 import { STATUS_LABELS, formatDate } from './utils'
 import type { Letter, LetterChangeLog } from '@prisma/client'

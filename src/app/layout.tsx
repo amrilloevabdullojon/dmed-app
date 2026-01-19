@@ -2,17 +2,29 @@
 import '@/lib/env.validation'
 
 import type { Metadata, Viewport } from 'next'
+import dynamic from 'next/dynamic'
 import { Manrope, Rubik } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/Providers'
-import { Snowfall, NewYearBanner } from '@/components/Snowfall'
-import { Particles } from '@/components/Particles'
-import { OfflineIndicator } from '@/components/OfflineIndicator'
 import { AuthGuard } from '@/components/AuthGuard'
 import { PageTransition } from '@/components/PageTransition'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { SkipToContent } from '@/components/SkipToContent'
 import { PWAProvider } from '@/components/PWAProvider'
+const Particles = dynamic(() => import('@/components/Particles').then((mod) => mod.Particles), {
+  ssr: false,
+})
+const Snowfall = dynamic(() => import('@/components/Snowfall').then((mod) => mod.Snowfall), {
+  ssr: false,
+})
+const NewYearBanner = dynamic(
+  () => import('@/components/Snowfall').then((mod) => mod.NewYearBanner),
+  { ssr: false }
+)
+const OfflineIndicator = dynamic(
+  () => import('@/components/OfflineIndicator').then((mod) => mod.OfflineIndicator),
+  { ssr: false }
+)
 
 const manrope = Manrope({
   subsets: ['latin', 'cyrillic'],

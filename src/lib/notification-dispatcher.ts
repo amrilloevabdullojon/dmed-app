@@ -1,3 +1,4 @@
+import 'server-only'
 import { prisma } from '@/lib/prisma'
 import {
   DEFAULT_NOTIFICATION_SETTINGS,

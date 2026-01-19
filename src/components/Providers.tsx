@@ -1,7 +1,6 @@
 'use client'
 
 import { SessionProvider } from 'next-auth/react'
-import { ThemeProvider } from '@/contexts/ThemeContext'
 import { ReactNode, useEffect } from 'react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ToastWrapper } from '@/components/Toast'
@@ -63,11 +62,9 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <TRPCProvider>
       <SessionProvider>
-        <ThemeProvider>
-          <ErrorBoundary>
-            <ToastWrapper>{children}</ToastWrapper>
-          </ErrorBoundary>
-        </ThemeProvider>
+        <ErrorBoundary>
+          <ToastWrapper>{children}</ToastWrapper>
+        </ErrorBoundary>
       </SessionProvider>
     </TRPCProvider>
   )
