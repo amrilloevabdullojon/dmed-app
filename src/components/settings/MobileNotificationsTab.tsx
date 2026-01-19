@@ -17,7 +17,7 @@ import {
 import { SettingsToggle } from './SettingsToggle'
 import { useNotificationSettings } from '@/hooks/useNotificationSettings'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
-import { MobileAccordion } from '@/components/mobile/MobileAccordion'
+import { MobileAccordion } from '@/components/mobile/MobileTabs'
 import {
   DEFAULT_NOTIFICATION_SETTINGS,
   NotificationChannel,
@@ -226,7 +226,7 @@ export const MobileNotificationsTab = memo(function MobileNotificationsTab() {
           />
           {settings.quietHoursEnabled && (
             <div className="space-y-4">
-              <div className="grid gap-3 grid-cols-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-400">
                     Начало
@@ -319,7 +319,7 @@ export const MobileNotificationsTab = memo(function MobileNotificationsTab() {
       icon: <Grid3x3 className="h-5 w-5" />,
       content: (
         <div className="space-y-3">
-          <p className="text-xs text-gray-400 mb-4">
+          <p className="mb-4 text-xs text-gray-400">
             Настройте каналы и приоритет для каждого типа событий.
           </p>
           {eventOptions.map((eventOption) => {
@@ -331,12 +331,12 @@ export const MobileNotificationsTab = memo(function MobileNotificationsTab() {
                 key={eventOption.event}
                 className="rounded-xl border border-white/10 bg-white/5 p-4"
               >
-                <h4 className="text-sm font-medium text-white mb-2">{eventOption.label}</h4>
-                <p className="text-xs text-gray-400 mb-3">{eventOption.description}</p>
+                <h4 className="mb-2 text-sm font-medium text-white">{eventOption.label}</h4>
+                <p className="mb-3 text-xs text-gray-400">{eventOption.description}</p>
 
                 {/* Channels */}
                 <div className="mb-3">
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-400">
                     Каналы
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -364,7 +364,7 @@ export const MobileNotificationsTab = memo(function MobileNotificationsTab() {
 
                 {/* Priority */}
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-400">
                     Приоритет
                   </label>
                   <select
