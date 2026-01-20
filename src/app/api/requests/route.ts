@@ -147,8 +147,12 @@ export const GET = withValidation<RequestsListResult, unknown, RequestQueryInput
         deletedAt: null, // Исключаем удалённые заявки
       }
 
-      if (status) {
-        where.status = status
+      if (status && status.length > 0) {
+        if (status.length === 1) {
+          where.status = status[0]
+        } else {
+          where.status = { in: status }
+        }
       }
 
       if (priority) {

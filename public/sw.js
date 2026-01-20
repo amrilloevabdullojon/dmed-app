@@ -1,28 +1,27 @@
 // Service Worker for DMED Letters
 const CACHE_NAME = 'dmed-letters-v3'
 const STATIC_ASSETS = [
-  '/favicon.ico',
   '/favicon.svg',
   '/apple-touch-icon.svg',
-  '/manifest.webmanifest',
+  '/manifest.json',
   '/logo-mark.svg',
   '/offline.html',
 ]
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
-  )
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)))
   self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) =>
-      Promise.all(
-        cacheNames.filter((name) => name != CACHE_NAME).map((name) => caches.delete(name))
+    caches
+      .keys()
+      .then((cacheNames) =>
+        Promise.all(
+          cacheNames.filter((name) => name != CACHE_NAME).map((name) => caches.delete(name))
+        )
       )
-    )
   )
   self.clients.claim()
 })
@@ -35,7 +34,9 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => caches.match('/offline.html').then((response) => response || new Response('Offline')))
+      fetch(request).catch(() =>
+        caches.match('/offline.html').then((response) => response || new Response('Offline'))
+      )
     )
     return
   }
@@ -125,16 +126,14 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('pushsubscriptionchange', (event) => {
   console.log('Push subscription changed')
   event.waitUntil(
-    self.registration.pushManager
-      .subscribe(event.oldSubscription.options)
-      .then((subscription) => {
-        console.log('Resubscribed:', subscription)
-        return fetch('/api/push/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(subscription),
-        })
+    self.registration.pushManager.subscribe(event.oldSubscription.options).then((subscription) => {
+      console.log('Resubscribed:', subscription)
+      return fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subscription),
       })
+    })
   )
 })
 

@@ -160,6 +160,21 @@ export const requestStatusSchema = z.enum(requestStatuses)
 export const requestPrioritySchema = z.enum(requestPriorities)
 export const requestCategorySchema = z.enum(requestCategories)
 
+const requestStatusListSchema = z
+  .string()
+  .transform((value) =>
+    value
+      .split(',')
+      .map((item) => item.trim().replace(/\s+/g, '_'))
+      .filter(Boolean)
+  )
+  .refine((values) => values.length > 0, { message: 'Status filter is empty' })
+  .refine(
+    (values) =>
+      values.every((value) => requestStatuses.includes(value as (typeof requestStatuses)[number])),
+    { message: 'Invalid status value' }
+  )
+
 export const createRequestSchema = z.object({
   organization: z.string().min(1, 'Организация обязательна').max(500),
   contactName: z.string().min(1, 'Контактное лицо обязательно').max(200),
@@ -218,7 +233,7 @@ export const publicRequestSchema = z.object({
 })
 
 export const requestFiltersSchema = z.object({
-  status: requestStatusSchema.optional(),
+  status: requestStatusListSchema.optional(),
   priority: requestPrioritySchema.optional(),
   category: requestCategorySchema.optional(),
   search: z.string().max(200).optional(),
@@ -348,5 +363,3 @@ export type UpdateProfileInput = z.infer<typeof updateProfileSchema>
 export type CreateTemplateInput = z.infer<typeof createTemplateSchema>
 export type UpdateTemplateInput = z.infer<typeof updateTemplateSchema>
 export type PaginationInput = z.infer<typeof paginationSchema>
-
-

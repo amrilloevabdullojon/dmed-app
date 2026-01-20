@@ -50,6 +50,43 @@ export function Providers({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const updateReducedMotion = () => {
+      if (media.matches) {
+        root.classList.add('reduce-motion')
+      } else {
+        root.classList.remove('reduce-motion')
+      }
+    }
+
+    updateReducedMotion()
+
+    if (media.addEventListener) {
+      media.addEventListener('change', updateReducedMotion)
+      return () => media.removeEventListener('change', updateReducedMotion)
+    }
+
+    media.addListener(updateReducedMotion)
+    return () => media.removeListener(updateReducedMotion)
+  }, [])
+
+  useEffect(() => {
+    const root = document.documentElement
+    const updateVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        root.classList.add('animations-paused')
+      } else {
+        root.classList.remove('animations-paused')
+      }
+    }
+
+    updateVisibility()
+    document.addEventListener('visibilitychange', updateVisibility)
+    return () => document.removeEventListener('visibilitychange', updateVisibility)
+  }, [])
+
+  useEffect(() => {
+    const root = document.documentElement
     root.dataset.wallpaperStyle = wallpaperStyle
   }, [wallpaperStyle])
 

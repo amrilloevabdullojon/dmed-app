@@ -1349,7 +1349,8 @@ h4 {
 
 /* Slow pulse animation for urgent items */
 @keyframes pulse-slow {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -1578,6 +1579,27 @@ select:focus {
 }
 
 /* Respecting reduced motion */
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation: none !important;
+  transition-duration: 0.01ms !important;
+}
+
+html.reduce-motion body::after {
+  animation: none !important;
+}
+
+html.animations-paused *,
+html.animations-paused *::before,
+html.animations-paused *::after {
+  animation-play-state: paused !important;
+}
+
+html.animations-paused body::after {
+  animation-play-state: paused !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -1753,7 +1775,8 @@ select:focus {
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.4;
     transform: scale(1);
     filter: blur(0px);
