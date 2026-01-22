@@ -14,6 +14,8 @@ const lettersQuerySchema = paginationSchema.merge(letterFiltersSchema)
 
 type SearchParams = Record<string, string | string[] | undefined>
 type PageProps = { searchParams?: Promise<SearchParams> }
+type SortField = NonNullable<LetterFiltersInput['sortBy']>
+type SortOrder = NonNullable<LetterFiltersInput['sortOrder']>
 
 type InitialFilters = {
   page: number
@@ -22,8 +24,8 @@ type InitialFilters = {
   quickFilter: string
   owner: string
   type: string
-  sortBy: LetterFiltersInput['sortBy']
-  sortOrder: LetterFiltersInput['sortOrder']
+  sortBy: SortField
+  sortOrder: SortOrder
   search: string
 }
 
