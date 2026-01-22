@@ -206,6 +206,7 @@ function LettersPageContent({ initialData }: LettersPageClientProps) {
   useAuthRedirect(authStatus)
   const toast = useToast()
   const toastRef = useRef(toast)
+  const initialCacheKey = initialData?.initialCacheKey
   useEffect(() => {
     toastRef.current = toast
   }, [toast])
@@ -326,7 +327,6 @@ function LettersPageContent({ initialData }: LettersPageClientProps) {
   const skipInitialLoadRef = useRef(Boolean(initialData))
   const skipInitialSearchRef = useRef(Boolean(initialData))
   const skipUsersLoadRef = useRef(Boolean(initialData?.users?.length) || !canManageUsers)
-  const initialCacheKey = initialData?.initialCacheKey
   const lettersCacheRef = useRef<
     Map<string, { letters: Letter[]; pagination: Pagination | null; storedAt: number }>
   >(new Map())
