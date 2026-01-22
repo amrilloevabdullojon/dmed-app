@@ -91,7 +91,6 @@ interface Letter {
   type: string | null
   content: string | null
   priority: number
-  jiraLink: string | null
   owner: {
     id: string
     name: string | null
