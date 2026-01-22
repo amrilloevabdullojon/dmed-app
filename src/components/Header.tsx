@@ -197,22 +197,28 @@ export function Header() {
   const navLinkClass = 'app-nav-link app-nav-link-refined whitespace-nowrap text-sm'
   const handleNavClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-      if (
-        event.defaultPrevented ||
-        event.button !== 0 ||
-        event.metaKey ||
-        event.ctrlKey ||
-        event.shiftKey ||
-        event.altKey
-      ) {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
         return
       }
       event.preventDefault()
+      event.stopPropagation()
       hapticLight()
       setSyncMenuOpen(false)
       setQuickCreateOpen(false)
       setRecentMenuOpen(false)
-      router.push(href)
+
+      const currentPath = window.location.pathname
+      try {
+        router.push(href)
+      } catch {
+        window.location.assign(href)
+        return
+      }
+      window.setTimeout(() => {
+        if (window.location.pathname === currentPath) {
+          window.location.assign(href)
+        }
+      }, 450)
     },
     [router]
   )
