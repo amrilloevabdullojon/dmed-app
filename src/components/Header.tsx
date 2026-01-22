@@ -283,8 +283,10 @@ export function Header() {
     recentFetchAbortRef.current?.abort()
     recentFetchAbortRef.current = controller
 
+    type RecentUpdate = { id: string; label: string; subtitle?: string; resolved: true }
+
     const fetchDetails = async () => {
-      const resolvedItems = await Promise.all(
+      const resolvedItems: Array<RecentUpdate | null> = await Promise.all(
         pending.map(async (item) => {
           try {
             if (item.kind === 'letter') {
@@ -338,10 +340,7 @@ export function Header() {
       )
 
       if (controller.signal.aborted) return
-      const updates = resolvedItems.filter(
-        (item): item is { id: string; label: string; subtitle?: string; resolved: boolean } =>
-          Boolean(item)
-      )
+      const updates = resolvedItems.filter((item): item is RecentUpdate => Boolean(item))
       if (updates.length === 0) return
       setRecentItems((prev) =>
         prev.map((item) => {
