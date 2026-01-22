@@ -3,7 +3,7 @@
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import {
   Menu,
@@ -34,6 +34,7 @@ export function Header() {
   const { data: session } = useSession()
   const toast = useToast()
   const pathname = usePathname()
+  const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [syncMenuOpen, setSyncMenuOpen] = useState(false)
@@ -194,6 +195,27 @@ export function Header() {
   )
 
   const navLinkClass = 'app-nav-link app-nav-link-refined whitespace-nowrap text-sm'
+  const handleNavClick = useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return
+      }
+      event.preventDefault()
+      hapticLight()
+      setSyncMenuOpen(false)
+      setQuickCreateOpen(false)
+      setRecentMenuOpen(false)
+      router.push(href)
+    },
+    [router]
+  )
 
   const openSearch = useCallback(() => {
     const event = new KeyboardEvent('keydown', {
@@ -437,6 +459,7 @@ export function Header() {
               className={navLinkClass}
               data-active={isActive('/')}
               aria-current={isActive('/') ? 'page' : undefined}
+              onClick={(event) => handleNavClick(event, '/')}
             >
               <Home className="h-4 w-4" />
               {'\u0413\u043b\u0430\u0432\u043d\u0430\u044f'}
@@ -446,6 +469,7 @@ export function Header() {
               className={navLinkClass}
               data-active={isActive('/letters')}
               aria-current={isActive('/letters') ? 'page' : undefined}
+              onClick={(event) => handleNavClick(event, '/letters')}
             >
               <FileText className="h-4 w-4" />
               {'\u041f\u0438\u0441\u044c\u043c\u0430'}
@@ -455,6 +479,7 @@ export function Header() {
               className={navLinkClass}
               data-active={isActive('/requests')}
               aria-current={isActive('/requests') ? 'page' : undefined}
+              onClick={(event) => handleNavClick(event, '/requests')}
             >
               <Inbox className="h-4 w-4" />
               {'\u0417\u0430\u044f\u0432\u043a\u0438'}
@@ -464,6 +489,7 @@ export function Header() {
               className={navLinkClass}
               data-active={isActive('/reports')}
               aria-current={isActive('/reports') ? 'page' : undefined}
+              onClick={(event) => handleNavClick(event, '/reports')}
             >
               <BarChart3 className="h-4 w-4" />
               {'\u041e\u0442\u0447\u0435\u0442\u044b'}
