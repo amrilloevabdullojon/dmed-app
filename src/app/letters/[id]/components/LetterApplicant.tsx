@@ -9,7 +9,7 @@ import type { Letter } from '../types'
 interface LetterApplicantProps {
   letter: Letter
   onSave: (field: string, value: string) => Promise<void>
-  onUpdate: () => Promise<void>
+  onUpdate: () => void
 }
 
 export const LetterApplicant = memo(function LetterApplicant({
@@ -37,7 +37,7 @@ export const LetterApplicant = memo(function LetterApplicant({
 
       if (res.ok && data.link) {
         setPortalLink(data.link)
-        await onUpdate()
+        onUpdate()
         toast.success(data.notified ? 'Ссылка отправлена заявителю' : 'Ссылка создана')
       } else {
         toast.error(data.error || 'Не удалось создать ссылку')
