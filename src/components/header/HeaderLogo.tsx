@@ -4,6 +4,7 @@ import { memo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { PageMeta } from './header-types'
+import { scheduleFallbackNavigation } from './header-utils'
 
 interface HeaderLogoProps {
   compact?: boolean
@@ -17,6 +18,7 @@ export const HeaderLogo = memo(function HeaderLogo({ compact, pageMeta }: Header
     <div className="flex items-center gap-2">
       <Link
         href="/"
+        onClick={(event) => scheduleFallbackNavigation(event, '/')}
         className="group flex shrink-0 items-center gap-3 transition-transform hover:scale-[1.02]"
       >
         {/* Logo Mark */}

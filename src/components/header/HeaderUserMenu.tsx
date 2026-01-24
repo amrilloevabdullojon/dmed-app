@@ -1,6 +1,7 @@
 'use client'
 
 import { memo, useCallback } from 'react'
+import type { MouseEvent } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { signOut } from 'next-auth/react'
@@ -10,6 +11,7 @@ import { Notifications } from '../Notifications'
 import { ThemeToggle } from '../ThemeToggle'
 import { SearchButton } from '../GlobalSearch'
 import type { PrimaryAction } from './header-types'
+import { scheduleFallbackNavigation } from './header-utils'
 
 interface HeaderUserMenuProps {
   user?: {
@@ -26,10 +28,14 @@ export const HeaderUserMenu = memo(function HeaderUserMenu({
   primaryAction,
   onCloseMenus,
 }: HeaderUserMenuProps) {
-  const handleNavClick = useCallback(() => {
-    hapticLight()
-    onCloseMenus()
-  }, [onCloseMenus])
+  const handleNavClick = useCallback(
+    (event: MouseEvent<HTMLElement>, href?: string) => {
+      hapticLight()
+      onCloseMenus()
+      scheduleFallbackNavigation(event, href)
+    },
+    [onCloseMenus]
+  )
 
   const handleSignOut = useCallback(() => {
     hapticMedium()
@@ -42,7 +48,7 @@ export const HeaderUserMenu = memo(function HeaderUserMenu({
       {primaryAction && (
         <Link
           href={primaryAction.href}
-          onClick={handleNavClick}
+          onClick={(event) => handleNavClick(event, primaryAction.href)}
           className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-teal-500 to-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-teal-500/25 transition-all hover:shadow-teal-500/40 hover:brightness-110"
         >
           <primaryAction.icon className="h-4 w-4" />
@@ -64,7 +70,7 @@ export const HeaderUserMenu = memo(function HeaderUserMenu({
           {/* Profile Link */}
           <Link
             href="/profile"
-            onClick={handleNavClick}
+            onClick={(event) => handleNavClick(event, '/profile')}
             className="group relative flex h-9 w-9 items-center justify-center rounded-full ring-2 ring-transparent transition-all hover:ring-teal-400/50"
             title="Профиль"
             aria-label="Перейти в профиль"
@@ -119,10 +125,14 @@ export const HeaderMobileActions = memo(function HeaderMobileActions({
   onOpenSearch,
   onCloseMenus,
 }: HeaderMobileActionsProps) {
-  const handleNavClick = useCallback(() => {
-    hapticLight()
-    onCloseMenus()
-  }, [onCloseMenus])
+  const handleNavClick = useCallback(
+    (event: MouseEvent<HTMLElement>, href?: string) => {
+      hapticLight()
+      onCloseMenus()
+      scheduleFallbackNavigation(event, href)
+    },
+    [onCloseMenus]
+  )
 
   return (
     <div className="flex items-center gap-1.5 md:hidden">
@@ -142,7 +152,7 @@ export const HeaderMobileActions = memo(function HeaderMobileActions({
       {primaryAction && (
         <Link
           href={primaryAction.href}
-          onClick={handleNavClick}
+          onClick={(event) => handleNavClick(event, primaryAction.href)}
           className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 text-white shadow-lg shadow-teal-500/25"
           aria-label={primaryAction.label}
         >

@@ -1,9 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import type { MouseEvent } from 'react'
 import { usePathname } from 'next/navigation'
 import { Home, FileText, Inbox, BarChart3, Settings } from 'lucide-react'
 import { hapticLight } from '@/lib/haptic'
+import { scheduleFallbackNavigation } from './header/header-utils'
 
 interface MobileBottomNavProps {
   isAdmin: boolean
@@ -22,6 +24,11 @@ export function MobileBottomNav({ isAdmin, hidden }: MobileBottomNavProps) {
   const items = isAdmin
     ? [...NAV_ITEMS, { href: '/settings', label: 'Настройки', icon: Settings }]
     : NAV_ITEMS
+
+  const handleNavClick = (event: MouseEvent<HTMLElement>, href: string) => {
+    hapticLight()
+    scheduleFallbackNavigation(event, href)
+  }
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
@@ -46,7 +53,7 @@ export function MobileBottomNav({ isAdmin, hidden }: MobileBottomNavProps) {
             <Link
               key={item.href}
               href={item.href}
-              onClick={() => hapticLight()}
+              onClick={(event) => handleNavClick(event, item.href)}
               aria-current={active ? 'page' : undefined}
               className={`tap-highlight flex min-h-[56px] flex-col items-center justify-center gap-1 px-1 py-2.5 text-[11px] leading-tight transition ${
                 active ? 'text-teal-200' : 'text-slate-400 hover:text-white'

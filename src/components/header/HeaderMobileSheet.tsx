@@ -1,6 +1,7 @@
 'use client'
 
 import { memo, useCallback } from 'react'
+import type { MouseEvent } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -10,6 +11,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { hapticLight, hapticMedium } from '@/lib/haptic'
 import { NAV_ITEMS, QUICK_CREATE_ITEMS, isActivePath, getRoleLabel } from './header-constants'
 import type { RecentItem, SyncDirection } from './header-types'
+import { scheduleFallbackNavigation } from './header-utils'
 
 interface HeaderMobileSheetProps {
   isOpen: boolean
@@ -39,10 +41,14 @@ export const HeaderMobileSheet = memo(function HeaderMobileSheet({
 }: HeaderMobileSheetProps) {
   const pathname = usePathname()
 
-  const handleNavClick = useCallback(() => {
-    hapticLight()
-    onClose()
-  }, [onClose])
+  const handleNavClick = useCallback(
+    (event: MouseEvent<HTMLElement>, href?: string) => {
+      hapticLight()
+      onClose()
+      scheduleFallbackNavigation(event, href)
+    },
+    [onClose]
+  )
 
   const handleSignOut = useCallback(() => {
     hapticMedium()
@@ -112,7 +118,7 @@ export const HeaderMobileSheet = memo(function HeaderMobileSheet({
                 </div>
                 <Link
                   href="/profile"
-                  onClick={handleNavClick}
+                  onClick={(event) => handleNavClick(event, '/profile')}
                   className="shrink-0 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-teal-300 transition-all hover:bg-teal-500/20"
                 >
                   Профиль
@@ -128,7 +134,7 @@ export const HeaderMobileSheet = memo(function HeaderMobileSheet({
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={handleNavClick}
+                    onClick={(event) => handleNavClick(event, item.href)}
                     className="flex flex-col items-start gap-2 rounded-xl border border-white/10 bg-white/5 p-3 transition-all hover:bg-white/10"
                   >
                     <div className={`rounded-lg bg-white/10 p-2 ${item.iconClassName}`}>
@@ -151,7 +157,7 @@ export const HeaderMobileSheet = memo(function HeaderMobileSheet({
                     <Link
                       key={item.href}
                       href={item.href}
-                      onClick={handleNavClick}
+                      onClick={(event) => handleNavClick(event, item.href)}
                       className="flex items-center gap-3 rounded-lg px-2 py-2 transition-all hover:bg-white/10"
                     >
                       <div
@@ -188,7 +194,7 @@ export const HeaderMobileSheet = memo(function HeaderMobileSheet({
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={handleNavClick}
+                    onClick={(event) => handleNavClick(event, item.href)}
                     aria-current={isActive ? 'page' : undefined}
                     className={`flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition-all ${
                       isActive
@@ -241,7 +247,7 @@ export const HeaderMobileSheet = memo(function HeaderMobileSheet({
                   </button>
                   <Link
                     href="/settings"
-                    onClick={handleNavClick}
+                    onClick={(event) => handleNavClick(event, '/settings')}
                     className={`flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition-all ${
                       isActivePath(pathname, '/settings')
                         ? 'border border-teal-400/20 bg-teal-500/10 text-teal-300'

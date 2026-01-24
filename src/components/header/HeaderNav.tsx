@@ -1,10 +1,12 @@
 'use client'
 
 import { memo, useCallback } from 'react'
+import type { MouseEvent } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Settings, ChevronDown, RefreshCw } from 'lucide-react'
 import { hapticLight, hapticMedium } from '@/lib/haptic'
+import { scheduleFallbackNavigation } from './header-utils'
 import { NAV_ITEMS, isActivePath } from './header-constants'
 import type { SyncDirection } from './header-types'
 
@@ -27,10 +29,14 @@ export const HeaderNav = memo(function HeaderNav({
 }: HeaderNavProps) {
   const pathname = usePathname()
 
-  const handleNavClick = useCallback(() => {
-    hapticLight()
-    onCloseMenus()
-  }, [onCloseMenus])
+  const handleNavClick = useCallback(
+    (event: MouseEvent<HTMLElement>, href?: string) => {
+      hapticLight()
+      onCloseMenus()
+      scheduleFallbackNavigation(event, href)
+    },
+    [onCloseMenus]
+  )
 
   return (
     <nav className="hidden items-center gap-0.5 md:flex" aria-label="Основная навигация">
@@ -42,7 +48,7 @@ export const HeaderNav = memo(function HeaderNav({
           <Link
             key={item.href}
             href={item.href}
-            onClick={handleNavClick}
+            onClick={(event) => handleNavClick(event, item.href)}
             aria-current={isActive ? 'page' : undefined}
             className={`group relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
               isActive
@@ -93,7 +99,7 @@ export const HeaderNav = memo(function HeaderNav({
                   <Link
                     href="/settings"
                     className="flex items-center gap-3 px-4 py-3 text-sm text-slate-200 transition-colors hover:bg-white/5 hover:text-white"
-                    onClick={handleNavClick}
+                    onClick={(event) => handleNavClick(event, '/settings')}
                   >
                     <Settings className="h-4 w-4 text-slate-400" />
                     <span>Настройки</span>

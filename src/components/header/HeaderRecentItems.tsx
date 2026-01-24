@@ -1,10 +1,12 @@
 'use client'
 
 import { memo, useCallback, useEffect, useRef } from 'react'
+import type { MouseEvent } from 'react'
 import Link from 'next/link'
 import { Clock, FileText, Inbox } from 'lucide-react'
 import { hapticLight } from '@/lib/haptic'
 import type { RecentItem } from './header-types'
+import { scheduleFallbackNavigation } from './header-utils'
 
 interface HeaderRecentItemsProps {
   items: RecentItem[]
@@ -23,10 +25,14 @@ export const HeaderRecentItems = memo(function HeaderRecentItems({
 }: HeaderRecentItemsProps) {
   const fetchAbortRef = useRef<AbortController | null>(null)
 
-  const handleLinkClick = useCallback(() => {
-    hapticLight()
-    onClose()
-  }, [onClose])
+  const handleLinkClick = useCallback(
+    (event: MouseEvent<HTMLElement>, href?: string) => {
+      hapticLight()
+      onClose()
+      scheduleFallbackNavigation(event, href)
+    },
+    [onClose]
+  )
 
   // Fetch details for unresolved items when menu opens
   useEffect(() => {
@@ -139,7 +145,7 @@ export const HeaderRecentItems = memo(function HeaderRecentItems({
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={handleLinkClick}
+                    onClick={(event) => handleLinkClick(event, item.href)}
                     className="flex items-start gap-3 rounded-lg px-3 py-2.5 transition-all hover:bg-white/10"
                   >
                     <div

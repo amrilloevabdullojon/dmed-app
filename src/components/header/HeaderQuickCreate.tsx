@@ -1,10 +1,12 @@
 'use client'
 
 import { memo, useCallback } from 'react'
+import type { MouseEvent } from 'react'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import { hapticLight } from '@/lib/haptic'
 import { QUICK_CREATE_ITEMS } from './header-constants'
+import { scheduleFallbackNavigation } from './header-utils'
 
 interface HeaderQuickCreateProps {
   isOpen: boolean
@@ -19,10 +21,14 @@ export const HeaderQuickCreate = memo(function HeaderQuickCreate({
   onClose,
   size = 'md',
 }: HeaderQuickCreateProps) {
-  const handleLinkClick = useCallback(() => {
-    hapticLight()
-    onClose()
-  }, [onClose])
+  const handleLinkClick = useCallback(
+    (event: MouseEvent<HTMLElement>, href?: string) => {
+      hapticLight()
+      onClose()
+      scheduleFallbackNavigation(event, href)
+    },
+    [onClose]
+  )
 
   const buttonSize = size === 'sm' ? 'h-9 w-9' : 'h-10 w-10'
   const iconSize = size === 'sm' ? 'h-5 w-5' : 'h-5 w-5'
@@ -56,7 +62,7 @@ export const HeaderQuickCreate = memo(function HeaderQuickCreate({
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={handleLinkClick}
+                    onClick={(event) => handleLinkClick(event, item.href)}
                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-200 transition-all hover:bg-white/10 hover:text-white"
                   >
                     <div className={`rounded-lg bg-white/5 p-2 ${item.iconClassName}`}>
