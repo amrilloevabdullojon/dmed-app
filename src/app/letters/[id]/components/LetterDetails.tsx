@@ -88,7 +88,6 @@ export const LetterDetails = memo(function LetterDetails({
                   field="number"
                   onSave={onSave}
                   placeholder="Введите номер"
-                  className="compact"
                 />
               </FieldWrapper>
               <FieldWrapper icon={Building2} label="Название">
@@ -98,7 +97,6 @@ export const LetterDetails = memo(function LetterDetails({
                   field="org"
                   onSave={onSave}
                   placeholder="Введите название"
-                  className="compact"
                 />
               </FieldWrapper>
             </>
@@ -125,7 +123,6 @@ export const LetterDetails = memo(function LetterDetails({
               field="contacts"
               onSave={onSave}
               placeholder="Добавить контакты..."
-              className="compact"
             />
           </FieldWrapper>
 
@@ -137,7 +134,6 @@ export const LetterDetails = memo(function LetterDetails({
               onSave={onSave}
               type="url"
               placeholder="https://jira.example.com/..."
-              className="compact"
             />
           </FieldWrapper>
 
@@ -196,7 +192,6 @@ export const LetterDetails = memo(function LetterDetails({
               field="sendStatus"
               onSave={onSave}
               placeholder="Добавить статус отправки..."
-              className="compact"
             />
           </div>
         </div>
