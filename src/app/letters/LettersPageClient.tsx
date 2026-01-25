@@ -848,43 +848,113 @@ function LettersPageContent({ initialData }: LettersPageClientProps) {
         id="main-content"
         className="animate-pageIn relative mx-auto max-w-[1600px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
       >
-        {/* Header */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="font-display text-3xl font-semibold text-white md:text-4xl">Письма</h1>
-            {pagination && (
-              <p className="mt-1 text-sm text-muted">{`Всего: ${pagination.total} ${pluralizeLetters(pagination.total)}`}</p>
-            )}
-          </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-            <a
-              href={`/api/export?${new URLSearchParams({
-                ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
-                ...(quickFilter ? { filter: quickFilter } : {}),
-                ...(ownerFilter ? { owner: ownerFilter } : {}),
-                ...(typeFilter ? { type: typeFilter } : {}),
-                ...(selectedIds.size > 0 ? { ids: Array.from(selectedIds).join(',') } : {}),
-              }).toString()}`}
-              className="btn-secondary inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 transition sm:w-auto"
-            >
-              <Download className="h-5 w-5" />
-              Экспорт
-            </a>
-            <button
-              type="button"
-              onClick={() => setShowBulkCreate(true)}
-              className="btn-secondary inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 transition sm:w-auto"
-            >
-              <ListPlus className="h-5 w-5" />
-              Импорт писем
-            </button>
-            <Link
-              href="/letters/new"
-              className="btn-primary inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 transition sm:w-auto"
-            >
-              <Plus className="h-5 w-5" />
-              Новое письмо
-            </Link>
+        {/* Header with gradient */}
+        <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 via-slate-800/60 to-slate-900/80 p-6 md:p-8">
+          {/* Decorative elements */}
+          <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-teal-500/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-emerald-500/10 blur-2xl" />
+
+          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            {/* Title and stats */}
+            <div className="flex-1">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 p-3 shadow-lg shadow-teal-500/25">
+                  <FileText className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="font-display text-3xl font-bold text-white md:text-4xl">Письма</h1>
+                  {pagination && (
+                    <p className="text-sm text-slate-400">
+                      Всего <span className="font-semibold text-teal-400">{pagination.total}</span>{' '}
+                      {pluralizeLetters(pagination.total)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Stats cards */}
+              {pagination && (
+                <div className="flex flex-wrap gap-3">
+                  <div className="flex items-center gap-2 rounded-lg bg-slate-700/40 px-3 py-2">
+                    <div className="h-2 w-2 rounded-full bg-red-400" />
+                    <span className="text-xs text-slate-300">
+                      Просрочено:{' '}
+                      <span className="font-semibold text-red-400">
+                        {
+                          letters.filter((l) => {
+                            const days = Math.ceil(
+                              (new Date(l.deadlineDate).getTime() - Date.now()) /
+                                (1000 * 60 * 60 * 24)
+                            )
+                            return days < 0 && l.status !== 'DONE' && l.status !== 'READY'
+                          }).length
+                        }
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-lg bg-slate-700/40 px-3 py-2">
+                    <div className="h-2 w-2 rounded-full bg-yellow-400" />
+                    <span className="text-xs text-slate-300">
+                      Срочно:{' '}
+                      <span className="font-semibold text-yellow-400">
+                        {
+                          letters.filter((l) => {
+                            const days = Math.ceil(
+                              (new Date(l.deadlineDate).getTime() - Date.now()) /
+                                (1000 * 60 * 60 * 24)
+                            )
+                            return (
+                              days >= 0 && days <= 3 && l.status !== 'DONE' && l.status !== 'READY'
+                            )
+                          }).length
+                        }
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-lg bg-slate-700/40 px-3 py-2">
+                    <div className="h-2 w-2 rounded-full bg-teal-400" />
+                    <span className="text-xs text-slate-300">
+                      В работе:{' '}
+                      <span className="font-semibold text-teal-400">
+                        {letters.filter((l) => l.status === 'IN_PROGRESS').length}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-2 lg:flex-nowrap">
+              <a
+                href={`/api/export?${new URLSearchParams({
+                  ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+                  ...(quickFilter ? { filter: quickFilter } : {}),
+                  ...(ownerFilter ? { owner: ownerFilter } : {}),
+                  ...(typeFilter ? { type: typeFilter } : {}),
+                  ...(selectedIds.size > 0 ? { ids: Array.from(selectedIds).join(',') } : {}),
+                }).toString()}`}
+                className="group inline-flex items-center justify-center gap-2 rounded-xl border border-slate-600/50 bg-slate-700/50 px-4 py-2.5 text-sm font-medium text-slate-200 transition-all hover:border-slate-500 hover:bg-slate-700 hover:text-white"
+              >
+                <Download className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
+                Экспорт
+              </a>
+              <button
+                type="button"
+                onClick={() => setShowBulkCreate(true)}
+                className="group inline-flex items-center justify-center gap-2 rounded-xl border border-slate-600/50 bg-slate-700/50 px-4 py-2.5 text-sm font-medium text-slate-200 transition-all hover:border-slate-500 hover:bg-slate-700 hover:text-white"
+              >
+                <ListPlus className="h-4 w-4 transition-transform group-hover:scale-110" />
+                Импорт
+              </button>
+              <Link
+                href="/letters/new"
+                className="group inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-500/25 transition-all hover:shadow-teal-500/40 hover:brightness-110"
+              >
+                <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
+                Новое письмо
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -911,230 +981,247 @@ function LettersPageContent({ initialData }: LettersPageClientProps) {
         <LettersQuickFilters value={quickFilter} onChange={handleQuickFilterChange} />
 
         {/* Filters Row */}
-        <div className="panel panel-soft panel-glass relative z-20 mb-6 flex flex-col gap-4 rounded-2xl p-4 lg:sticky lg:top-20 lg:z-30 lg:flex-row lg:flex-wrap lg:items-center">
-          {/* Search */}
-          <div className="w-full min-w-0 lg:flex-[1_1_100%] lg:basis-full">
-            <div className="relative">
-              {isSearching ? (
-                <Loader2 className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin text-teal-400" />
-              ) : (
-                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-              )}
-              {isInitialLoading ? (
+        <div className="relative z-20 mb-6 overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/80 to-slate-800/60 p-4 backdrop-blur-sm lg:sticky lg:top-20 lg:z-30">
+          <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-center">
+            {/* Search */}
+            <div className="w-full min-w-0 lg:flex-[1_1_100%] lg:basis-full">
+              <div className="relative">
                 <div
-                  className="animate-shimmer h-10 w-full rounded-xl bg-white/5"
-                  aria-hidden="true"
-                />
-              ) : (
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  placeholder="Поиск по номеру, организации, содержанию, Jira и ответам..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onFocus={() => {
-                    setIsSearchFocused(true)
-                    if (searchSuggestions.length > 0 || recentSearches.length > 0) {
-                      setSuggestionsOpen(true)
-                    }
-                  }}
-                  onBlur={() => {
-                    setIsSearchFocused(false)
-                    window.setTimeout(() => setSuggestionsOpen(false), 150)
-                  }}
-                  className="h-10 w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-10 text-white placeholder-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/50"
-                  aria-label="Поиск"
-                />
-              )}
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-white"
-                  aria-label="Очистить поиск"
+                  className={`absolute left-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg ${
+                    isSearching ? 'bg-teal-500/20' : 'bg-slate-700/50'
+                  }`}
                 >
-                  <X className="h-4 w-4" />
+                  {isSearching ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-teal-400" />
+                  ) : (
+                    <Search className="h-4 w-4 text-slate-400" />
+                  )}
+                </div>
+                {isInitialLoading ? (
+                  <div
+                    className="animate-shimmer h-12 w-full rounded-xl bg-slate-700/30"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Поиск по номеру, организации, содержанию, Jira и ответам..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    onFocus={() => {
+                      setIsSearchFocused(true)
+                      if (searchSuggestions.length > 0 || recentSearches.length > 0) {
+                        setSuggestionsOpen(true)
+                      }
+                    }}
+                    onBlur={() => {
+                      setIsSearchFocused(false)
+                      window.setTimeout(() => setSuggestionsOpen(false), 150)
+                    }}
+                    className="h-12 w-full rounded-xl border border-slate-600/50 bg-slate-700/30 pl-14 pr-12 text-white placeholder-slate-400 transition-all focus:border-teal-500/50 focus:bg-slate-700/50 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                    aria-label="Поиск"
+                  />
+                )}
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-slate-600/50 p-1.5 text-slate-400 transition hover:bg-slate-600 hover:text-white"
+                    aria-label="Очистить поиск"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+
+                {(suggestionsOpen ||
+                  suggestionsLoading ||
+                  (isSearchFocused && !search.trim() && recentSearches.length > 0)) && (
+                  <LettersSearchSuggestions
+                    search={search}
+                    suggestions={searchSuggestions}
+                    recentSearches={recentSearches}
+                    isLoading={suggestionsLoading}
+                    onSelectRecent={(value) => {
+                      setSearch(value)
+                      setSuggestionsOpen(false)
+                    }}
+                    onClearRecent={clearRecentSearches}
+                  />
+                )}
+              </div>
+
+              <p className="mt-2 hidden text-xs text-slate-500 md:block">
+                Поиск по номеру, организации, содержанию, Jira ссылкам и ответам
+              </p>
+            </div>
+
+            <button
+              onClick={() => setFiltersOpen((prev) => !prev)}
+              className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium transition-all sm:hidden ${
+                filtersOpen
+                  ? 'bg-teal-500/20 text-teal-300 ring-1 ring-teal-500/30'
+                  : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700 hover:text-white'
+              }`}
+              aria-expanded={filtersOpen}
+              aria-controls="letters-filters"
+            >
+              <Filter className="h-4 w-4" />
+              {activeFiltersCount > 0 ? `Фильтры (${activeFiltersCount})` : 'Фильтры'}
+            </button>
+
+            {!filtersOpen && activeFiltersCount > 0 && (
+              <div className="flex w-full flex-wrap gap-2 sm:hidden">
+                {search && (
+                  <span className="rounded-lg bg-teal-500/10 px-2.5 py-1 text-xs font-medium text-teal-300 ring-1 ring-teal-500/20">
+                    Поиск: {search}
+                  </span>
+                )}
+                {statusFilter !== 'all' && (
+                  <span className="rounded-lg bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-300 ring-1 ring-blue-500/20">
+                    {STATUS_LABELS[statusFilter as LetterStatus]}
+                  </span>
+                )}
+                {quickFilter && (
+                  <span className="rounded-lg bg-purple-500/10 px-2.5 py-1 text-xs font-medium text-purple-300 ring-1 ring-purple-500/20">
+                    {QUICK_FILTERS.find((item) => item.value === quickFilter)?.label || quickFilter}
+                  </span>
+                )}
+                {ownerFilter && (
+                  <span className="rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-300 ring-1 ring-emerald-500/20">
+                    {users.find((user) => user.id === ownerFilter)?.name ||
+                      users.find((user) => user.id === ownerFilter)?.email ||
+                      ownerFilter}
+                  </span>
+                )}
+                {typeFilter && (
+                  <span className="rounded-lg bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-300 ring-1 ring-amber-500/20">
+                    {LETTER_TYPES.find((item) => item.value === typeFilter)?.label || typeFilter}
+                  </span>
+                )}
+                <button
+                  onClick={resetFilters}
+                  className="rounded-lg bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-300 ring-1 ring-red-500/20 transition hover:bg-red-500/20"
+                  aria-label="Сбросить фильтры"
+                >
+                  Сбросить
+                </button>
+              </div>
+            )}
+
+            <div
+              id="letters-filters"
+              className={`${filtersOpen ? 'flex' : 'hidden'} w-full flex-col gap-3 sm:flex sm:w-full sm:flex-row sm:flex-wrap lg:w-auto xl:flex-nowrap`}
+            >
+              {/* Status filter */}
+              <div className="group flex w-full items-center gap-2 rounded-xl bg-slate-700/30 p-1.5 ring-1 ring-slate-600/50 transition-all focus-within:ring-teal-500/50 sm:w-auto sm:min-w-[190px]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/20">
+                  <Filter className="h-4 w-4 text-blue-400" />
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value as LetterStatus | 'all')
+                    setQuickFilter('')
+                    goToPage(1)
+                  }}
+                  disabled={filtersDisabled}
+                  className="h-8 min-w-0 flex-1 appearance-none bg-transparent pr-8 text-sm text-white focus:outline-none disabled:opacity-50"
+                  aria-label="Статус"
+                >
+                  <option value="all">Все статусы</option>
+                  {STATUSES.filter((s) => s !== 'all').map((status) => (
+                    <option key={status} value={status}>
+                      {STATUS_LABELS[status as LetterStatus]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="group flex w-full items-center gap-2 rounded-xl bg-slate-700/30 p-1.5 ring-1 ring-slate-600/50 transition-all focus-within:ring-teal-500/50 sm:w-auto sm:min-w-[210px]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/20">
+                  <Users className="h-4 w-4 text-emerald-400" />
+                </div>
+                <select
+                  value={ownerFilter}
+                  onChange={(e) => {
+                    setOwnerFilter(e.target.value)
+                    if (quickFilter === 'mine' || quickFilter === 'unassigned') {
+                      setQuickFilter('')
+                    }
+                    goToPage(1)
+                  }}
+                  disabled={filtersDisabled}
+                  className="h-8 min-w-0 flex-1 appearance-none bg-transparent pr-8 text-sm text-white focus:outline-none disabled:opacity-50"
+                  aria-label="Исполнитель"
+                >
+                  <option value="">Все исполнители</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name || user.email}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="group flex w-full items-center gap-2 rounded-xl bg-slate-700/30 p-1.5 ring-1 ring-slate-600/50 transition-all focus-within:ring-teal-500/50 sm:w-auto sm:min-w-[190px]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/20">
+                  <FileText className="h-4 w-4 text-amber-400" />
+                </div>
+                <select
+                  value={typeFilter}
+                  onChange={(e) => {
+                    setTypeFilter(e.target.value)
+                    goToPage(1)
+                  }}
+                  disabled={filtersDisabled}
+                  className="h-8 min-w-0 flex-1 appearance-none bg-transparent pr-8 text-sm text-white focus:outline-none disabled:opacity-50"
+                  aria-label="Тип"
+                >
+                  <option value="">Все типы</option>
+                  {LETTER_TYPES.filter((item) => item.value !== 'all').map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={resetFilters}
+                  className="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-red-500/10 px-4 text-sm font-medium text-red-300 ring-1 ring-red-500/20 transition-all hover:bg-red-500/20 hover:text-red-200 sm:w-auto"
+                  aria-label="Сбросить фильтры"
+                >
+                  <XCircle className="h-4 w-4 transition-transform group-hover:rotate-90" />
+                  Сбросить ({activeFiltersCount})
                 </button>
               )}
-
-              {(suggestionsOpen ||
-                suggestionsLoading ||
-                (isSearchFocused && !search.trim() && recentSearches.length > 0)) && (
-                <LettersSearchSuggestions
-                  search={search}
-                  suggestions={searchSuggestions}
-                  recentSearches={recentSearches}
-                  isLoading={suggestionsLoading}
-                  onSelectRecent={(value) => {
-                    setSearch(value)
-                    setSuggestionsOpen(false)
-                  }}
-                  onClearRecent={clearRecentSearches}
-                />
-              )}
             </div>
 
-            <p className="mt-2 hidden text-xs text-slate-500 md:block">
-              Можно искать по номеру, организации, содержанию, Jira и ответам.
-            </p>
-          </div>
+            <div className="hidden w-full flex-wrap items-center gap-2 sm:ml-auto sm:flex sm:w-auto">
+              {/* Saved views */}
+              <LettersSavedViews
+                views={savedViews}
+                activeViewId={activeViewId}
+                onApply={applySavedView}
+                onSave={saveCurrentView}
+                onDelete={deleteSavedView}
+              />
 
-          <button
-            onClick={() => setFiltersOpen((prev) => !prev)}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-slate-200 transition hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-teal-400/50 sm:hidden"
-            aria-expanded={filtersOpen}
-            aria-controls="letters-filters"
-          >
-            <Filter className="h-4 w-4" />
-            {activeFiltersCount > 0 ? `Фильтры (${activeFiltersCount})` : 'Фильтры'}
-          </button>
+              {/* View toggle */}
+              <LettersViewToggle value={viewMode} onChange={setViewMode} />
 
-          {!filtersOpen && activeFiltersCount > 0 && (
-            <div className="flex w-full flex-wrap gap-2 sm:hidden">
-              {search && (
-                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
-                  Поиск: {search}
-                </span>
-              )}
-              {statusFilter !== 'all' && (
-                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
-                  {STATUS_LABELS[statusFilter as LetterStatus]}
-                </span>
-              )}
-              {quickFilter && (
-                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
-                  {QUICK_FILTERS.find((item) => item.value === quickFilter)?.label || quickFilter}
-                </span>
-              )}
-              {ownerFilter && (
-                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
-                  Исполнитель:{' '}
-                  {users.find((user) => user.id === ownerFilter)?.name ||
-                    users.find((user) => user.id === ownerFilter)?.email ||
-                    ownerFilter}
-                </span>
-              )}
-              {typeFilter && (
-                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-200">
-                  Тип: {LETTER_TYPES.find((item) => item.value === typeFilter)?.label || typeFilter}
-                </span>
-              )}
-              <button
-                onClick={resetFilters}
-                className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-slate-300 transition hover:text-white"
-                aria-label="Сбросить фильтры"
-              >
-                Сбросить
-              </button>
-            </div>
-          )}
-
-          <div
-            id="letters-filters"
-            className={`${filtersOpen ? 'flex' : 'hidden'} w-full flex-col gap-4 sm:flex sm:w-full sm:flex-row sm:flex-wrap lg:w-auto xl:flex-nowrap`}
-          >
-            {/* Status filter */}
-            <div className="flex w-full items-center gap-2 sm:w-auto sm:min-w-[190px]">
-              <Filter className="h-5 w-5 text-slate-400" />
-              <select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value as LetterStatus | 'all')
-                  setQuickFilter('')
-                  goToPage(1)
-                }}
-                disabled={filtersDisabled}
-                className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/50 sm:w-auto"
-                aria-label="Статус"
-              >
-                <option value="all">Все статусы</option>
-                {STATUSES.filter((s) => s !== 'all').map((status) => (
-                  <option key={status} value={status}>
-                    {STATUS_LABELS[status as LetterStatus]}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex w-full items-center gap-2 sm:w-auto sm:min-w-[210px]">
-              <Users className="h-5 w-5 text-slate-400" />
-              <select
-                value={ownerFilter}
-                onChange={(e) => {
-                  setOwnerFilter(e.target.value)
-                  if (quickFilter === 'mine' || quickFilter === 'unassigned') {
-                    setQuickFilter('')
-                  }
-                  goToPage(1)
-                }}
-                disabled={filtersDisabled}
-                className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/50 sm:w-auto"
-                aria-label="Исполнитель"
-              >
-                <option value="">Все исполнители</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name || user.email}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex w-full items-center gap-2 sm:w-auto sm:min-w-[190px]">
-              <FileText className="h-5 w-5 text-slate-400" />
-              <select
-                value={typeFilter}
-                onChange={(e) => {
-                  setTypeFilter(e.target.value)
-                  goToPage(1)
-                }}
-                disabled={filtersDisabled}
-                className="h-10 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/50 sm:w-auto"
-                aria-label="Тип"
-              >
-                <option value="">Все типы</option>
-                {LETTER_TYPES.filter((item) => item.value !== 'all').map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {activeFiltersCount > 0 && (
-              <button
-                onClick={resetFilters}
-                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-slate-200 transition hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-teal-400/50 sm:w-auto"
-                aria-label="Сбросить фильтры"
-              >
-                <XCircle className="h-4 w-4" />
-                {`Сбросить (${activeFiltersCount})`}
-              </button>
-            )}
-          </div>
-
-          <div className="hidden w-full flex-wrap items-center gap-2 sm:ml-auto sm:flex sm:w-auto">
-            {/* Saved views */}
-            <LettersSavedViews
-              views={savedViews}
-              activeViewId={activeViewId}
-              onApply={applySavedView}
-              onSave={saveCurrentView}
-              onDelete={deleteSavedView}
-            />
-
-            {/* View toggle */}
-            <LettersViewToggle value={viewMode} onChange={setViewMode} />
-
-            {/* Keyboard shortcuts help */}
-            <div className="relative hidden sm:block">
-              <button
-                onClick={() => (shortcutsOpen ? closeShortcuts() : openShortcuts())}
-                className={`rounded-lg p-2 transition ${shortcutsOpen ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-300 hover:text-white'}`}
-                title="Горячие клавиши"
-                aria-label="Горячие клавиши"
-              >
-                <Keyboard className="h-5 w-5" />
-              </button>
+              {/* Keyboard shortcuts help */}
+              <div className="relative hidden sm:block">
+                <button
+                  onClick={() => (shortcutsOpen ? closeShortcuts() : openShortcuts())}
+                  className={`rounded-lg p-2.5 transition-all ${shortcutsOpen ? 'bg-teal-500/20 text-teal-300 ring-1 ring-teal-500/30' : 'bg-slate-700/50 text-slate-400 hover:bg-slate-700 hover:text-white'}`}
+                  title="Горячие клавиши"
+                  aria-label="Горячие клавиши"
+                >
+                  <Keyboard className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

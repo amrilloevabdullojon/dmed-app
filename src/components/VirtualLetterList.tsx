@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useMemo, useCallback, memo } from 'react'
+import { useRef, useMemo, useCallback, memo, useState, useEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { LetterCard } from './LetterCard'
 import { StatusBadge } from './StatusBadge'
@@ -8,6 +8,48 @@ import type { LetterStatus } from '@/types/prisma'
 import { ArrowDown, ArrowUp, ArrowUpDown, CheckSquare, Eye, Square } from 'lucide-react'
 import { formatDate, getWorkingDaysUntilDeadline, isDoneStatus, pluralizeDays } from '@/lib/utils'
 import { usePrefetch } from '@/lib/react-query'
+
+// Hook for responsive column count with ResizeObserver
+function useResponsiveColumns(containerRef: React.RefObject<HTMLDivElement | null>) {
+  const [columnCount, setColumnCount] = useState(() => {
+    if (typeof window === 'undefined') return 3
+    if (window.innerWidth < 768) return 1
+    if (window.innerWidth < 1024) return 2
+    return 3
+  })
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const updateColumns = () => {
+      const width = container.offsetWidth
+      if (width < 640) {
+        setColumnCount(1)
+      } else if (width < 1024) {
+        setColumnCount(2)
+      } else {
+        setColumnCount(3)
+      }
+    }
+
+    // Initial calculation
+    updateColumns()
+
+    // Use ResizeObserver for efficient resize detection
+    const resizeObserver = new ResizeObserver(() => {
+      updateColumns()
+    })
+
+    resizeObserver.observe(container)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [containerRef])
+
+  return columnCount
+}
 
 interface Letter {
   id: string
@@ -91,13 +133,8 @@ export function VirtualLetterList({
   const parentRef = useRef<HTMLDivElement>(null)
   const { prefetchLetter } = usePrefetch()
 
-  // Calculate column count based on width (memoized to prevent recalculation on every render)
-  const columnCount = useMemo(() => {
-    if (typeof window === 'undefined') return 3
-    if (window.innerWidth < 768) return 1
-    if (window.innerWidth < 1024) return 2
-    return 3
-  }, [])
+  // Use ResizeObserver for responsive column count
+  const columnCount = useResponsiveColumns(parentRef)
 
   const rowCount = useMemo(
     () => Math.ceil(letters.length / columnCount),
@@ -150,12 +187,25 @@ export function VirtualLetterList({
   )
 }
 
+// Get row background based on deadline status
+function getRowBgClass(letter: Letter): string {
+  const daysLeft = Math.ceil(
+    (new Date(letter.deadlineDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  )
+  const isDone = letter.status === 'DONE' || letter.status === 'READY'
+
+  if (isDone) return 'hover:bg-emerald-500/5'
+  if (daysLeft < 0) return 'bg-red-500/5 hover:bg-red-500/10'
+  if (daysLeft <= 3) return 'bg-yellow-500/5 hover:bg-yellow-500/10'
+  return 'hover:bg-white/5'
+}
+
 // Memoized table row
 interface TableRowProps {
   letter: Letter
   isSelected: boolean
   isFocused: boolean
-  deadlineInfo: { text: string; className: string }
+  deadlineInfo: { text: string; className: string; isOverdue: boolean; isUrgent: boolean }
   onToggleSelect: (id: string) => void
   onRowClick: (id: string) => void
   onPreview: (id: string) => void
@@ -174,58 +224,88 @@ const TableRow = memo(function TableRow({
   onPrefetch,
   style,
 }: TableRowProps) {
+  const rowBgClass = getRowBgClass(letter)
+
   return (
     <div
-      className={`virtual-row app-row group relative grid cursor-pointer grid-cols-[40px_140px_minmax(240px,1fr)_120px_180px_140px_140px_160px] gap-2 border-b border-white/5 px-4 py-3 pr-12 text-sm ${
-        isSelected ? 'app-row-selected' : ''
-      } ${isFocused ? 'ring-2 ring-inset ring-teal-400/40' : ''}`}
+      className={`virtual-row group relative grid cursor-pointer grid-cols-[40px_140px_minmax(240px,1fr)_120px_180px_140px_140px_160px] gap-2 border-b border-white/5 px-4 py-3 pr-12 text-sm transition-colors duration-150 ${rowBgClass} ${
+        isSelected ? 'bg-teal-500/10 ring-1 ring-inset ring-teal-500/30' : ''
+      } ${isFocused ? 'bg-teal-500/5 ring-2 ring-inset ring-teal-400/50' : ''}`}
       style={style}
       onClick={() => onRowClick(letter.id)}
       onMouseEnter={() => onPrefetch?.(letter.id)}
     >
+      {/* Left border indicator for overdue/urgent */}
+      {(deadlineInfo.isOverdue || deadlineInfo.isUrgent) && (
+        <div
+          className={`absolute bottom-0 left-0 top-0 w-1 ${deadlineInfo.isOverdue ? 'bg-red-500' : 'bg-yellow-500'}`}
+        />
+      )}
+
       <div className="flex items-center">
         <button
           onClick={(e) => {
             e.stopPropagation()
             onToggleSelect(letter.id)
           }}
-          className={`rounded p-1 ${isSelected ? 'text-teal-300' : 'text-slate-400 hover:text-white'}`}
+          className={`rounded-lg p-1.5 transition-all ${
+            isSelected
+              ? 'bg-teal-500/20 text-teal-300 ring-1 ring-teal-500/30'
+              : 'text-slate-400 hover:bg-white/10 hover:text-white'
+          }`}
           aria-label={`Выбрать письмо ${letter.number}`}
         >
-          {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
+          {isSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
         </button>
       </div>
-      <div className="truncate font-mono text-teal-300">#{letter.number}</div>
-      <div className="truncate text-white">{letter.org}</div>
-      <div className="text-sm text-slate-300/70">{formatDate(letter.date)}</div>
-      <div>
-        <div className="text-sm">
-          <div className="text-slate-300/70">{formatDate(letter.deadlineDate)}</div>
-          <div className={`text-xs ${deadlineInfo.className}`}>{deadlineInfo.text}</div>
-        </div>
+      <div className="flex items-center">
+        <span className="truncate rounded-lg bg-teal-500/10 px-2 py-1 font-mono text-sm font-semibold text-teal-300 ring-1 ring-teal-500/20">
+          #{letter.number}
+        </span>
       </div>
-      <div>
+      <div className="flex items-center">
+        <span className="truncate font-medium text-white transition-colors group-hover:text-teal-200">
+          {letter.org}
+        </span>
+      </div>
+      <div className="flex items-center text-sm text-slate-400">{formatDate(letter.date)}</div>
+      <div className="flex flex-col justify-center">
+        <div className="text-sm text-slate-300">{formatDate(letter.deadlineDate)}</div>
+        <div className={`text-xs font-medium ${deadlineInfo.className}`}>{deadlineInfo.text}</div>
+      </div>
+      <div className="flex items-center">
         <StatusBadge status={letter.status} size="sm" />
       </div>
-      <div className="min-w-0">
+      <div className="flex min-w-0 items-center">
         {letter.type && (
           <span
-            className="data-pill inline-flex max-w-[140px] truncate rounded-full px-2 py-1 text-xs"
+            className="inline-flex max-w-[140px] truncate rounded-lg bg-slate-700/50 px-2 py-1 text-xs font-medium text-slate-300 ring-1 ring-slate-600/50"
             title={letter.type}
           >
             {letter.type}
           </span>
         )}
       </div>
-      <div className="truncate text-sm text-slate-300/70">
-        {letter.owner?.name || letter.owner?.email?.split('@')[0] || '-'}
+      <div className="flex items-center truncate text-sm text-slate-400">
+        {letter.owner ? (
+          <span className="inline-flex items-center gap-1.5 truncate">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/20 text-[10px] font-semibold text-blue-300">
+              {(letter.owner.name || letter.owner.email || '?')[0].toUpperCase()}
+            </span>
+            <span className="truncate">
+              {letter.owner.name || letter.owner.email?.split('@')[0]}
+            </span>
+          </span>
+        ) : (
+          <span className="text-slate-500">—</span>
+        )}
       </div>
       <button
         onClick={(e) => {
           e.stopPropagation()
           onPreview(letter.id)
         }}
-        className="absolute right-4 top-1/2 -translate-y-1/2 rounded-lg bg-white/5 p-2 text-slate-400 opacity-100 transition hover:text-white md:opacity-0 md:group-hover:opacity-100"
+        className="absolute right-4 top-1/2 -translate-y-1/2 rounded-lg bg-slate-700/50 p-2 text-slate-400 opacity-100 transition-all hover:bg-teal-500/20 hover:text-teal-300 md:opacity-0 md:group-hover:opacity-100"
         title="Быстрый просмотр"
         aria-label="Быстрый просмотр"
       >
@@ -285,84 +365,86 @@ export function VirtualLetterTable({
     const isDone = isDoneStatus(letter.status)
 
     if (isDone) {
-      return { text: '\u0413\u043e\u0442\u043e\u0432\u043e', className: 'text-teal-300' }
+      return { text: 'Готово', className: 'text-emerald-400', isOverdue: false, isUrgent: false }
     }
     if (daysLeft < 0) {
       const absDays = Math.abs(daysLeft)
       return {
-        text: `\u041f\u0440\u043e\u0441\u0440\u043e\u0447\u0435\u043d\u043e \u043d\u0430 ${absDays} \u0440\u0430\u0431. ${pluralizeDays(absDays)}`,
+        text: `Просрочено на ${absDays} раб. ${pluralizeDays(absDays)}`,
         className: 'text-red-400',
+        isOverdue: true,
+        isUrgent: false,
       }
     }
     if (daysLeft <= 2) {
       return {
-        text: `\u041e\u0441\u0442\u0430\u043b\u043e\u0441\u044c ${daysLeft} \u0440\u0430\u0431. ${pluralizeDays(daysLeft)}`,
+        text: `Осталось ${daysLeft} раб. ${pluralizeDays(daysLeft)}`,
         className: 'text-yellow-400',
+        isOverdue: false,
+        isUrgent: true,
       }
     }
     return {
-      text: `\u041e\u0441\u0442\u0430\u043b\u043e\u0441\u044c ${daysLeft} \u0440\u0430\u0431. ${pluralizeDays(daysLeft)}`,
-      className: 'text-slate-300/70',
+      text: `Осталось ${daysLeft} раб. ${pluralizeDays(daysLeft)}`,
+      className: 'text-slate-400',
+      isOverdue: false,
+      isUrgent: false,
     }
   }, [])
 
   return (
-    <div className="panel panel-glass overflow-hidden rounded-2xl">
-      <div className="grid grid-cols-[40px_140px_minmax(240px,1fr)_120px_180px_140px_140px_160px] gap-2 border-b border-white/10 bg-white/5 px-4 py-3 pr-12 text-sm text-slate-300/80">
+    <div className="overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/30">
+      {/* Sticky header with blur effect */}
+      <div className="sticky top-0 z-10 grid grid-cols-[40px_140px_minmax(240px,1fr)_120px_180px_140px_140px_160px] gap-2 border-b border-slate-700/50 bg-slate-800/95 px-4 py-3 pr-12 text-sm font-medium backdrop-blur-sm">
         <div className="flex items-center">
           <button
             onClick={onToggleSelectAll}
-            className={`rounded p-1 ${
+            className={`rounded-lg p-1.5 transition-all ${
               selectedIds.size === letters.length && letters.length > 0
-                ? 'text-teal-300'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-teal-500/20 text-teal-300 ring-1 ring-teal-500/30'
+                : 'text-slate-400 hover:bg-white/10 hover:text-white'
             }`}
-            aria-label="\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u0432\u0441\u0435 \u043f\u0438\u0441\u044c\u043c\u0430"
+            aria-label="Выбрать все письма"
           >
             {selectedIds.size === letters.length && letters.length > 0 ? (
-              <CheckSquare className="h-5 w-5" />
+              <CheckSquare className="h-4 w-4" />
             ) : (
-              <Square className="h-5 w-5" />
+              <Square className="h-4 w-4" />
             )}
           </button>
         </div>
         <button
           onClick={() => onSort('number')}
-          className="flex items-center text-left hover:text-white"
+          className="flex items-center gap-1.5 text-left text-slate-300 transition-colors hover:text-white"
         >
-          {'\u041d\u043e\u043c\u0435\u0440'} <SortIcon field="number" />
+          Номер <SortIcon field="number" />
         </button>
         <button
           onClick={() => onSort('org')}
-          className="flex items-center text-left hover:text-white"
+          className="flex items-center gap-1.5 text-left text-slate-300 transition-colors hover:text-white"
         >
-          {'\u041e\u0440\u0433\u0430\u043d\u0438\u0437\u0430\u0446\u0438\u044f'}{' '}
-          <SortIcon field="org" />
+          Организация <SortIcon field="org" />
         </button>
         <button
           onClick={() => onSort('date')}
-          className="flex items-center text-left hover:text-white"
+          className="flex items-center gap-1.5 text-left text-slate-300 transition-colors hover:text-white"
         >
-          {'\u0414\u0430\u0442\u0430'} <SortIcon field="date" />
+          Дата <SortIcon field="date" />
         </button>
         <button
           onClick={() => onSort('deadline')}
-          className="flex items-center text-left hover:text-white"
+          className="flex items-center gap-1.5 text-left text-slate-300 transition-colors hover:text-white"
         >
-          {'\u0421\u0440\u043e\u043a'} <SortIcon field="deadline" />
+          Срок <SortIcon field="deadline" />
         </button>
         <button
           onClick={() => onSort('status')}
-          className="flex items-center text-left hover:text-white"
+          className="flex items-center gap-1.5 text-left text-slate-300 transition-colors hover:text-white"
         >
-          {'\u0421\u0442\u0430\u0442\u0443\u0441'} <SortIcon field="status" />
+          Статус <SortIcon field="status" />
         </button>
-        <div className="text-left text-sm font-medium text-slate-300/70">
-          {'\u0422\u0438\u043f'}
-        </div>
-        <div className="text-left text-sm font-medium text-slate-300/70">
-          {'\u0418\u0441\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044c'}
-        </div>
+        <div className="flex items-center text-slate-400">Тип</div>
+        <div className="flex items-center text-slate-400">Исполнитель</div>
       </div>
 
       <div ref={parentRef} className="virtual-scroll h-[calc(100vh-350px)] overflow-auto">
