@@ -234,22 +234,47 @@ export default function SettingsPage() {
         tabIndex={-1}
         className="animate-pageIn relative mx-auto max-w-[1600px] px-4 py-6 outline-none sm:px-6 sm:py-8 lg:px-8"
       >
-        <h1 className="font-display text-2xl font-semibold text-white sm:text-3xl md:text-4xl">
-          Настройки
-        </h1>
-        <p className="mb-6 mt-2 text-sm text-muted">
-          Роли, доступ, уведомления и журнал безопасности.
-        </p>
+        {/* Header with gradient */}
+        <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/80 via-slate-800/60 to-slate-900/80 p-6 md:p-8">
+          {/* Decorative elements */}
+          <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-teal-500/10 blur-2xl" />
 
-        {/* New Year Vibe Toggle */}
-        <div className="panel panel-glass mb-6 rounded-2xl p-4 sm:p-6">
-          <SettingsToggle
-            label="Новогодний вайб"
-            description="Добавить легкие зимние акценты и нежную подсветку по всему сайту."
-            icon={<Crown className="h-4 w-4" />}
-            enabled={newYearVibe}
-            onToggle={handleNewYearVibeToggle}
-          />
+          <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 p-3 shadow-lg shadow-purple-500/25">
+                <Settings className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="font-display text-2xl font-bold text-white sm:text-3xl md:text-4xl">
+                  Настройки
+                </h1>
+                <p className="mt-1 text-sm text-slate-400">
+                  Роли, доступ, уведомления и журнал безопасности
+                </p>
+              </div>
+            </div>
+
+            {/* New Year Vibe Toggle - compact */}
+            <div className="flex items-center gap-3 rounded-xl bg-slate-700/40 px-4 py-3">
+              <Crown className="h-5 w-5 text-amber-400" />
+              <span className="text-sm font-medium text-white">Новогодний вайб</span>
+              <button
+                onClick={() => handleNewYearVibeToggle(!newYearVibe)}
+                className={`relative h-6 w-11 rounded-full transition-colors ${
+                  newYearVibe ? 'bg-amber-500' : 'bg-slate-600'
+                }`}
+                role="switch"
+                aria-checked={newYearVibe}
+              >
+                <span
+                  className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                    newYearVibe ? 'translate-x-5' : ''
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Tabs - Mobile vs Desktop */}
@@ -258,85 +283,113 @@ export default function SettingsPage() {
             <MobileTabs tabs={mobileTabs} activeTab={activeTab} onChange={handleMobileTabChange} />
           </div>
         ) : (
-          <div className="mb-6 border-b border-white/10 pb-4">
-            <ScrollIndicator className="no-scrollbar flex gap-2 md:flex-wrap" showArrows={true}>
+          <div className="mb-6 overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/80 to-slate-800/60 p-2">
+            <ScrollIndicator className="no-scrollbar flex gap-1 md:flex-wrap" showArrows={true}>
               {isSuperAdmin && (
                 <button
                   onClick={() => handleTabChange('permissions')}
-                  className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                  className={`tap-highlight touch-target-sm group flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
                     activeTab === 'permissions'
-                      ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
+                      ? 'bg-gradient-to-r from-red-500/20 to-red-600/20 text-red-300 shadow-lg shadow-red-500/10 ring-1 ring-red-500/30'
                       : 'text-slate-400 hover:bg-white/5 hover:text-white'
                   }`}
                 >
-                  <Shield className="mr-2 inline-block h-4 w-4" />
+                  <div
+                    className={`rounded-lg p-1.5 ${activeTab === 'permissions' ? 'bg-red-500/20' : 'bg-slate-700/50 group-hover:bg-slate-600/50'}`}
+                  >
+                    <Shield className="h-4 w-4" />
+                  </div>
                   Разрешения
                 </button>
               )}
               <button
                 onClick={() => handleTabChange('users')}
-                className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                className={`tap-highlight touch-target-sm group flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
                   activeTab === 'users'
-                    ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
+                    ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 text-blue-300 shadow-lg shadow-blue-500/10 ring-1 ring-blue-500/30'
                     : 'text-slate-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
-                <Users className="mr-2 inline-block h-4 w-4" />
+                <div
+                  className={`rounded-lg p-1.5 ${activeTab === 'users' ? 'bg-blue-500/20' : 'bg-slate-700/50 group-hover:bg-slate-600/50'}`}
+                >
+                  <Users className="h-4 w-4" />
+                </div>
                 Пользователи
               </button>
               <button
                 onClick={() => handleTabChange('sync')}
-                className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                className={`tap-highlight touch-target-sm group flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
                   activeTab === 'sync'
-                    ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
+                    ? 'bg-gradient-to-r from-teal-500/20 to-teal-600/20 text-teal-300 shadow-lg shadow-teal-500/10 ring-1 ring-teal-500/30'
                     : 'text-slate-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
-                <RefreshCw className="mr-2 inline-block h-4 w-4" />
+                <div
+                  className={`rounded-lg p-1.5 ${activeTab === 'sync' ? 'bg-teal-500/20' : 'bg-slate-700/50 group-hover:bg-slate-600/50'}`}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </div>
                 Синхронизация
               </button>
               <button
                 onClick={() => handleTabChange('audit')}
-                className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                className={`tap-highlight touch-target-sm group flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
                   activeTab === 'audit'
-                    ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
+                    ? 'bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-300 shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30'
                     : 'text-slate-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
-                <History className="mr-2 inline-block h-4 w-4" />
+                <div
+                  className={`rounded-lg p-1.5 ${activeTab === 'audit' ? 'bg-amber-500/20' : 'bg-slate-700/50 group-hover:bg-slate-600/50'}`}
+                >
+                  <History className="h-4 w-4" />
+                </div>
                 Аудит
               </button>
               <button
                 onClick={() => handleTabChange('notifications')}
-                className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                className={`tap-highlight touch-target-sm group flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
                   activeTab === 'notifications'
-                    ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
+                    ? 'bg-gradient-to-r from-pink-500/20 to-pink-600/20 text-pink-300 shadow-lg shadow-pink-500/10 ring-1 ring-pink-500/30'
                     : 'text-slate-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
-                <Bell className="mr-2 inline-block h-4 w-4" />
+                <div
+                  className={`rounded-lg p-1.5 ${activeTab === 'notifications' ? 'bg-pink-500/20' : 'bg-slate-700/50 group-hover:bg-slate-600/50'}`}
+                >
+                  <Bell className="h-4 w-4" />
+                </div>
                 Уведомления
               </button>
               <button
                 onClick={() => handleTabChange('personalization')}
-                className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                className={`tap-highlight touch-target-sm group flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
                   activeTab === 'personalization'
-                    ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
+                    ? 'bg-gradient-to-r from-violet-500/20 to-violet-600/20 text-violet-300 shadow-lg shadow-violet-500/10 ring-1 ring-violet-500/30'
                     : 'text-slate-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
-                <Palette className="mr-2 inline-block h-4 w-4" />
+                <div
+                  className={`rounded-lg p-1.5 ${activeTab === 'personalization' ? 'bg-violet-500/20' : 'bg-slate-700/50 group-hover:bg-slate-600/50'}`}
+                >
+                  <Palette className="h-4 w-4" />
+                </div>
                 Персонализация
               </button>
               <button
                 onClick={() => handleTabChange('workflow')}
-                className={`tap-highlight touch-target-sm whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                className={`tap-highlight touch-target-sm group flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
                   activeTab === 'workflow'
-                    ? 'border border-teal-400/30 bg-teal-500/20 text-teal-300'
+                    ? 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 text-emerald-300 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
                     : 'text-slate-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
-                <Settings className="mr-2 inline-block h-4 w-4" />
+                <div
+                  className={`rounded-lg p-1.5 ${activeTab === 'workflow' ? 'bg-emerald-500/20' : 'bg-slate-700/50 group-hover:bg-slate-600/50'}`}
+                >
+                  <Settings className="h-4 w-4" />
+                </div>
                 Рабочий процесс
               </button>
             </ScrollIndicator>

@@ -40,7 +40,8 @@
       "Bash(node_modules/.bin/next build:*)",
       "Bash(npx lint-staged:*)",
       "Bash(xargs ls:*)",
-      "Bash(git status:*)"
+      "Bash(git status:*)",
+      "Bash(C:)"
     ]
   }
 }

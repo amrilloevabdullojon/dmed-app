@@ -125,10 +125,15 @@ function LettersPageContent({ initialData }: LettersPageClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
 
+  // Получаем сохранённое значение itemsPerPage из localStorage
+  const [savedItemsPerPage] = useLocalStorage<number>('letters-items-per-page', 50)
+
   const initialFilters = useMemo<InitialFilters>(() => {
     if (initialData?.filters) return initialData.filters
     const pageParam = Number(searchParams.get('page') || 1)
-    const limitParam = Number(searchParams.get('limit') || 50)
+    // Используем значение из URL если есть, иначе из localStorage
+    const limitFromUrl = searchParams.get('limit')
+    const limitParam = limitFromUrl ? Number(limitFromUrl) : savedItemsPerPage
     return {
       page: Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1,
       limit: Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 50,
@@ -140,7 +145,7 @@ function LettersPageContent({ initialData }: LettersPageClientProps) {
       sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc',
       search: '',
     }
-  }, [initialData, searchParams])
+  }, [initialData, searchParams, savedItemsPerPage])
 
   const canManageUsers = initialData?.canManageUsers ?? true
 

@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 
 interface KeyboardShortcuts {
   onUp?: () => void
@@ -13,6 +13,20 @@ interface KeyboardShortcuts {
   enabled?: boolean
 }
 
+// Проверяем настройку горячих клавиш из localStorage
+function getKeyboardShortcutsEnabled(): boolean {
+  if (typeof window === 'undefined') return true
+  try {
+    const stored = localStorage.getItem('keyboard-shortcuts-enabled')
+    if (stored !== null) {
+      return JSON.parse(stored) === true
+    }
+  } catch {
+    // ignore
+  }
+  return true
+}
+
 export function useKeyboard({
   onUp,
   onDown,
@@ -25,9 +39,25 @@ export function useKeyboard({
   onSelectAll,
   enabled = true,
 }: KeyboardShortcuts) {
+  const [shortcutsEnabled, setShortcutsEnabled] = useState(true)
+
+  // Слушаем изменения в localStorage
+  useEffect(() => {
+    setShortcutsEnabled(getKeyboardShortcutsEnabled())
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'keyboard-shortcuts-enabled') {
+        setShortcutsEnabled(getKeyboardShortcutsEnabled())
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (!enabled) return
+      if (!enabled || !shortcutsEnabled) return
 
       // Игнорировать если фокус в поле ввода
       const target = e.target as HTMLElement
@@ -120,7 +150,19 @@ export function useKeyboard({
           break
       }
     },
-    [enabled, onUp, onDown, onEnter, onEscape, onSpace, onDelete, onSearch, onNew, onSelectAll]
+    [
+      enabled,
+      shortcutsEnabled,
+      onUp,
+      onDown,
+      onEnter,
+      onEscape,
+      onSpace,
+      onDelete,
+      onSearch,
+      onNew,
+      onSelectAll,
+    ]
   )
 
   useEffect(() => {
@@ -132,14 +174,30 @@ export function useKeyboard({
 // Компонент для отображения подсказок по горячим клавишам
 export function KeyboardShortcutsHelp() {
   return (
-    <div className="text-xs text-gray-500 space-y-1">
-      <div><kbd className="px-1 bg-gray-700 rounded">J</kbd> / <kbd className="px-1 bg-gray-700 rounded">↓</kbd> — Вниз</div>
-      <div><kbd className="px-1 bg-gray-700 rounded">K</kbd> / <kbd className="px-1 bg-gray-700 rounded">↑</kbd> — Вверх</div>
-      <div><kbd className="px-1 bg-gray-700 rounded">Enter</kbd> — Открыть</div>
-      <div><kbd className="px-1 bg-gray-700 rounded">Space</kbd> — Выбрать</div>
-      <div><kbd className="px-1 bg-gray-700 rounded">Esc</kbd> — Закрыть/Отмена</div>
-      <div><kbd className="px-1 bg-gray-700 rounded">/</kbd> — Поиск</div>
-      <div><kbd className="px-1 bg-gray-700 rounded">N</kbd> — Новое письмо</div>
+    <div className="space-y-1 text-xs text-gray-500">
+      <div>
+        <kbd className="rounded bg-gray-700 px-1">J</kbd> /{' '}
+        <kbd className="rounded bg-gray-700 px-1">↓</kbd> — Вниз
+      </div>
+      <div>
+        <kbd className="rounded bg-gray-700 px-1">K</kbd> /{' '}
+        <kbd className="rounded bg-gray-700 px-1">↑</kbd> — Вверх
+      </div>
+      <div>
+        <kbd className="rounded bg-gray-700 px-1">Enter</kbd> — Открыть
+      </div>
+      <div>
+        <kbd className="rounded bg-gray-700 px-1">Space</kbd> — Выбрать
+      </div>
+      <div>
+        <kbd className="rounded bg-gray-700 px-1">Esc</kbd> — Закрыть/Отмена
+      </div>
+      <div>
+        <kbd className="rounded bg-gray-700 px-1">/</kbd> — Поиск
+      </div>
+      <div>
+        <kbd className="rounded bg-gray-700 px-1">N</kbd> — Новое письмо
+      </div>
     </div>
   )
 }
