@@ -1030,7 +1030,7 @@ function LettersPageContent({ initialData }: LettersPageClientProps) {
         <LettersQuickFilters value={quickFilter} onChange={handleQuickFilterChange} />
 
         {/* Filters Row */}
-        <div className="relative z-20 mb-6 overflow-hidden rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/80 to-slate-800/60 p-4 backdrop-blur-sm lg:sticky lg:top-20 lg:z-30">
+        <div className="relative z-20 mb-6 rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/80 to-slate-800/60 p-4 backdrop-blur-sm lg:sticky lg:top-20 lg:z-30">
           <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-center">
             {/* Search */}
             <div className="w-full min-w-0 lg:flex-[1_1_100%] lg:basis-full">

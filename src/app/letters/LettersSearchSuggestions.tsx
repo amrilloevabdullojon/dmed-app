@@ -83,7 +83,7 @@ export const LettersSearchSuggestions = memo(function LettersSearchSuggestions({
     : recentSearches.length
 
   return (
-    <div className="bg-slate-900/98 absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-slate-700/50 shadow-2xl shadow-black/50 backdrop-blur-xl">
+    <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900/98 shadow-2xl shadow-black/50 backdrop-blur-xl">
       <div className="flex items-center justify-between border-b border-slate-700/50 px-4 py-2.5">
         <div className="flex items-center gap-2 text-xs text-slate-400">
           {trimmedSearch ? (
@@ -101,7 +101,7 @@ export const LettersSearchSuggestions = memo(function LettersSearchSuggestions({
         {isLoading && <Loader2 className="h-4 w-4 animate-spin text-teal-400" />}
       </div>
 
-      <div ref={listRef} className="max-h-80 overflow-auto">
+      <div ref={listRef} className="max-h-64 overflow-auto">
         {!trimmedSearch ? (
           // Последние поиски
           recentSearches.length === 0 ? (
