@@ -41,7 +41,8 @@
       "Bash(npx lint-staged:*)",
       "Bash(xargs ls:*)",
       "Bash(git status:*)",
-      "Bash(C:)"
+      "Bash(C:)",
+      "Bash(curl:*)"
     ]
   }
 }
