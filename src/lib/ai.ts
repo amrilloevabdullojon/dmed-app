@@ -9,6 +9,26 @@ const genai = new GoogleGenAI({
 const MAX_AI_RETRIES = 2
 const AI_RETRY_BASE_DELAY_MS = 600
 
+// ✅ ОПТИМИЗАЦИЯ: In-memory кэш для переводов
+// Снижает повторные AI API вызовы для одинаковых строк
+const translationCache = new Map<string, string>()
+const TRANSLATION_CACHE_MAX = 1000 // Максимум 1000 переводов в кэше
+
+function getCachedTranslation(text: string): string | null {
+  return translationCache.get(text) || null
+}
+
+function setCachedTranslation(text: string, translation: string): void {
+  // Простая FIFO очистка при достижении лимита
+  if (translationCache.size >= TRANSLATION_CACHE_MAX) {
+    const firstKey = translationCache.keys().next().value
+    if (firstKey) {
+      translationCache.delete(firstKey)
+    }
+  }
+  translationCache.set(text, translation)
+}
+
 export interface ExtractedLetterData {
   number: string | null
   date: string | null
@@ -168,9 +188,17 @@ export async function extractLetterDataWithAI(
 
 /**
  * Переводит текст на русский с помощью Gemini
+ * ✅ ОПТИМИЗАЦИЯ: Кэширует переводы для снижения AI API вызовов
  */
 export async function translateToRussian(text: string): Promise<string | null> {
   if (!process.env.GEMINI_API_KEY) return null
+
+  // Проверяем кэш
+  const cached = getCachedTranslation(text)
+  if (cached) {
+    logger.debug('AI', 'Translation cache hit', { text: text.substring(0, 50) })
+    return cached
+  }
 
   try {
     const response = await withRetry('translateToRussian', () =>
@@ -181,7 +209,14 @@ export async function translateToRussian(text: string): Promise<string | null> {
   ${text}`,
       })
     )
-    return response.text || null
+    const result = response.text || null
+
+    // Сохраняем в кэш
+    if (result) {
+      setCachedTranslation(text, result)
+    }
+
+    return result
   } catch (error) {
     logger.error('AI', error, { action: 'translateToRussian' })
     return null

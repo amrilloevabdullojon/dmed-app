@@ -90,7 +90,6 @@ export async function GET(request: NextRequest) {
       monthDone,
       byOwner,
       byType,
-      completedLetters,
       allUsers, // Загружаем всех пользователей сразу, чтобы избежать N+1
     ] = await Promise.all([
       // Статистика по статусам
@@ -160,15 +159,6 @@ export async function GET(request: NextRequest) {
         _count: { id: true },
         where: { type: { not: null }, deletedAt: null },
       }),
-      // Для среднего времени выполнения
-      prisma.letter.findMany({
-        where: {
-          deletedAt: null,
-          status: { in: ['READY', 'DONE'] },
-          closeDate: { not: null },
-        },
-        select: { date: true, closeDate: true },
-      }),
       // Все пользователи (для статистики по ответственным)
       prisma.user.findMany({
         select: { id: true, name: true, email: true },
@@ -208,55 +198,63 @@ export async function GET(request: NextRequest) {
       })
       .sort((a, b) => b.count - a.count)
 
-    // Статистика по месяцам за год (оптимизировано - один запрос)
+    // ✅ ОПТИМИЗАЦИЯ: SQL агрегация вместо загрузки всех писем
     const yearAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1)
-    const monthlyLetters = await prisma.letter.findMany({
-      where: {
-        deletedAt: null,
-        OR: [{ createdAt: { gte: yearAgo } }, { closeDate: { gte: yearAgo } }],
-      },
-      select: {
-        createdAt: true,
-        closeDate: true,
-        status: true,
-        org: true,
-        type: true,
-        ownerId: true,
-      },
-    })
 
-    // Группируем по месяцам
+    // Используем SQL для группировки по месяцам (created)
+    const monthlyCreatedRaw = await prisma.$queryRaw<Array<{ month: Date; count: bigint }>>`
+      SELECT
+        DATE_TRUNC('month', "createdAt") as month,
+        COUNT(*) as count
+      FROM "Letter"
+      WHERE "deletedAt" IS NULL AND "createdAt" >= ${yearAgo}
+      GROUP BY DATE_TRUNC('month', "createdAt")
+      ORDER BY month DESC
+    `
+
+    // Используем SQL для группировки по месяцам (done)
+    const monthlyDoneRaw = await prisma.$queryRaw<Array<{ month: Date; count: bigint }>>`
+      SELECT
+        DATE_TRUNC('month', "closeDate") as month,
+        COUNT(*) as count
+      FROM "Letter"
+      WHERE "deletedAt" IS NULL
+        AND "closeDate" >= ${yearAgo}
+        AND status IN ('READY', 'DONE')
+      GROUP BY DATE_TRUNC('month', "closeDate")
+      ORDER BY month DESC
+    `
+
+    // Преобразуем результаты в Map для быстрого поиска
+    const createdByMonth = new Map(
+      monthlyCreatedRaw.map(r => [
+        new Date(r.month).toLocaleDateString('ru-RU', { month: 'short' }),
+        Number(r.count)
+      ])
+    )
+    const doneByMonth = new Map(
+      monthlyDoneRaw.map(r => [
+        new Date(r.month).toLocaleDateString('ru-RU', { month: 'short' }),
+        Number(r.count)
+      ])
+    )
+
+    // Формируем итоговый массив за 12 месяцев
     const monthlyMap = new Map<string, { created: number; done: number }>()
     for (let i = 0; i < 12; i++) {
       const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1)
       const monthKey = monthStart.toLocaleDateString('ru-RU', { month: 'short' })
-      monthlyMap.set(monthKey, { created: 0, done: 0 })
-    }
-
-    monthlyLetters.forEach((letter) => {
-      const createdMonth = new Date(letter.createdAt).toLocaleDateString('ru-RU', {
-        month: 'short',
+      monthlyMap.set(monthKey, {
+        created: createdByMonth.get(monthKey) || 0,
+        done: doneByMonth.get(monthKey) || 0,
       })
-      if (monthlyMap.has(createdMonth)) {
-        const data = monthlyMap.get(createdMonth)!
-        data.created++
-      }
-
-      if (letter.closeDate && ['READY', 'DONE'].includes(letter.status)) {
-        const closedMonth = new Date(letter.closeDate).toLocaleDateString('ru-RU', {
-          month: 'short',
-        })
-        if (monthlyMap.has(closedMonth)) {
-          const data = monthlyMap.get(closedMonth)!
-          data.done++
-        }
-      }
-    })
+    }
 
     const monthlyData = Array.from(monthlyMap.entries())
       .reverse()
       .map(([month, data]) => ({ month, ...data }))
 
+    // ✅ ОПТИМИЗАЦИЯ: SQL агрегация для org/type/period вместо in-memory обработки
     const periodBuckets: Array<{ key: string; label: string }> = []
     for (let i = MONTHS_TO_SHOW - 1; i >= 0; i--) {
       const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1)
@@ -265,69 +263,84 @@ export async function GET(request: NextRequest) {
       periodBuckets.push({ key, label })
     }
     const periodLabelByKey = new Map(periodBuckets.map((bucket) => [bucket.key, bucket.label]))
-    const orgTypePeriodMap = new Map<
-      string,
-      { periodKey: string; periodLabel: string; org: string; type: string; count: number }
-    >()
 
-    monthlyLetters.forEach((letter) => {
-      if (letter.createdAt < periodStart) return
-      const periodKey = `${letter.createdAt.getFullYear()}-${String(
-        letter.createdAt.getMonth() + 1
-      ).padStart(2, '0')}`
-      const periodLabel = periodLabelByKey.get(periodKey)
-      if (!periodLabel) return
-      const org = normalizeOrganization(letter.org)
-      const type = normalizeLetterType(letter.type)
-      const rowKey = `${periodKey}||${org}||${type}`
-      const existing = orgTypePeriodMap.get(rowKey)
-      if (existing) {
-        existing.count += 1
-      } else {
-        orgTypePeriodMap.set(rowKey, {
+    // SQL агрегация по org/type/period
+    const orgTypePeriodRaw = await prisma.$queryRaw<
+      Array<{ period: Date; org: string; type: string; count: bigint }>
+    >`
+      SELECT
+        DATE_TRUNC('month', "createdAt") as period,
+        COALESCE("org", 'Unknown') as org,
+        COALESCE("type", 'Unknown') as type,
+        COUNT(*) as count
+      FROM "Letter"
+      WHERE "deletedAt" IS NULL AND "createdAt" >= ${periodStart}
+      GROUP BY DATE_TRUNC('month', "createdAt"), "org", "type"
+      ORDER BY period, count DESC
+    `
+
+    const orgTypePeriodStats = orgTypePeriodRaw
+      .map((row) => {
+        const periodDate = new Date(row.period)
+        const periodKey = `${periodDate.getFullYear()}-${String(periodDate.getMonth() + 1).padStart(2, '0')}`
+        const periodLabel = periodLabelByKey.get(periodKey)
+        if (!periodLabel) return null
+
+        return {
           periodKey,
           periodLabel,
-          org,
-          type,
-          count: 1,
-        })
-      }
-    })
+          org: normalizeOrganization(row.org),
+          type: normalizeLetterType(row.type),
+          count: Number(row.count),
+        }
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null)
+      .sort((a, b) => {
+        if (a.periodKey !== b.periodKey) return a.periodKey.localeCompare(b.periodKey)
+        if (a.count !== b.count) return b.count - a.count
+        const orgCompare = a.org.localeCompare(b.org, 'ru-RU')
+        if (orgCompare !== 0) return orgCompare
+        return a.type.localeCompare(b.type, 'ru-RU')
+      })
 
-    const orgTypePeriodStats = Array.from(orgTypePeriodMap.values()).sort((a, b) => {
-      if (a.periodKey !== b.periodKey) return a.periodKey.localeCompare(b.periodKey)
-      if (a.count !== b.count) return b.count - a.count
-      const orgCompare = a.org.localeCompare(b.org, 'ru-RU')
-      if (orgCompare !== 0) return orgCompare
-      return a.type.localeCompare(b.type, 'ru-RU')
-    })
-
+    // ✅ ОПТИМИЗАЦИЯ: Загружаем данные для отчета только если запрошено, с LIMIT
     const reportLetters = includeReport
-      ? monthlyLetters
-          .filter((letter) => letter.createdAt >= periodStart)
-          .map((letter) => ({
+      ? await prisma.letter.findMany({
+          where: {
+            deletedAt: null,
+            createdAt: { gte: periodStart },
+          },
+          select: {
+            createdAt: true,
+            org: true,
+            type: true,
+            status: true,
+            ownerId: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 5000, // Лимит для безопасности
+        }).then(letters =>
+          letters.map((letter) => ({
             createdAt: letter.createdAt.toISOString(),
             org: normalizeOrganization(letter.org),
             type: normalizeLetterType(letter.type),
             status: letter.status,
             ownerId: letter.ownerId,
           }))
+        )
       : []
 
-    // Среднее время выполнения
-    let avgDays = 0
-    if (completedLetters.length > 0) {
-      const totalDays = completedLetters.reduce((acc, letter) => {
-        if (letter.closeDate) {
-          const days = Math.ceil(
-            (letter.closeDate.getTime() - letter.date.getTime()) / (1000 * 60 * 60 * 24)
-          )
-          return acc + Math.max(0, days) // Исключаем отрицательные значения
-        }
-        return acc
-      }, 0)
-      avgDays = Math.round(totalDays / completedLetters.length)
-    }
+    // ✅ ОПТИМИЗАЦИЯ: SQL AVG вместо загрузки всех завершенных писем
+    const avgDaysResult = await prisma.$queryRaw<Array<{ avg_days: number | null }>>`
+      SELECT
+        AVG(EXTRACT(DAY FROM ("closeDate" - "date"))::numeric) as avg_days
+      FROM "Letter"
+      WHERE "deletedAt" IS NULL
+        AND status IN ('READY', 'DONE')
+        AND "closeDate" IS NOT NULL
+        AND "closeDate" >= "date"
+    `
+    const avgDays = avgDaysResult[0]?.avg_days ? Math.round(avgDaysResult[0].avg_days) : 0
 
     // Статистика по типам
     const typeStats = byType

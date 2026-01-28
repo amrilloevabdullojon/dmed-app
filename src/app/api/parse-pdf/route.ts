@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { calculateDeadline } from '@/lib/parsePdfLetter'
 import { extractLetterDataFromPdf, translateToRussian } from '@/lib/ai'
+import { withTimeout } from '@/lib/ai-utils'
 import { csrfGuard } from '@/lib/security'
 import { logger } from '@/lib/logger.server'
 import { parseDateValue } from '@/lib/utils'
@@ -59,9 +60,13 @@ export async function POST(request: NextRequest) {
       filenameData.number = filenameNumber
     }
 
-    // Отправляем PDF напрямую в Gemini AI
+    // ✅ ОПТИМИЗАЦИЯ: Добавлен timeout для предотвращения зависания AI
     logger.debug('Parse PDF', 'Parsing PDF with AI', { filename: file.name, size: file.size })
-    const aiData = await extractLetterDataFromPdf(base64)
+    const aiData = await withTimeout(
+      extractLetterDataFromPdf(base64),
+      90000, // 90 секунд для Vision API
+      'PDF parsing timeout after 90 seconds'
+    )
     logger.debug('Parse PDF', 'AI parsing completed', { success: !!aiData })
 
     const normalizeNumber = (value: string | null): string | null => {
@@ -93,9 +98,14 @@ export async function POST(request: NextRequest) {
     // Дедлайн +7 рабочих дней
     const deadline = finalDate ? calculateDeadline(finalDate, DEFAULT_DEADLINE_WORKING_DAYS) : null
 
-    const organization = await translateIfNeeded(aiData?.organization || null)
-    const region = await translateIfNeeded(aiData?.region || null)
-    const district = await translateIfNeeded(aiData?.district || null)
+    // ✅ ОПТИМИЗАЦИЯ: Параллельное выполнение переводов вместо последовательного
+    // Было: 3 последовательных await (~600ms)
+    // Стало: Promise.all (~200ms)
+    const [organization, region, district] = await Promise.all([
+      translateIfNeeded(aiData?.organization || null),
+      translateIfNeeded(aiData?.region || null),
+      translateIfNeeded(aiData?.district || null),
+    ])
 
     return NextResponse.json({
       success: true,
