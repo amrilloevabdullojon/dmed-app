@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE IF NOT EXISTS "LetterStatusConfig" (
+CREATE TABLE "LetterStatusConfig" (
     "id" TEXT NOT NULL,
     "status" "LetterStatus" NOT NULL,
     "label" TEXT NOT NULL,
@@ -7,16 +7,16 @@ CREATE TABLE IF NOT EXISTS "LetterStatusConfig" (
     "order" INTEGER NOT NULL DEFAULT 0,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "LetterStatusConfig_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX IF NOT EXISTS "LetterStatusConfig_status_key" ON "LetterStatusConfig"("status");
+CREATE UNIQUE INDEX "LetterStatusConfig_status_key" ON "LetterStatusConfig"("status");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "LetterStatusConfig_order_idx" ON "LetterStatusConfig"("order");
+CREATE INDEX "LetterStatusConfig_order_idx" ON "LetterStatusConfig"("order");
 
 -- CreateIndex
-CREATE INDEX IF NOT EXISTS "LetterStatusConfig_isActive_idx" ON "LetterStatusConfig"("isActive");
+CREATE INDEX "LetterStatusConfig_isActive_idx" ON "LetterStatusConfig"("isActive");
