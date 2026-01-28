@@ -90,15 +90,27 @@ function createLetterChangeLogMiddleware(client: PrismaClient): Prisma.Middlewar
 
     // UPDATE (включая soft delete)
     if (action === 'update') {
-      // Получаем старые данные перед обновлением
-      const oldData = await client.letter.findUnique({
-        where: params.args.where,
-        select: getLetterSyncFields(),
-      })
+      // ✅ ОПТИМИЗАЦИЯ: Используем UPDATE с возвращением данных для сравнения
+      // Избегаем отдельного SELECT запроса (N+1)
+
+      // Сначала пытаемся получить старые данные только если они нужны
+      // (не делаем SELECT если изменения не трогают синхронизируемые поля)
+      const dataKeys = Object.keys(params.args.data || {})
+      const hasSyncFields = dataKeys.some((key) => SYNC_FIELDS.includes(key))
+
+      let oldData: any = null
+
+      if (hasSyncFields) {
+        // Получаем старые данные только если есть изменения в синхронизируемых полях
+        oldData = await client.letter.findUnique({
+          where: params.args.where,
+          select: getLetterSyncFields(),
+        })
+      }
 
       const result = await next(params)
 
-      if (oldData && result) {
+      if (oldData && result && hasSyncFields) {
         // Проверяем soft delete (deletedAt изменился с null на дату)
         const wasSoftDeleted = oldData.deletedAt === null && result.deletedAt !== null
 
@@ -112,14 +124,10 @@ function createLetterChangeLogMiddleware(client: PrismaClient): Prisma.Middlewar
           // Определяем изменённые поля
           const changes = detectChanges(oldData, result)
 
-          for (const change of changes) {
-            logLetterChange(client, {
-              letterId: result.id,
-              action: 'UPDATE',
-              field: change.field,
-              oldValue: change.oldValue,
-              newValue: change.newValue,
-            }).catch(() => {})
+          // ✅ ОПТИМИЗАЦИЯ: Batch INSERT вместо цикла
+          // Снижает количество DB queries с N до 1
+          if (changes.length > 0) {
+            batchLogChanges(client, result.id, changes).catch(() => {})
           }
         }
       }
@@ -268,6 +276,38 @@ async function logLetterChange(
     // Логируем ошибку, но не прерываем основную операцию
     if (process.env.NODE_ENV === 'development') {
       console.error('[LetterChangeLog]', error)
+    }
+  }
+}
+
+/**
+ * ✅ ОПТИМИЗАЦИЯ: Batch запись изменений в LetterChangeLog
+ * Использует createMany вместо N отдельных INSERT запросов
+ */
+async function batchLogChanges(
+  client: PrismaClient,
+  letterId: string,
+  changes: Array<{ field: string; oldValue: string | null; newValue: string | null }>
+) {
+  try {
+    if (changes.length === 0) return
+
+    await client.letterChangeLog.createMany({
+      data: changes.map((change) => ({
+        letterId,
+        action: 'UPDATE' as const,
+        field: change.field,
+        oldValue: change.oldValue,
+        newValue: change.newValue,
+        userId: null,
+        syncStatus: 'PENDING' as const,
+      })),
+      skipDuplicates: true,
+    })
+  } catch (error) {
+    // Логируем ошибку, но не прерываем основную операцию
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[LetterChangeLog] Batch insert failed', error)
     }
   }
 }

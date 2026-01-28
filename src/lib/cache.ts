@@ -126,14 +126,16 @@ class SimpleCache {
 
 export const cache = new SimpleCache()
 
+// ✅ ОПТИМИЗАЦИЯ: Увеличены TTL для снижения CPU usage
+// Снижает частоту cache misses и повторных вычислений
 export const CACHE_TTL = {
-  STATS: 2 * 60 * 1000,
-  STATS_REPORT: 2 * 60 * 1000,
-  LETTERS_LIST: 30 * 1000,
-  REQUESTS_LIST: 30 * 1000,
-  LETTER_DETAIL: 60 * 1000,
-  USERS: 5 * 60 * 1000,
-  DASHBOARD: 30 * 1000,
+  STATS: 10 * 60 * 1000,           // 600 сек (10 мин) - было 120 сек
+  STATS_REPORT: 10 * 60 * 1000,    // 600 сек (10 мин) - было 120 сек
+  LETTERS_LIST: 2 * 60 * 1000,     // 120 сек (2 мин) - было 30 сек
+  REQUESTS_LIST: 2 * 60 * 1000,    // 120 сек (2 мин) - было 30 сек
+  LETTER_DETAIL: 2 * 60 * 1000,    // 120 сек (2 мин) - было 60 сек
+  USERS: 10 * 60 * 1000,           // 600 сек (10 мин) - было 300 сек
+  DASHBOARD: 5 * 60 * 1000,        // 300 сек (5 мин) - было 30 сек
 }
 
 export const CACHE_KEYS = {
