@@ -426,6 +426,20 @@ function LettersPageContent({ initialData }: LettersPageClientProps) {
     }
   }, [])
 
+  const removeRecentSearch = useCallback((value: string) => {
+    setRecentSearches((prev) => {
+      const next = prev.filter((item) => item !== value)
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('letters-recent-searches', JSON.stringify(next))
+        } catch {
+          // ignore
+        }
+      }
+      return next
+    })
+  }, [])
+
   // Filters open state
   useEffect(() => {
     setFiltersOpen(!isMobile)
@@ -1178,6 +1192,7 @@ function LettersPageContent({ initialData }: LettersPageClientProps) {
                       setSelectedSuggestionIndex(-1)
                     }}
                     onClearRecent={clearRecentSearches}
+                    onRemoveRecent={removeRecentSearch}
                     onAutoComplete={(value) => {
                       setSearch(value)
                       setSelectedSuggestionIndex(-1)

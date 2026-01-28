@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, Search, Clock, FileText, Building2 } from 'lucide-react'
+import { Loader2, Search, Clock, FileText, Building2, X, Trash2 } from 'lucide-react'
 import { STATUS_LABELS, getWorkingDaysUntilDeadline, pluralizeDays } from '@/lib/utils'
 import type { SearchSuggestion } from './letters-types'
 
@@ -14,6 +14,7 @@ interface LettersSearchSuggestionsProps {
   selectedIndex: number
   onSelectRecent: (value: string) => void
   onClearRecent: () => void
+  onRemoveRecent?: (value: string) => void
   onSelectSuggestion?: (suggestion: SearchSuggestion) => void
   onAutoComplete?: (value: string) => void
 }
@@ -26,6 +27,7 @@ export const LettersSearchSuggestions = memo(function LettersSearchSuggestions({
   selectedIndex,
   onSelectRecent,
   onClearRecent,
+  onRemoveRecent,
   onSelectSuggestion,
   onAutoComplete,
 }: LettersSearchSuggestionsProps) {
@@ -83,31 +85,51 @@ export const LettersSearchSuggestions = memo(function LettersSearchSuggestions({
     : recentSearches.length
 
   return (
-    <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900/98 shadow-2xl shadow-black/50 backdrop-blur-xl">
-      <div className="flex items-center justify-between border-b border-slate-700/50 px-4 py-2.5">
-        <div className="flex items-center gap-2 text-xs text-slate-400">
+    <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-[100] overflow-hidden rounded-xl border border-slate-600/50 bg-slate-900 shadow-2xl">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-slate-700/50 bg-slate-800/50 px-4 py-2.5">
+        <div className="flex items-center gap-2 text-xs font-medium text-slate-300">
           {trimmedSearch ? (
             <>
-              <Search className="h-3.5 w-3.5" />
+              <Search className="h-3.5 w-3.5 text-teal-400" />
               <span>Результаты для &quot;{trimmedSearch}&quot;</span>
             </>
           ) : (
             <>
-              <Clock className="h-3.5 w-3.5" />
+              <Clock className="h-3.5 w-3.5 text-slate-400" />
               <span>Последние поиски</span>
             </>
           )}
         </div>
-        {isLoading && <Loader2 className="h-4 w-4 animate-spin text-teal-400" />}
+        <div className="flex items-center gap-2">
+          {isLoading && <Loader2 className="h-4 w-4 animate-spin text-teal-400" />}
+          {!trimmedSearch && recentSearches.length > 0 && (
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                onClearRecent()
+              }}
+              className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-700/50 hover:text-red-400"
+              title="Очистить всю историю"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Очистить</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      <div ref={listRef} className="max-h-64 overflow-auto">
+      {/* Content */}
+      <div ref={listRef} className="max-h-72 overflow-auto">
         {!trimmedSearch ? (
           // Последние поиски
           recentSearches.length === 0 ? (
-            <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
-              <Search className="mb-2 h-8 w-8 text-slate-600" />
-              <div className="text-sm text-slate-500">Пока нет истории поиска</div>
+            <div className="flex flex-col items-center justify-center px-4 py-10 text-center">
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-800">
+                <Search className="h-6 w-6 text-slate-600" />
+              </div>
+              <div className="text-sm font-medium text-slate-400">Пока нет истории поиска</div>
               <div className="mt-1 text-xs text-slate-600">
                 Начните вводить номер, организацию или содержание
               </div>
@@ -115,57 +137,55 @@ export const LettersSearchSuggestions = memo(function LettersSearchSuggestions({
           ) : (
             <div className="p-2">
               {recentSearches.map((item, index) => (
-                <button
+                <div
                   key={item}
-                  type="button"
                   data-index={index}
-                  onMouseDown={(event) => {
-                    event.preventDefault()
-                    onSelectRecent(item)
-                  }}
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition ${
+                  className={`group flex items-center gap-2 rounded-lg transition ${
                     selectedIndex === index
-                      ? 'bg-teal-500/20 text-white'
-                      : 'text-slate-300 hover:bg-slate-800/60'
+                      ? 'bg-teal-500/20'
+                      : 'hover:bg-slate-800/80'
                   }`}
                 >
-                  <Clock className="h-4 w-4 shrink-0 text-slate-500" />
-                  <span className="truncate text-sm">{item}</span>
-                  <span className="ml-auto text-[10px] uppercase tracking-wide text-slate-600">
-                    Enter
-                  </span>
-                </button>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      onSelectRecent(item)
+                    }}
+                    className="flex flex-1 items-center gap-3 px-3 py-2.5 text-left"
+                  >
+                    <Clock className={`h-4 w-4 shrink-0 ${selectedIndex === index ? 'text-teal-400' : 'text-slate-500'}`} />
+                    <span className={`truncate text-sm ${selectedIndex === index ? 'text-white' : 'text-slate-300'}`}>
+                      {item}
+                    </span>
+                  </button>
+                  {onRemoveRecent && (
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        onRemoveRecent(item)
+                      }}
+                      className="mr-2 rounded p-1.5 text-slate-600 opacity-0 transition hover:bg-slate-700 hover:text-red-400 group-hover:opacity-100"
+                      title="Удалить из истории"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               ))}
-              <button
-                type="button"
-                onMouseDown={(event) => {
-                  event.preventDefault()
-                  onClearRecent()
-                }}
-                className="mt-2 w-full rounded-lg px-3 py-2 text-center text-xs text-slate-500 transition hover:bg-slate-800/40 hover:text-slate-300"
-              >
-                Очистить историю
-              </button>
             </div>
           )
         ) : suggestions.length === 0 && !isLoading ? (
           // Ничего не найдено
-          <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
-            <FileText className="mb-2 h-8 w-8 text-slate-600" />
-            <div className="text-sm text-slate-400">Ничего не найдено</div>
-            <div className="mt-2 text-xs text-slate-600">
-              Попробуйте изменить запрос или использовать:
+          <div className="flex flex-col items-center justify-center px-4 py-10 text-center">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-800">
+              <FileText className="h-6 w-6 text-slate-600" />
             </div>
-            <div className="mt-2 flex flex-wrap justify-center gap-2">
-              <span className="rounded-md bg-slate-800/60 px-2 py-1 text-xs text-slate-400">
-                номер письма
-              </span>
-              <span className="rounded-md bg-slate-800/60 px-2 py-1 text-xs text-slate-400">
-                организация
-              </span>
-              <span className="rounded-md bg-slate-800/60 px-2 py-1 text-xs text-slate-400">
-                Jira ссылка
-              </span>
+            <div className="text-sm font-medium text-slate-400">Ничего не найдено</div>
+            <div className="mt-2 text-xs text-slate-600">
+              Попробуйте изменить запрос
             </div>
           </div>
         ) : (
@@ -173,7 +193,7 @@ export const LettersSearchSuggestions = memo(function LettersSearchSuggestions({
             {/* Autocomplete подсказки */}
             {autocompleteSuggestions.length > 0 && (
               <div className="mb-2 border-b border-slate-700/50 pb-2">
-                <div className="mb-1.5 px-2 text-[10px] uppercase tracking-wider text-slate-500">
+                <div className="mb-1.5 px-3 text-[10px] font-medium uppercase tracking-wider text-slate-500">
                   Автодополнение
                 </div>
                 {autocompleteSuggestions.map((text, index) => (
@@ -181,19 +201,19 @@ export const LettersSearchSuggestions = memo(function LettersSearchSuggestions({
                     key={text}
                     type="button"
                     data-index={index}
-                    onMouseDown={(event) => {
-                      event.preventDefault()
+                    onMouseDown={(e) => {
+                      e.preventDefault()
                       onAutoComplete?.(text)
                     }}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition ${
+                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition ${
                       selectedIndex === index
                         ? 'bg-teal-500/20 text-white'
-                        : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                        : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
                     }`}
                   >
-                    <Search className="h-3.5 w-3.5 shrink-0" />
-                    <span className="text-sm">{renderHighlightedText(text, search)}</span>
-                    <span className="ml-auto text-[10px] text-slate-600">Tab</span>
+                    <Search className={`h-4 w-4 shrink-0 ${selectedIndex === index ? 'text-teal-400' : ''}`} />
+                    <span className="flex-1 truncate text-sm">{renderHighlightedText(text, search)}</span>
+                    <kbd className="rounded bg-slate-700/60 px-1.5 py-0.5 text-[10px] text-slate-500">Tab</kbd>
                   </button>
                 ))}
               </div>
@@ -202,12 +222,13 @@ export const LettersSearchSuggestions = memo(function LettersSearchSuggestions({
             {/* Результаты писем */}
             {suggestions.length > 0 && (
               <>
-                <div className="mb-1.5 px-2 text-[10px] uppercase tracking-wider text-slate-500">
+                <div className="mb-1.5 px-3 text-[10px] font-medium uppercase tracking-wider text-slate-500">
                   Письма ({suggestions.length})
                 </div>
                 {suggestions.map((item, index) => {
                   const actualIndex = autocompleteSuggestions.length + index
                   const daysLeft = getWorkingDaysUntilDeadline(item.deadlineDate)
+                  const isSelected = selectedIndex === actualIndex
                   const tone =
                     daysLeft < 0
                       ? 'text-red-400'
@@ -220,44 +241,34 @@ export const LettersSearchSuggestions = memo(function LettersSearchSuggestions({
                       key={item.id}
                       type="button"
                       data-index={actualIndex}
-                      onMouseDown={(event) => {
-                        event.preventDefault()
+                      onMouseDown={(e) => {
+                        e.preventDefault()
                         if (onSelectSuggestion) {
                           onSelectSuggestion(item)
                         } else {
                           router.push(`/letters/${item.id}`)
                         }
                       }}
-                      className={`group flex w-full flex-col gap-1.5 rounded-lg px-3 py-2.5 text-left transition ${
-                        selectedIndex === actualIndex ? 'bg-teal-500/20' : 'hover:bg-slate-800/60'
+                      className={`group flex w-full flex-col gap-1.5 rounded-lg px-3 py-3 text-left transition ${
+                        isSelected ? 'bg-teal-500/20' : 'hover:bg-slate-800/80'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`font-mono text-sm ${selectedIndex === actualIndex ? 'text-teal-300' : 'text-teal-400'}`}
-                          >
-                            №{item.number}
+                          <span className={`rounded bg-slate-800 px-2 py-0.5 font-mono text-sm ${isSelected ? 'text-teal-300' : 'text-teal-400'}`}>
+                            #{item.number}
                           </span>
-                          <span
-                            className={`rounded px-1.5 py-0.5 text-[10px] ${
-                              selectedIndex === actualIndex ? 'bg-slate-700/80' : 'bg-slate-800/60'
-                            } text-slate-400`}
-                          >
+                          <span className={`rounded px-2 py-0.5 text-[10px] font-medium ${isSelected ? 'bg-slate-700' : 'bg-slate-800/60'} text-slate-400`}>
                             {STATUS_LABELS[item.status]}
                           </span>
                         </div>
-                        <span className={`text-xs ${tone}`}>
-                          {daysLeft >= 0
-                            ? `${daysLeft} раб. ${pluralizeDays(daysLeft)}`
-                            : 'Просрочено'}
+                        <span className={`text-xs font-medium ${tone}`}>
+                          {daysLeft >= 0 ? `${daysLeft} раб. ${pluralizeDays(daysLeft)}` : 'Просрочено'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Building2 className="h-3.5 w-3.5 shrink-0 text-slate-500" />
-                        <span
-                          className={`truncate text-xs ${selectedIndex === actualIndex ? 'text-slate-200' : 'text-slate-400'}`}
-                        >
+                        <span className={`truncate text-xs ${isSelected ? 'text-slate-200' : 'text-slate-400'}`}>
                           {renderHighlightedText(item.org, search)}
                         </span>
                       </div>
@@ -270,22 +281,25 @@ export const LettersSearchSuggestions = memo(function LettersSearchSuggestions({
         )}
       </div>
 
-      {/* Footer с подсказками по навигации */}
+      {/* Footer */}
       {totalItems > 0 && (
-        <div className="flex items-center justify-between border-t border-slate-700/50 bg-slate-800/30 px-4 py-2 text-[10px] text-slate-500">
-          <div className="flex items-center gap-3">
-            <span>
-              <kbd className="rounded bg-slate-700/60 px-1.5 py-0.5 font-mono">↑↓</kbd> навигация
+        <div className="flex items-center justify-between border-t border-slate-700/50 bg-slate-800/30 px-4 py-2">
+          <div className="flex items-center gap-4 text-[10px] text-slate-500">
+            <span className="flex items-center gap-1">
+              <kbd className="rounded bg-slate-700/80 px-1.5 py-0.5 font-mono">↑↓</kbd>
+              <span className="hidden sm:inline">навигация</span>
             </span>
-            <span>
-              <kbd className="rounded bg-slate-700/60 px-1.5 py-0.5 font-mono">Enter</kbd> выбрать
+            <span className="flex items-center gap-1">
+              <kbd className="rounded bg-slate-700/80 px-1.5 py-0.5 font-mono">Enter</kbd>
+              <span className="hidden sm:inline">выбрать</span>
             </span>
-            <span>
-              <kbd className="rounded bg-slate-700/60 px-1.5 py-0.5 font-mono">Esc</kbd> закрыть
+            <span className="flex items-center gap-1">
+              <kbd className="rounded bg-slate-700/80 px-1.5 py-0.5 font-mono">Esc</kbd>
+              <span className="hidden sm:inline">закрыть</span>
             </span>
           </div>
           {trimmedSearch && suggestions.length > 0 && (
-            <span className="text-slate-600">
+            <span className="text-[10px] text-slate-600">
               {suggestions.length} {suggestions.length === 1 ? 'результат' : 'результатов'}
             </span>
           )}
