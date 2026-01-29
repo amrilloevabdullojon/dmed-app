@@ -496,7 +496,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       case 'ownerId':
         oldValue = letter.ownerId
         newValue = value || null
-        updateData.ownerId = newValue
+        if (newValue) {
+          updateData.owner = { connect: { id: newValue } }
+        } else {
+          updateData.owner = { disconnect: true }
+        }
         break
 
       default:
