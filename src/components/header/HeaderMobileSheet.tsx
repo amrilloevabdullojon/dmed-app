@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
-import { X, Menu, User, LogOut, Settings, RefreshCw, FileText, Inbox } from 'lucide-react'
+import { X, Menu, User, LogOut, Settings, RefreshCw, FileText, Inbox, TrendingUp } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { hapticLight, hapticMedium } from '@/lib/haptic'
 import { NAV_ITEMS, QUICK_CREATE_ITEMS, isActivePath, getRoleLabel } from './header-constants'
@@ -260,6 +260,26 @@ export const HeaderMobileSheet = memo(function HeaderMobileSheet({
                 </div>
               </>
             )}
+
+            {/* Personal Section */}
+            <div className="my-4 border-t border-white/10" />
+            <div className="mb-2 px-4 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+              Личное
+            </div>
+            <div className="space-y-1">
+              <Link
+                href="/my-progress"
+                onClick={(event) => handleNavClick(event, '/my-progress')}
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition-all ${
+                  isActivePath(pathname, '/my-progress')
+                    ? 'border border-teal-400/20 bg-teal-500/10 text-teal-300'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <TrendingUp className="h-5 w-5 text-emerald-400" />
+                Мой прогресс
+              </Link>
+            </div>
 
             {/* Footer Actions */}
             <div className="mt-4 space-y-1 border-t border-white/10 pt-4">

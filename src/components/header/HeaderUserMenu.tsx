@@ -5,7 +5,7 @@ import type { MouseEvent } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { signOut } from 'next-auth/react'
-import { User, LogOut, Search } from 'lucide-react'
+import { User, LogOut, Search, TrendingUp } from 'lucide-react'
 import { hapticLight, hapticMedium } from '@/lib/haptic'
 import { Notifications } from '../Notifications'
 import { ThemeToggle } from '../ThemeToggle'
@@ -64,6 +64,17 @@ export const HeaderUserMenu = memo(function HeaderUserMenu({
 
       {user && (
         <>
+          {/* My Progress Link */}
+          <Link
+            href="/my-progress"
+            onClick={(event) => handleNavClick(event, '/my-progress')}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-all hover:bg-emerald-500/10 hover:text-emerald-400"
+            title="Мой прогресс"
+            aria-label="Мой прогресс"
+          >
+            <TrendingUp className="h-[18px] w-[18px]" />
+          </Link>
+
           {/* Notifications */}
           <Notifications />
 

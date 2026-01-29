@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { User, ChevronDown, Check, X, Search, Loader2, UserX } from 'lucide-react'
 
@@ -33,38 +33,57 @@ export function OwnerSelector({
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [saving, setSaving] = useState(false)
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
+  const [mounted, setMounted] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Вычисление позиции dropdown
-  const updateDropdownPosition = useCallback(() => {
+  // Позиция dropdown вычисляется только при открытии
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 })
+
+  // Mount check for portal
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Вычисление позиции при открытии
+  const calculatePosition = useCallback(() => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
+      setPosition({
+        top: rect.bottom + 4,
+        left: rect.left,
         width: Math.max(rect.width, 280),
       })
     }
   }, [])
 
-  // Обновление позиции при открытии и скролле
-  useEffect(() => {
-    if (isOpen) {
-      updateDropdownPosition()
-      window.addEventListener('scroll', updateDropdownPosition, true)
-      window.addEventListener('resize', updateDropdownPosition)
-      return () => {
-        window.removeEventListener('scroll', updateDropdownPosition, true)
-        window.removeEventListener('resize', updateDropdownPosition)
-      }
-    }
-  }, [isOpen, updateDropdownPosition])
+  // Открытие dropdown
+  const handleOpen = useCallback(() => {
+    if (disabled || !canEdit) return
+    calculatePosition()
+    setIsOpen(true)
+  }, [disabled, canEdit, calculatePosition])
 
-  // Закрытие dropdown при клике вне компонента
+  // Закрытие dropdown
+  const handleClose = useCallback(() => {
+    setIsOpen(false)
+    setSearch('')
+  }, [])
+
+  // Toggle
+  const handleToggle = useCallback(() => {
+    if (isOpen) {
+      handleClose()
+    } else {
+      handleOpen()
+    }
+  }, [isOpen, handleClose, handleOpen])
+
+  // Закрытие при клике вне
   useEffect(() => {
+    if (!isOpen) return
+
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node
       if (
@@ -73,54 +92,63 @@ export function OwnerSelector({
         dropdownRef.current &&
         !dropdownRef.current.contains(target)
       ) {
-        setIsOpen(false)
-        setSearch('')
+        handleClose()
       }
     }
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose()
     }
-  }, [isOpen])
+
+    const handleScroll = () => calculatePosition()
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('scroll', handleScroll, true)
+    window.addEventListener('resize', handleScroll)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('scroll', handleScroll, true)
+      window.removeEventListener('resize', handleScroll)
+    }
+  }, [isOpen, handleClose, calculatePosition])
 
   // Фокус на input при открытии
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 10)
+      const timer = setTimeout(() => inputRef.current?.focus(), 50)
+      return () => clearTimeout(timer)
     }
   }, [isOpen])
 
-  // Закрытие по Escape
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        setIsOpen(false)
-        setSearch('')
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen])
-
-  const handleSelect = async (userId: string | null) => {
+  // Выбор пользователя
+  const handleSelect = useCallback(async (userId: string | null) => {
     if (disabled || saving) return
     setSaving(true)
     try {
       await onSelect(userId)
-      setIsOpen(false)
-      setSearch('')
+      handleClose()
+    } catch (error) {
+      console.error('Failed to select owner:', error)
     } finally {
       setSaving(false)
     }
-  }
+  }, [disabled, saving, onSelect, handleClose])
 
-  const filteredUsers = users.filter((user) => {
-    if (!search.trim()) return true
+  // Фильтрованные пользователи
+  const filteredUsers = useMemo(() => {
+    if (!search.trim()) return users
     const query = search.toLowerCase()
-    return user.name?.toLowerCase().includes(query) || user.email?.toLowerCase().includes(query)
-  })
+    return users.filter(
+      (user) =>
+        user.name?.toLowerCase().includes(query) ||
+        user.email?.toLowerCase().includes(query)
+    )
+  }, [users, search])
 
+  // Только для чтения
   if (!canEdit) {
     return (
       <div className="flex items-center gap-2 text-white">
@@ -132,15 +160,16 @@ export function OwnerSelector({
     )
   }
 
-  const dropdown = isOpen && typeof window !== 'undefined' ? createPortal(
+  // Dropdown content
+  const dropdownContent = (
     <div
       ref={dropdownRef}
       style={{
-        position: 'absolute',
-        top: dropdownPosition.top,
-        left: dropdownPosition.left,
-        width: dropdownPosition.width,
-        zIndex: 9999,
+        position: 'fixed',
+        top: position.top,
+        left: position.left,
+        width: position.width,
+        zIndex: 99999,
       }}
       className="overflow-hidden rounded-xl border border-slate-600/50 bg-slate-900 shadow-2xl"
     >
@@ -190,9 +219,7 @@ export function OwnerSelector({
                 onClick={() => handleSelect(user.id)}
                 disabled={saving || isSelected}
                 className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition ${
-                  isSelected
-                    ? 'bg-teal-500/20'
-                    : 'hover:bg-slate-800/80'
+                  isSelected ? 'bg-teal-500/20' : 'hover:bg-slate-800/80'
                 } disabled:cursor-default`}
               >
                 <div
@@ -200,13 +227,13 @@ export function OwnerSelector({
                     isSelected ? 'bg-teal-500/30' : 'bg-slate-700/80'
                   }`}
                 >
-                  <User
-                    className={`h-4 w-4 ${isSelected ? 'text-teal-300' : 'text-slate-400'}`}
-                  />
+                  <User className={`h-4 w-4 ${isSelected ? 'text-teal-300' : 'text-slate-400'}`} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div
-                    className={`truncate text-sm font-medium ${isSelected ? 'text-teal-200' : 'text-white'}`}
+                    className={`truncate text-sm font-medium ${
+                      isSelected ? 'text-teal-200' : 'text-white'
+                    }`}
                   >
                     {user.name || user.email}
                   </div>
@@ -220,16 +247,15 @@ export function OwnerSelector({
           })
         )}
       </div>
-    </div>,
-    document.body
-  ) : null
+    </div>
+  )
 
   return (
     <>
       <button
         ref={buttonRef}
         type="button"
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={handleToggle}
         disabled={disabled}
         className={`group flex items-center gap-2 rounded-lg transition ${
           compact
@@ -260,11 +286,13 @@ export function OwnerSelector({
           <Loader2 className="h-4 w-4 shrink-0 animate-spin text-teal-400" />
         ) : (
           <ChevronDown
-            className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+            className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${
+              isOpen ? 'rotate-180' : ''
+            }`}
           />
         )}
       </button>
-      {dropdown}
+      {mounted && isOpen && createPortal(dropdownContent, document.body)}
     </>
   )
 }

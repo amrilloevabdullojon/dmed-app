@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState, useEffect } from 'react'
+import { memo, useState, useEffect, useMemo, useCallback } from 'react'
 import {
   Calendar,
   Clock,
@@ -175,33 +175,42 @@ export const LetterInfo = memo(function LetterInfo({
 
   const notifyDisabled = notifyingOwner || !!notifyDisabledReason
 
-  // Загрузка списка пользователей при монтировании
+  // Загрузка списка пользователей при монтировании (только если есть права)
   useEffect(() => {
-    if (!canManageLetters || !onChangeOwner) return
+    if (!canManageLetters) return
 
+    let cancelled = false
     const loadUsers = async () => {
       setLoadingUsers(true)
       try {
         const res = await fetch('/api/users')
         const data = await res.json()
-        setUsers(data.users || [])
+        if (!cancelled) {
+          setUsers(data.users || [])
+        }
       } catch (error) {
         console.error('Failed to load users:', error)
       } finally {
-        setLoadingUsers(false)
+        if (!cancelled) {
+          setLoadingUsers(false)
+        }
       }
     }
 
     loadUsers()
-  }, [canManageLetters, onChangeOwner])
+    return () => { cancelled = true }
+  }, [canManageLetters])
 
-  const currentOwner: OwnerOption | null = letter.owner
-    ? {
-        id: letter.owner.id,
-        name: letter.owner.name,
-        email: letter.owner.email,
-      }
-    : null
+  const currentOwner: OwnerOption | null = useMemo(() =>
+    letter.owner
+      ? {
+          id: letter.owner.id,
+          name: letter.owner.name,
+          email: letter.owner.email,
+        }
+      : null,
+    [letter.owner?.id, letter.owner?.name, letter.owner?.email]
+  )
 
   return (
     <div className="panel panel-glass rounded-2xl p-4 md:p-5">
