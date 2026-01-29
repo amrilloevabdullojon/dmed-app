@@ -1,4 +1,4 @@
-import { Home, FileText, Inbox, BarChart3, Settings, User } from 'lucide-react'
+import { Home, FileText, Inbox, BarChart3, Settings, User, TrendingUp } from 'lucide-react'
 import type { NavItem, QuickCreateItem, PageMeta, PrimaryAction } from './header-types'
 
 export const NAV_ITEMS: NavItem[] = [
